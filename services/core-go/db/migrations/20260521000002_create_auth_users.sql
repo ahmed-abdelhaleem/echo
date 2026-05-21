@@ -42,8 +42,9 @@ CREATE TABLE IF NOT EXISTS auth.users (
     CONSTRAINT auth_users_age_band_chk CHECK (age_band IN ('youth', 'adult'))
 );
 
-CREATE INDEX IF NOT EXISTS auth_users_kratos_identity_id_idx
-    ON auth.users (kratos_identity_id);
+-- The UNIQUE constraint on kratos_identity_id above already creates a
+-- B-tree index that covers the lookup path (`SELECT ... WHERE
+-- kratos_identity_id = $1`). No additional index needed.
 
 CREATE INDEX IF NOT EXISTS auth_users_age_band_idx
     ON auth.users (age_band)
@@ -64,7 +65,6 @@ COMMENT ON COLUMN auth.users.age_band IS
 -- Down is provided for local dev / CI rollback only; production rollbacks
 -- go through the documented runbook in docs/07.
 DROP INDEX IF EXISTS auth.auth_users_age_band_idx;
-DROP INDEX IF EXISTS auth.auth_users_kratos_identity_id_idx;
 DROP TABLE IF EXISTS auth.users;
 
 -- +goose StatementEnd

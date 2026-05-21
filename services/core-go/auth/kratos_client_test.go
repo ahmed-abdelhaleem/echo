@@ -37,6 +37,7 @@ func TestKratosClient_Whoami_HappyPath(t *testing.T) {
 	body := `{
 		"id": "session-abc",
 		"active": true,
+		"issued_at": "2026-05-21T10:00:00Z",
 		"expires_at": "2030-01-01T00:00:00Z",
 		"identity": {
 			"id": "identity-xyz",
@@ -68,6 +69,12 @@ func TestKratosClient_Whoami_HappyPath(t *testing.T) {
 	}
 	if !sess.HasIdentity() {
 		t.Error("HasIdentity should be true")
+	}
+	// IssuedAt must come from the session's `issued_at` (May), NOT the
+	// identity's `created_at` (January). Anything else makes session-age
+	// checks lie.
+	if got, want := sess.IssuedAt.UTC().Format("2006-01"), "2026-05"; got != want {
+		t.Errorf("IssuedAt: got %s, want %s (must use session.issued_at, not identity.created_at)", got, want)
 	}
 }
 

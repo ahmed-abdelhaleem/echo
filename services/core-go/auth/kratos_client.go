@@ -49,6 +49,7 @@ var ErrSessionUnauthorized = errors.New("kratos: session unauthorized")
 type kratosSession struct {
 	ID        string         `json:"id"`
 	Active    bool           `json:"active"`
+	IssuedAt  time.Time      `json:"issued_at"`
 	ExpiresAt time.Time      `json:"expires_at"`
 	Identity  kratosIdentity `json:"identity"`
 }
@@ -115,7 +116,7 @@ func (c *KratosClient) Whoami(ctx context.Context, cookie string) (Session, erro
 		Email:       ks.Identity.Traits.Email,
 		DisplayName: ks.Identity.Traits.DisplayName,
 		Birthdate:   ks.Identity.Traits.Birthdate,
+		IssuedAt:    ks.IssuedAt,
 		ExpiresAt:   ks.ExpiresAt,
-		IssuedAt:    ks.Identity.CreatedAt,
 	}, nil
 }
