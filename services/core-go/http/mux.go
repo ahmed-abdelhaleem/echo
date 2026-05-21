@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/auth"
+	"github.com/ahmed-abdelhaleem/echo/services/core-go/content"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -22,10 +23,11 @@ import (
 // degrade gracefully (readiness reports the dependency as unreachable;
 // /whoami returns 503 when Auth is nil).
 type Dependencies struct {
-	Logger *slog.Logger
-	PG     *pgxpool.Pool
-	Redis  *redis.Client
-	Auth   *auth.Service
+	Logger  *slog.Logger
+	PG      *pgxpool.Pool
+	Redis   *redis.Client
+	Auth    *auth.Service
+	Content *content.Service
 }
 
 // NewMux builds the HTTP mux. Kept small in M0; routes accumulate as features land.
@@ -40,6 +42,12 @@ func NewMux(deps Dependencies) http.Handler {
 		whoamiHandler := http.HandlerFunc(whoami)
 		mw := auth.Middleware(deps.Auth.Kratos, deps.Logger)
 		mux.Handle("GET /whoami", mw(whoamiHandler))
+	}
+
+	// Content endpoints are public: anyone with the client can browse the
+	// authored Seasons. Auth is required only for playthrough mutations.
+	if deps.Content != nil {
+		mux.HandleFunc("GET /content/seasons/{id}", getSeasonHandler(deps.Content))
 	}
 
 	return mux

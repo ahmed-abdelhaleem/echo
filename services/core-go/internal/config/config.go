@@ -39,6 +39,12 @@ type Config struct {
 	// server-side flows (identity lookup, deletion). Empty disables those.
 	KratosAdminURL string
 
+	// ContentRoot is the filesystem root that the content service reads
+	// Seasons from. In dev this is `./content` relative to the repo root;
+	// in production it points at a content image baked into the container.
+	// Empty disables the content endpoints.
+	ContentRoot string
+
 	// Environment is the deployment environment label (dev|staging|production).
 	Environment string
 }
@@ -54,6 +60,7 @@ func Load() (Config, error) {
 		OTLPEndpoint:    strings.TrimSpace(os.Getenv("OTLP_ENDPOINT")),
 		KratosPublicURL: strings.TrimSpace(os.Getenv("KRATOS_PUBLIC_URL")),
 		KratosAdminURL:  strings.TrimSpace(os.Getenv("KRATOS_ADMIN_URL")),
+		ContentRoot:     strings.TrimSpace(os.Getenv("CONTENT_ROOT")),
 		Environment:     defaultString(os.Getenv("ECHO_ENV"), "dev"),
 	}
 
