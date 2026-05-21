@@ -1,0 +1,44 @@
+name: echo_client
+description: Echo cross-platform Flutter client. Vignette-driven personality-discovery game.
+publish_to: none
+version: 0.1.0+1
+
+# Pinned to match .tool-versions at the repo root.
+environment:
+  sdk: ^3.6.2
+  flutter: ^3.27.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # State management — see docs/06_Tech_Stack.md §"Mobile and desktop client".
+  flutter_riverpod: ^2.6.1
+
+  # Routing.
+  go_router: ^14.6.2
+
+  # HTTP client for the core-go gateway.
+  dio: ^5.7.0
+
+  # Internationalisation utilities.
+  intl: ^0.19.0
+
+  # Result/Either type for explicit error plumbing; tiny, no extra deps.
+  fpdart: ^1.1.1
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+  # Golden tests for Portrait rendering land in M1 (T-CLIENT-021). We'll select a
+  # maintained replacement for the discontinued `golden_toolkit` then.
+
+flutter:
+  uses-material-design: true
+  generate: true
