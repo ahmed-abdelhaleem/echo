@@ -8,7 +8,7 @@ import (
 
 // AgeBand is the classification Echo's downstream policies use.
 //
-// The three bands are mutually exclusive and exhaustive for accepted users.
+// The two bands are mutually exclusive and exhaustive for accepted users.
 // Under-13 identities are NOT represented as a band — they are rejected at
 // the gate. Keeping that case out of the type makes the youth-safe path
 // statically un-skippable.

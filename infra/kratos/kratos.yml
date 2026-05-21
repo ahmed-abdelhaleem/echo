@@ -89,7 +89,7 @@ secrets:
   cookie:
     - echo_dev_cookie_secret_change_me_in_prod
   cipher:
-    # AES-256 keys are exactly 32 bytes. Local-dev placeholder only.
+    # XChaCha20-Poly1305 keys are exactly 32 bytes. Local-dev placeholder only.
     - echodev0123456789abcdefghijklmno
 
 ciphers:
