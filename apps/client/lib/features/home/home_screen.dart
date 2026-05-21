@@ -1,8 +1,8 @@
-// HomeScreen — entry surface for the M0 scaffold.
+// HomeScreen — entry surface for the Echo client.
 //
-// In M1 (T-CLIENT-010 onward) this becomes the Season picker and "continue
-// where you left off" lane. For now it shows a brief description and a button
-// that navigates to a placeholder Vignette so the routing graph is exercised.
+// In M1 (T-CLIENT-010) this is the launchpad for the single packaged
+// Season. A future PR replaces the single button with a Season picker
+// and a "continue where you left off" lane backed by LocalPlaythroughs.
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -20,20 +20,19 @@ class HomeScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             Text(
-              'Echo client (M0 scaffold)',
+              'Echo',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 12),
             const Text(
-              'The vignette experience lands in M1. This build only exercises '
-              'the routing, theming, and localisation rails so feature work '
-              'has somewhere to land.',
+              'Play through a short narrative season. Your choices are saved '
+              'on this device and sync to the server in the background.',
             ),
             const Spacer(),
             FilledButton(
               onPressed: () => context
-                  .goNamed('vignette', pathParameters: {'id': 'vignette-001'}),
-              child: const Text('Open placeholder vignette'),
+                  .goNamed('season', pathParameters: {'id': 'season-001'}),
+              child: const Text('Start season'),
             ),
           ],
         ),

@@ -31,10 +31,25 @@ dependencies:
 
   cupertino_icons: ^1.0.8
 
+  # Offline-first local store per docs/06 §"Drift · Local persistence".
+  # Used in M1 (T-CLIENT-011) to queue choice events for the background
+  # sync in T-CLIENT-012, and to cache fetched Seasons so the vignette
+  # renderer keeps working without connectivity.
+  drift: ^2.21.0
+  drift_flutter: ^0.2.4
+
+  # Stable id generation for local-only rows (eg local playthroughs).
+  uuid: ^4.5.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+
+  # Drift codegen + build_runner for it. Build runs as part of
+  # `make flutter-codegen` and is wired into CI before `flutter analyze`.
+  drift_dev: ^2.21.0
+  build_runner: ^2.4.13
 
   # Golden tests for Portrait rendering land in M1 (T-CLIENT-021). We'll select a
   # maintained replacement for the discontinued `golden_toolkit` then.

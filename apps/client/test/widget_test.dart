@@ -10,12 +10,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('HomeScreen renders the M0 scaffold message', (tester) async {
+  testWidgets('HomeScreen renders the season launchpad', (tester) async {
     await tester.pumpWidget(const ProviderScope(child: EchoApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Echo'), findsOneWidget);
-    expect(find.text('Echo client (M0 scaffold)'), findsOneWidget);
+    expect(find.text('Echo'), findsAtLeast(1));
+    expect(find.text('Start season'), findsOneWidget);
     expect(find.byType(FilledButton), findsOneWidget);
   });
 }
