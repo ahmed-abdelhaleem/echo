@@ -1,0 +1,16 @@
+{
+  "name": "@echo/content-schema",
+  "version": "0.1.0",
+  "description": "JSON Schema definitions for Echo Seasons, Acts, Vignettes, Choices, and TraitWeights.",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "*.schema.json",
+    "index.js"
+  ],
+  "scripts": {
+    "lint": "echo 'no lint for content-schema'",
+    "test": "echo 'no tests for content-schema'"
+  }
+}

@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package echo.portrait.v1;
+
+option go_package = "github.com/ahmed-abdelhaleem/echo/services/core-go/grpc/echopb";
+
+// PortraitGenService generates a parametric Portrait deterministically from
+// (TraitVector, seed). MVP is server-side parametric rendering using Pillow/Cairo;
+// AI image generation is explicitly deferred per docs/05_Technical_Architecture.md.
+service PortraitGenService {
+  rpc Generate(GenerateRequest) returns (GenerateResponse);
+}
+
+message GenerateRequest {
+  string playthrough_id = 1;
+  // Optional seed for stable regeneration; defaults to a hash of trait_vector.
+  uint64 seed = 2;
+}
+
+message GenerateResponse {
+  // Cloudflare R2 keys for the rendered assets.
+  string static_png_key = 1;
+  string animated_webp_key = 2;
+}

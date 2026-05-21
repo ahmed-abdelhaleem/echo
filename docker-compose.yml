@@ -1,0 +1,67 @@
+# Echo — local development stack
+#
+# Phase-0 local environment per docs/05_Technical_Architecture.md and docs/06_Tech_Stack.md.
+# Brings up the three data-layer services the application services need to start.
+#
+# Notes:
+# - Postgres has multiple databases pre-created via the init script in infra/docker/postgres/init/.
+# - NATS runs with JetStream enabled per docs/06_Tech_Stack.md.
+# - Ory Kratos is intentionally NOT included here yet — it will be added when auth is wired up
+#   (see docs/07_AI_Agent_Implementation_Guide.md T-INFRA-020 in M2).
+# - Values shown here are local-dev defaults only and are documented in plain text per AGENTS.md
+#   (passwords used exclusively for local development are not secrets).
+
+name: echo
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: echo-postgres
+    environment:
+      POSTGRES_USER: echo
+      POSTGRES_PASSWORD: echo_dev
+      POSTGRES_DB: echo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U echo -d echo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: echo-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  nats:
+    image: nats:2.10-alpine
+    container_name: echo-nats
+    command: ["-js", "-sd", "/data", "-m", "8222"]
+    ports:
+      - "4222:4222"  # client
+      - "8222:8222"  # monitoring
+    volumes:
+      - nats_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
+  redis_data:
+  nats_data:

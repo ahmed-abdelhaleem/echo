@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://echo.app/schema/choice.schema.json",
+  "title": "Choice",
+  "description": "One choice option presented within a Vignette.",
+  "type": "object",
+  "required": ["id", "label", "weights"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^choice-[0-9]+$"
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Natural-language phrasing of what the character would do or say. No archetype labels."
+    },
+    "weights": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Weighted contributions of this choice to one or more trait dimensions. Combined deterministically by the trait scoring engine per docs/04_Game_Design.md.",
+      "items": {
+        "$ref": "trait_weight.schema.json"
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+# gitleaks configuration.
+#
+# We rely on the default rule set plus this small allowlist for things that
+# look secret-like but are intentional (e.g. local-dev passwords).
+
+title = "Echo gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Local-dev only credentials, schema example strings."
+regexes = [
+    # The local-dev Postgres password is intentionally `echo_dev` in docker-compose.yml.
+    '''echo_dev''',
+]
+paths = [
+    # docs/ folder contains illustrative strings only.
+    '''docs/.*''',
+]
