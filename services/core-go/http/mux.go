@@ -14,6 +14,7 @@ import (
 
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/auth"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/content"
+	"github.com/ahmed-abdelhaleem/echo/services/core-go/playthrough"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -23,11 +24,17 @@ import (
 // degrade gracefully (readiness reports the dependency as unreachable;
 // /whoami returns 503 when Auth is nil).
 type Dependencies struct {
-	Logger  *slog.Logger
-	PG      *pgxpool.Pool
-	Redis   *redis.Client
-	Auth    *auth.Service
-	Content *content.Service
+	Logger      *slog.Logger
+	PG          *pgxpool.Pool
+	Redis       *redis.Client
+	Auth        *auth.Service
+	Content     *content.Service
+	Playthrough *playthrough.Service
+	Users       auth.UsersRepository
+
+	// Now is the time source for handlers that need it (user provisioning
+	// stamps consent timestamps). Defaults to time.Now when nil.
+	Now func() time.Time
 }
 
 // NewMux builds the HTTP mux. Kept small in M0; routes accumulate as features land.
@@ -48,6 +55,18 @@ func NewMux(deps Dependencies) http.Handler {
 	// authored Seasons. Auth is required only for playthrough mutations.
 	if deps.Content != nil {
 		mux.HandleFunc("GET /content/seasons/{id}", getSeasonHandler(deps.Content))
+	}
+
+	// Playthrough endpoints require authentication. Both routes go through
+	// auth.Middleware so the handlers can rely on a session being attached.
+	if deps.Playthrough != nil && deps.Auth != nil && deps.Auth.Kratos != nil && deps.Users != nil {
+		nowFn := deps.Now
+		if nowFn == nil {
+			nowFn = time.Now
+		}
+		mw := auth.Middleware(deps.Auth.Kratos, deps.Logger)
+		mux.Handle("POST /playthroughs", mw(createPlaythroughHandler(deps.Playthrough, deps.Users, nowFn)))
+		mux.Handle("POST /playthroughs/{id}/choices", mw(recordChoiceHandler(deps.Playthrough)))
 	}
 
 	return mux

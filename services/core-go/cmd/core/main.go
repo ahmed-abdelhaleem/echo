@@ -32,6 +32,7 @@ import (
 	corehttp "github.com/ahmed-abdelhaleem/echo/services/core-go/http"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/internal/config"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/internal/telemetry"
+	"github.com/ahmed-abdelhaleem/echo/services/core-go/playthrough"
 )
 
 func main() {
@@ -110,6 +111,20 @@ func main() {
 		logger.Info("content enabled", "content_root", cfg.ContentRoot)
 	} else {
 		logger.Info("content disabled; CONTENT_ROOT not set")
+	}
+
+	// Playthrough — requires Postgres + Content. Auth is checked at route
+	// registration time so the routes only appear when the full chain is
+	// wired.
+	if deps.PG != nil && deps.Content != nil {
+		deps.Users = auth.NewPgUsersRepository(deps.PG)
+		deps.Playthrough = playthrough.NewService(
+			playthrough.NewPgRepository(deps.PG),
+			deps.Content,
+		)
+		logger.Info("playthrough enabled")
+	} else {
+		logger.Info("playthrough disabled; postgres or content not available")
 	}
 
 	srv := &http.Server{
