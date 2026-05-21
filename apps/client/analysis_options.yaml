@@ -1,0 +1,29 @@
+# Analyzer rules for the Echo client.
+#
+# Starts from `flutter_lints` and tightens a few things we care about:
+# avoiding `dynamic`, requiring const where possible, prefer single quotes,
+# and forbidding `print` in non-test code (use the OTel logger when M1 wires it).
+
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  errors:
+    # Treat unused imports as errors so dead code never lands.
+    unused_import: error
+
+linter:
+  rules:
+    - prefer_single_quotes
+    - prefer_const_constructors
+    - prefer_const_constructors_in_immutables
+    - prefer_const_declarations
+    - prefer_const_literals_to_create_immutables
+    - prefer_final_locals
+    - prefer_final_in_for_each
+    - unawaited_futures
+    - avoid_print
+    - require_trailing_commas
