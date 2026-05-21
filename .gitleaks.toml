@@ -13,8 +13,14 @@ description = "Local-dev only credentials, schema example strings."
 regexes = [
     # The local-dev Postgres password is intentionally `echo_dev` in docker-compose.yml.
     '''echo_dev''',
+    # Kratos local-dev secrets (cookie + cipher). Production values live in
+    # the deployment secret store and never appear in the repo.
+    '''echodev0123456789abcdefghijklmno''',
+    '''echo_dev_cookie_secret_change_me_in_prod''',
 ]
 paths = [
     # docs/ folder contains illustrative strings only.
     '''docs/.*''',
+    # infra/kratos/ is the Ory Kratos config; local-dev placeholders only.
+    '''infra/kratos/.*''',
 ]

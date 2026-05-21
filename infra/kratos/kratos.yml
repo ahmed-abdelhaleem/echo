@@ -1,0 +1,120 @@
+version: v1.3.1
+
+dsn: postgres://echo:echo_dev@postgres:5432/kratos?sslmode=disable
+
+# Kratos serves two HTTP listeners: the public API for clients and the admin
+# API for the application backend. Local dev exposes both via Docker.
+serve:
+  public:
+    base_url: http://localhost:4433/
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://localhost:8080
+        - http://localhost:3000
+      allowed_methods:
+        - POST
+        - GET
+        - PUT
+        - PATCH
+        - DELETE
+      allowed_headers:
+        - Authorization
+        - Cookie
+        - Content-Type
+      exposed_headers:
+        - Content-Type
+        - Set-Cookie
+  admin:
+    base_url: http://localhost:4434/
+
+selfservice:
+  # Default redirect after a successful flow. The Flutter client picks this up
+  # and surfaces the appropriate next-screen; the backend treats it as opaque.
+  default_browser_return_url: http://localhost:8080/auth/return
+  allowed_return_urls:
+    - http://localhost:8080/
+    - http://localhost:3000/
+
+  methods:
+    password:
+      enabled: true
+      config:
+        haveibeenpwned_enabled: true
+        min_password_length: 10
+        identifier_similarity_check_enabled: true
+    # OIDC (Apple, Google) lands in T-CORE-022; for M0 we keep only password
+    # so the local stack stands up without external secrets.
+
+  flows:
+    error:
+      ui_url: http://localhost:8080/auth/error
+    settings:
+      ui_url: http://localhost:8080/auth/settings
+      privileged_session_max_age: 15m
+      required_aal: highest_available
+    recovery:
+      enabled: true
+      ui_url: http://localhost:8080/auth/recovery
+      use: code
+    verification:
+      enabled: true
+      ui_url: http://localhost:8080/auth/verification
+      use: code
+      after:
+        default_browser_return_url: http://localhost:8080/auth/return
+    logout:
+      after:
+        default_browser_return_url: http://localhost:8080/
+    login:
+      ui_url: http://localhost:8080/auth/login
+      lifespan: 10m
+    registration:
+      lifespan: 10m
+      ui_url: http://localhost:8080/auth/registration
+      after:
+        password:
+          hooks:
+            - hook: session
+
+log:
+  level: info
+  format: json
+  leak_sensitive_values: false
+
+secrets:
+  # Local-dev only — Kratos rotates these per env. Production secrets live in
+  # the deployment's secret store. gitleaks ignores this file (configured in
+  # .gitleaks.toml) because all values here are intentionally local.
+  cookie:
+    - echo_dev_cookie_secret_change_me_in_prod
+  cipher:
+    # XChaCha20-Poly1305 keys are exactly 32 bytes. Local-dev placeholder only.
+    - echodev0123456789abcdefghijklmno
+
+ciphers:
+  algorithm: xchacha20-poly1305
+
+hashers:
+  algorithm: bcrypt
+  bcrypt:
+    cost: 8
+
+identity:
+  default_schema_id: default
+  schemas:
+    - id: default
+      url: file:///etc/config/kratos/identity.schema.json
+
+courier:
+  smtp:
+    # In dev we point at MailHog (added to docker-compose alongside Kratos
+    # in a follow-up PR). For M0/M1 unverified emails are accepted.
+    connection_uri: smtps://test:test@mailhog:1025/?skip_ssl_verify=true
+
+session:
+  lifespan: 720h # 30 days — matches the refresh-token policy in docs/05.
+  cookie:
+    domain: localhost
+    persistent: true
+    same_site: Lax

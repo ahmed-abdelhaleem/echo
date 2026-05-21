@@ -6,8 +6,8 @@
 # Notes:
 # - Postgres has multiple databases pre-created via the init script in infra/docker/postgres/init/.
 # - NATS runs with JetStream enabled per docs/06_Tech_Stack.md.
-# - Ory Kratos is intentionally NOT included here yet — it will be added when auth is wired up
-#   (see docs/07_AI_Agent_Implementation_Guide.md T-INFRA-020 in M2).
+# - Ory Kratos public API listens on :4433, admin API on :4434.
+#   Identity schema + server config live in infra/kratos/.
 # - Values shown here are local-dev defaults only and are documented in plain text per AGENTS.md
 #   (passwords used exclusively for local development are not secrets).
 
@@ -58,6 +58,40 @@ services:
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8222/healthz"]
       interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Kratos schema migrations — runs once, then exits.
+  kratos-migrate:
+    image: oryd/kratos:v1.3.1
+    container_name: echo-kratos-migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DSN: postgres://echo:echo_dev@postgres:5432/kratos?sslmode=disable
+    command: ["migrate", "sql", "-e", "--yes"]
+    volumes:
+      - ./infra/kratos:/etc/config/kratos:ro
+    restart: on-failure
+
+  kratos:
+    image: oryd/kratos:v1.3.1
+    container_name: echo-kratos
+    depends_on:
+      kratos-migrate:
+        condition: service_completed_successfully
+    ports:
+      - "4433:4433"  # public API
+      - "4434:4434"  # admin API
+    environment:
+      DSN: postgres://echo:echo_dev@postgres:5432/kratos?sslmode=disable
+    command: ["serve", "-c", "/etc/config/kratos/kratos.yml", "--dev", "--watch-courier"]
+    volumes:
+      - ./infra/kratos:/etc/config/kratos:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4434/admin/health/ready"]
+      interval: 10s
       timeout: 5s
       retries: 10
 

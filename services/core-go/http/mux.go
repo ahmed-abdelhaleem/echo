@@ -1,7 +1,8 @@
 // Package http exposes the public HTTP surface of the core service.
 //
-// Today this is only the health/readiness endpoints (T-CORE-004). The GraphQL
-// gateway lands in M1 when client traffic begins.
+// Today this is health/readiness and a /whoami endpoint that resolves the
+// caller's Kratos session. The GraphQL gateway lands in M1 when client
+// traffic begins.
 package http
 
 import (
@@ -11,29 +12,61 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ahmed-abdelhaleem/echo/services/core-go/auth"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
 
 // Dependencies is the set of process-scoped dependencies the HTTP handlers
-// need. Optional fields may be nil in which case the readiness check reports
-// the corresponding dependency as unreachable.
+// need. Optional fields may be nil in which case the corresponding routes
+// degrade gracefully (readiness reports the dependency as unreachable;
+// /whoami returns 503 when Auth is nil).
 type Dependencies struct {
 	Logger *slog.Logger
 	PG     *pgxpool.Pool
 	Redis  *redis.Client
+	Auth   *auth.Service
 }
 
-// NewMux builds the HTTP mux. Kept tiny in M0; routes accumulate as features land.
+// NewMux builds the HTTP mux. Kept small in M0; routes accumulate as features land.
 func NewMux(deps Dependencies) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", healthz)
 	mux.HandleFunc("GET /readyz", readyz(deps))
+
+	// /whoami is the smallest possible authenticated endpoint. It also
+	// doubles as a CSRF/cookie-domain sanity check from the client.
+	if deps.Auth != nil && deps.Auth.Kratos != nil {
+		whoamiHandler := http.HandlerFunc(whoami)
+		mw := auth.Middleware(deps.Auth.Kratos, deps.Logger)
+		mux.Handle("GET /whoami", mw(whoamiHandler))
+	}
+
 	return mux
 }
 
 func healthz(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// whoami returns the session attached by [auth.Middleware]. Reaching this
+// handler without a session is a programming error (the middleware should
+// have rejected the request) and surfaces as 500.
+func whoami(w http.ResponseWriter, r *http.Request) {
+	sess, ok := auth.SessionFromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{
+			"error": "session not attached; middleware misconfigured",
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"session_id":   sess.ID,
+		"identity_id":  sess.IdentityID,
+		"email":        sess.Email,
+		"display_name": sess.DisplayName,
+		"expires_at":   sess.ExpiresAt,
+	})
 }
 
 // readyz reports 200 only when all configured dependencies are reachable.

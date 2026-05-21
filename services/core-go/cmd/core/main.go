@@ -26,6 +26,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ahmed-abdelhaleem/echo/services/core-go/auth"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/db"
 	corehttp "github.com/ahmed-abdelhaleem/echo/services/core-go/http"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/internal/config"
@@ -87,6 +88,17 @@ func main() {
 			deps.Redis = rc
 			defer func() { _ = rc.Close() }()
 		}
+	}
+
+	// Auth — disabled if the Kratos URL isn't set, so `go run ./cmd/core`
+	// still boots in a barebones environment for unrelated work. The
+	// /whoami route is only registered when Auth is wired.
+	if cfg.KratosPublicURL != "" {
+		kc := auth.NewKratosClient(cfg.KratosPublicURL, cfg.KratosAdminURL, nil)
+		deps.Auth = auth.New(kc)
+		logger.Info("auth enabled", "kratos_public_url", cfg.KratosPublicURL)
+	} else {
+		logger.Info("auth disabled; KRATOS_PUBLIC_URL not set")
 	}
 
 	srv := &http.Server{

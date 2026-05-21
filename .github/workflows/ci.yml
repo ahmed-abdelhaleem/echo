@@ -3,8 +3,10 @@ name: ci
 on:
   push:
     branches: [main]
+  # Fire on every PR so stacked PRs (PR-B targeting PR-A's branch) still
+  # get a CI signal before PR-A is merged. The concurrency group below
+  # cancels stale runs so the cost is still bounded.
   pull_request:
-    branches: [main]
 
 permissions:
   contents: read

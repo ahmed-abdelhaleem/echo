@@ -31,6 +31,14 @@ type Config struct {
 	// Empty disables telemetry export and falls back to a no-op exporter.
 	OTLPEndpoint string
 
+	// KratosPublicURL is the public-API base URL for Ory Kratos.
+	// Empty disables the auth middleware and the /whoami endpoint.
+	KratosPublicURL string
+
+	// KratosAdminURL is the admin-API base URL for Ory Kratos. Used only by
+	// server-side flows (identity lookup, deletion). Empty disables those.
+	KratosAdminURL string
+
 	// Environment is the deployment environment label (dev|staging|production).
 	Environment string
 }
@@ -39,12 +47,14 @@ type Config struct {
 // Returns an error only when an explicitly-required value is malformed.
 func Load() (Config, error) {
 	cfg := Config{
-		HTTPAddr:     defaultString(os.Getenv("CORE_HTTP_ADDR"), ":8080"),
-		GRPCAddr:     defaultString(os.Getenv("CORE_GRPC_ADDR"), ":9090"),
-		DatabaseURL:  strings.TrimSpace(os.Getenv("DATABASE_URL")),
-		RedisURL:     strings.TrimSpace(os.Getenv("REDIS_URL")),
-		OTLPEndpoint: strings.TrimSpace(os.Getenv("OTLP_ENDPOINT")),
-		Environment:  defaultString(os.Getenv("ECHO_ENV"), "dev"),
+		HTTPAddr:        defaultString(os.Getenv("CORE_HTTP_ADDR"), ":8080"),
+		GRPCAddr:        defaultString(os.Getenv("CORE_GRPC_ADDR"), ":9090"),
+		DatabaseURL:     strings.TrimSpace(os.Getenv("DATABASE_URL")),
+		RedisURL:        strings.TrimSpace(os.Getenv("REDIS_URL")),
+		OTLPEndpoint:    strings.TrimSpace(os.Getenv("OTLP_ENDPOINT")),
+		KratosPublicURL: strings.TrimSpace(os.Getenv("KRATOS_PUBLIC_URL")),
+		KratosAdminURL:  strings.TrimSpace(os.Getenv("KRATOS_ADMIN_URL")),
+		Environment:     defaultString(os.Getenv("ECHO_ENV"), "dev"),
 	}
 
 	if cfg.HTTPAddr == "" {
