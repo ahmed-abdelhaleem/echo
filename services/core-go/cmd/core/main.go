@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/auth"
+	"github.com/ahmed-abdelhaleem/echo/services/core-go/content"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/db"
 	corehttp "github.com/ahmed-abdelhaleem/echo/services/core-go/http"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/internal/config"
@@ -99,6 +100,16 @@ func main() {
 		logger.Info("auth enabled", "kratos_public_url", cfg.KratosPublicURL)
 	} else {
 		logger.Info("auth disabled; KRATOS_PUBLIC_URL not set")
+	}
+
+	// Content — disabled if CONTENT_ROOT isn't set. In docker-compose this
+	// is `/srv/content` (bind-mounted from the repo's `content/` folder);
+	// for `go run ./cmd/core` from the repo root it can be `./content`.
+	if cfg.ContentRoot != "" {
+		deps.Content = content.NewService(content.NewFilesystemLoader(cfg.ContentRoot))
+		logger.Info("content enabled", "content_root", cfg.ContentRoot)
+	} else {
+		logger.Info("content disabled; CONTENT_ROOT not set")
 	}
 
 	srv := &http.Server{

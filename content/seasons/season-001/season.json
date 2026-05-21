@@ -69,6 +69,67 @@
             "choice-2": "You rinse the kettle. The water tastes of nothing in particular.",
             "choice-3": "When you come back, the light is still on, but the room is somehow further away."
           }
+        },
+        {
+          "id": "vignette-002",
+          "setting_beat": "Your phone has been buzzing in your pocket for ninety seconds. You haven't looked at it. The bus you wanted is two stops away.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Read the messages now before the bus arrives",
+              "weights": [
+                {
+                  "dimension": "OCEAN-C",
+                  "delta": 0.1,
+                  "rationale": "Choosing to handle the inbox rather than letting it accumulate is a small conscientious signal."
+                },
+                {
+                  "dimension": "ATT-ANXIOUS",
+                  "delta": 0.15,
+                  "rationale": "An immediate need to close the loop on every notification leans mildly anxious-attached."
+                }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Pocket the phone deliberately and watch the street",
+              "weights": [
+                {
+                  "dimension": "OCEAN-O",
+                  "delta": 0.15,
+                  "rationale": "Attending to the present scene over the device suggests openness to lived experience."
+                },
+                {
+                  "dimension": "ATT-SECURE",
+                  "delta": 0.2,
+                  "rationale": "Tolerating an unattended inbox without distress is a secure-attachment marker."
+                }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Glance at who it is, then decide",
+              "weights": [
+                {
+                  "dimension": "OCEAN-C",
+                  "delta": 0.05,
+                  "rationale": "Triage rather than wholesale ignore is a small but real conscientious move."
+                },
+                {
+                  "dimension": "SCH-SELF_DIRECTION",
+                  "delta": 0.1,
+                  "rationale": "Choosing your own response over the default of replying suggests preferring self-directed action."
+                }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "Three are from the same person. One has a question mark. You feel the bus before you see it.",
+            "choice-2": "Across the road a woman is laughing at something on her own phone. The bus comes.",
+            "choice-3": "It's no one urgent. You let the screen go dark on your own terms."
+          }
         }
       ]
     },
