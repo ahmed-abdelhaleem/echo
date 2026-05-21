@@ -80,9 +80,8 @@ jobs:
         with:
           node-version: "22.12.0"
       - name: Set up pnpm
+        # version is read from `packageManager` in package.json — single source of truth.
         uses: pnpm/action-setup@v4
-        with:
-          version: "9.15.1"
       - name: Install
         run: pnpm install --frozen-lockfile
       - name: Lint

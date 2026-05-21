@@ -8,7 +8,7 @@
     "lint": "echo 'root lint is a no-op; per-package lint runs via pnpm -r'",
     "test": "echo 'root test is a no-op; per-package test runs via pnpm -r'"
   },
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@9.15.1",
   "engines": {
     "node": ">=22.0.0",
     "pnpm": ">=9.0.0"
