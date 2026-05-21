@@ -138,4 +138,31 @@ class EchoDatabase extends _$EchoDatabase {
           ]))
         .get();
   }
+
+  /// Distinct list of local playthrough ids that still have rows in the
+  /// pending queue. Used by the sync worker to decide what to drain.
+  Future<List<String>> listPlaythroughIdsWithPendingChoices() async {
+    final rows = await (selectOnly(pendingChoiceEvents, distinct: true)
+          ..addColumns(<Expression<Object>>[
+            pendingChoiceEvents.localPlaythroughId,
+          ]))
+        .get();
+    return <String>[
+      for (final r in rows) r.read(pendingChoiceEvents.localPlaythroughId)!,
+    ];
+  }
+
+  Future<int> deletePendingChoice(String localId) {
+    return (delete(pendingChoiceEvents)
+          ..where((t) => t.localId.equals(localId)))
+        .go();
+  }
+
+  Future<int> setLocalPlaythroughRemoteId({
+    required String localId,
+    required String remoteId,
+  }) {
+    return (update(localPlaythroughs)..where((t) => t.localId.equals(localId)))
+        .write(LocalPlaythroughsCompanion(remoteId: Value<String?>(remoteId)));
+  }
 }
