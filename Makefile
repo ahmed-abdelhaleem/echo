@@ -19,10 +19,11 @@ SHELL := /bin/bash
 # Discover whether each toolchain is installed; targets degrade gracefully when
 # something is missing so contributors with only one stack present can still
 # work on their part of the codebase.
-GO_AVAILABLE   := $(shell command -v go        >/dev/null 2>&1 && echo yes)
-UV_AVAILABLE   := $(shell command -v uv        >/dev/null 2>&1 && echo yes)
-PNPM_AVAILABLE := $(shell command -v pnpm      >/dev/null 2>&1 && echo yes)
-DOCKER_COMPOSE := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose")
+GO_AVAILABLE      := $(shell command -v go      >/dev/null 2>&1 && echo yes)
+UV_AVAILABLE      := $(shell command -v uv      >/dev/null 2>&1 && echo yes)
+PNPM_AVAILABLE    := $(shell command -v pnpm    >/dev/null 2>&1 && echo yes)
+FLUTTER_AVAILABLE := $(shell command -v flutter >/dev/null 2>&1 && echo yes)
+DOCKER_COMPOSE    := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose")
 
 # Pinned linter binaries — these live under $GOPATH/bin once installed.
 GOPATH := $(shell go env GOPATH 2>/dev/null || echo $$HOME/go)
@@ -56,15 +57,15 @@ help:
 	@echo "  make replay           Run tools/trait-replay (placeholder until M1)"
 	@echo ""
 	@echo "Per-language:"
-	@echo "  make go-test          make py-test          make node-test"
-	@echo "  make go-lint          make py-lint          make node-lint"
+	@echo "  make go-test          make py-test          make node-test          make flutter-test"
+	@echo "  make go-lint          make py-lint          make node-lint          make flutter-analyze"
 
 # ---------------------------------------------------------------------------
 # Bootstrap
 # ---------------------------------------------------------------------------
 
 .PHONY: bootstrap
-bootstrap: bootstrap-go bootstrap-py bootstrap-node
+bootstrap: bootstrap-go bootstrap-py bootstrap-node bootstrap-flutter
 	@echo "✓ bootstrap complete"
 
 .PHONY: bootstrap-go
@@ -99,6 +100,15 @@ ifeq ($(PNPM_AVAILABLE),yes)
 	@pnpm install --silent
 else
 	@echo "↷ pnpm not installed; skipping bootstrap-node"
+endif
+
+.PHONY: bootstrap-flutter
+bootstrap-flutter:
+ifeq ($(FLUTTER_AVAILABLE),yes)
+	@echo "→ bootstrapping Flutter (apps/client)"
+	@cd apps/client && flutter pub get
+else
+	@echo "↷ flutter not installed; skipping bootstrap-flutter"
 endif
 
 # ---------------------------------------------------------------------------
@@ -145,7 +155,7 @@ seed:
 # ---------------------------------------------------------------------------
 
 .PHONY: lint
-lint: go-lint py-lint node-lint
+lint: go-lint py-lint node-lint flutter-analyze
 	@echo "✓ lint clean"
 
 .PHONY: go-lint
@@ -179,12 +189,21 @@ else
 	@echo "↷ pnpm not installed; skipping node-lint"
 endif
 
+.PHONY: flutter-analyze
+flutter-analyze:
+ifeq ($(FLUTTER_AVAILABLE),yes)
+	@echo "→ flutter-analyze (apps/client)"
+	@cd apps/client && flutter analyze
+else
+	@echo "↷ flutter not installed; skipping flutter-analyze"
+endif
+
 # ---------------------------------------------------------------------------
 # Test
 # ---------------------------------------------------------------------------
 
 .PHONY: test
-test: go-test py-test node-test
+test: go-test py-test node-test flutter-test
 	@echo "✓ test green"
 
 .PHONY: go-test
@@ -214,12 +233,21 @@ else
 	@echo "↷ pnpm not installed; skipping node-test"
 endif
 
+.PHONY: flutter-test
+flutter-test:
+ifeq ($(FLUTTER_AVAILABLE),yes)
+	@echo "→ flutter-test (apps/client)"
+	@cd apps/client && flutter test
+else
+	@echo "↷ flutter not installed; skipping flutter-test"
+endif
+
 # ---------------------------------------------------------------------------
 # Build
 # ---------------------------------------------------------------------------
 
 .PHONY: build
-build: go-build py-build node-build
+build: go-build py-build node-build flutter-build
 	@echo "✓ build complete"
 
 .PHONY: go-build
@@ -247,6 +275,18 @@ ifeq ($(PNPM_AVAILABLE),yes)
 	@pnpm -r --if-present build
 else
 	@echo "↷ pnpm not installed; skipping node-build"
+endif
+
+# flutter-build defaults to the web target because that's the only platform we
+# can build on a Linux CI runner without paid macOS / Windows runners. Mobile
+# binaries are produced by separate release workflows (T-CLIENT-030, M2).
+.PHONY: flutter-build
+flutter-build:
+ifeq ($(FLUTTER_AVAILABLE),yes)
+	@echo "→ flutter-build (web)"
+	@cd apps/client && flutter build web --release
+else
+	@echo "↷ flutter not installed; skipping flutter-build"
 endif
 
 # ---------------------------------------------------------------------------
