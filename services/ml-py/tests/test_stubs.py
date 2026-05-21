@@ -1,19 +1,15 @@
-"""Tests for the service stubs.
+"""Tests for the M0 service stubs.
 
-These tests document the intentional NotImplementedError contract of M0 so a
-future M1 PR that replaces the stub has to explicitly delete these expectations.
+PR 9 (T-ML-010) replaces the trait_scoring stub with a real engine, so the
+trait_scoring assertion has moved to ``test_trait_scoring.py``. The portrait
+and reflection stubs remain — they are replaced in PR 10.
 """
 
 from __future__ import annotations
 
 import pytest
 
-from app.services import portrait_gen, reflection_gen, trait_scoring
-
-
-def test_trait_scoring_score_is_unimplemented_in_m0() -> None:
-    with pytest.raises(NotImplementedError, match="T-ML-010"):
-        trait_scoring.score("playthrough-test")
+from app.services import portrait_gen, reflection_gen
 
 
 def test_portrait_gen_generate_is_unimplemented_in_m0() -> None:

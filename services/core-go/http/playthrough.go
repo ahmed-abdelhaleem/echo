@@ -80,6 +80,10 @@ type choiceEventResponse struct {
 	ChoiceEvent playthrough.ChoiceEvent `json:"choice_event"`
 }
 
+type traitVectorResponse struct {
+	TraitVector playthrough.TraitVector `json:"trait_vector"`
+}
+
 // recordChoiceHandler returns a handler that records a single choice on
 // a playthrough. The (playthrough_id, vignette_id) pair is the natural
 // idempotency key: the same call with the same choice id returns the
@@ -136,5 +140,44 @@ func recordChoiceHandler(svc *playthrough.Service) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(choiceEventResponse{ChoiceEvent: ev})
+	}
+}
+
+// getTraitVectorHandler returns a handler that exposes the persisted trait
+// vector for a playthrough. Returns 404 when the playthrough has not yet
+// been scored (in_progress or scoring transport failure pending sweeper
+// retry), and the client should poll. Auth is required because the
+// vector is personal data (docs/08 §"Bounds on inference").
+//
+// Per-user authorisation is the same M2 follow-up flagged on RecordChoice
+// (T-CORE-022): we don't yet enforce that the playthrough's user_id
+// matches the authed user. The PR description notes this.
+func getTraitVectorHandler(svc *playthrough.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := auth.SessionFromContext(r.Context()); !ok {
+			writeJSONError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+
+		idStr := r.PathValue("id")
+		playthroughID, err := uuid.Parse(idStr)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, "invalid playthrough id")
+			return
+		}
+
+		tv, err := svc.GetTraitVector(r.Context(), playthroughID)
+		switch {
+		case errors.Is(err, playthrough.ErrNotFound):
+			writeJSONError(w, http.StatusNotFound, "trait vector not available")
+			return
+		case err != nil:
+			writeJSONError(w, http.StatusInternalServerError, "get trait vector failed")
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(traitVectorResponse{TraitVector: tv})
 	}
 }

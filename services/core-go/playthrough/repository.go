@@ -2,6 +2,7 @@ package playthrough
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -31,6 +32,28 @@ type Repository interface {
 	GetPlaythrough(ctx context.Context, id uuid.UUID) (Playthrough, error)
 	InsertChoice(ctx context.Context, in RecordChoiceInput) (ChoiceEvent, error)
 	GetChoice(ctx context.Context, playthroughID uuid.UUID, vignetteID string) (ChoiceEvent, error)
+
+	// ListChoices returns every recorded choice for a playthrough in
+	// insertion order. The scoring engine consumes this set unordered
+	// (the sum is commutative), but the deterministic ordering helps
+	// debugging and trait-replay diffing.
+	ListChoices(ctx context.Context, playthroughID uuid.UUID) ([]ChoiceEvent, error)
+
+	// MarkCompleted flips a playthrough's status to "completed" and
+	// stamps completed_at. Returns ErrNotFound if the row is gone.
+	// Idempotent: a second call on an already-completed row is a no-op
+	// and returns nil.
+	MarkCompleted(ctx context.Context, playthroughID uuid.UUID) error
+
+	// UpsertTraitVector writes (or overwrites) the trait vector row for
+	// a playthrough. We never expose "regenerate" as a public API in
+	// M1, but trait-replay re-runs need to overwrite cleanly — hence
+	// upsert rather than insert.
+	UpsertTraitVector(ctx context.Context, v TraitVector) error
+
+	// GetTraitVector fetches the stored trait vector for a playthrough.
+	// Returns ErrNotFound if the playthrough has not been scored.
+	GetTraitVector(ctx context.Context, playthroughID uuid.UUID) (TraitVector, error)
 }
 
 // PgRepository is the pgxpool-backed Repository implementation.
@@ -135,4 +158,122 @@ func (r *PgRepository) GetChoice(ctx context.Context, playthroughID uuid.UUID, v
 		return ChoiceEvent{}, fmt.Errorf("playthrough: get choice: %w", err)
 	}
 	return ev, nil
+}
+
+// ListChoices returns every choice_event for the given playthrough in
+// (server_received_at, id) order. Deterministic ordering matters for
+// trait-replay diffs against pinned playthroughs.
+func (r *PgRepository) ListChoices(ctx context.Context, playthroughID uuid.UUID) ([]ChoiceEvent, error) {
+	const q = `
+		SELECT id, playthrough_id, vignette_id, choice_id, client_timestamp, server_received_at, deliberation_ms, created_at
+		FROM playthrough.choice_events
+		WHERE playthrough_id = $1
+		ORDER BY server_received_at ASC, id ASC
+	`
+	rows, err := r.pool.Query(ctx, q, playthroughID)
+	if err != nil {
+		return nil, fmt.Errorf("playthrough: list choices: %w", err)
+	}
+	defer rows.Close()
+	var out []ChoiceEvent
+	for rows.Next() {
+		var ev ChoiceEvent
+		if err := rows.Scan(
+			&ev.ID, &ev.PlaythroughID, &ev.VignetteID, &ev.ChoiceID,
+			&ev.ClientTimestamp, &ev.ServerReceivedAt, &ev.DeliberationMS, &ev.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("playthrough: list choices scan: %w", err)
+		}
+		out = append(out, ev)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("playthrough: list choices rows: %w", err)
+	}
+	return out, nil
+}
+
+// MarkCompleted flips a playthrough's status to 'completed' and stamps
+// completed_at = NOW(). The CHECK constraint on the table (see
+// 20260521000003_create_playthroughs.sql) requires completed_at IS NOT NULL
+// when status = 'completed', so we set both in one UPDATE.
+//
+// Idempotent: re-running on an already-completed row leaves status,
+// completed_at and updated_at unchanged.
+func (r *PgRepository) MarkCompleted(ctx context.Context, playthroughID uuid.UUID) error {
+	const q = `
+		UPDATE playthrough.playthroughs
+		SET status = 'completed',
+		    completed_at = COALESCE(completed_at, NOW()),
+		    updated_at = NOW()
+		WHERE id = $1
+		  AND status <> 'completed'
+	`
+	tag, err := r.pool.Exec(ctx, q, playthroughID)
+	if err != nil {
+		return fmt.Errorf("playthrough: mark completed: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		// Either already-completed (idempotent ok) or genuinely missing.
+		// Disambiguate with a follow-up SELECT.
+		const probe = `SELECT 1 FROM playthrough.playthroughs WHERE id = $1`
+		var dummy int
+		if err := r.pool.QueryRow(ctx, probe, playthroughID).Scan(&dummy); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return ErrNotFound
+			}
+			return fmt.Errorf("playthrough: mark completed probe: %w", err)
+		}
+	}
+	return nil
+}
+
+// UpsertTraitVector writes the trait vector row for a playthrough. The
+// JSONB column stores the dimension->float mapping verbatim.
+func (r *PgRepository) UpsertTraitVector(ctx context.Context, v TraitVector) error {
+	payload, err := json.Marshal(v.Values)
+	if err != nil {
+		return fmt.Errorf("playthrough: marshal trait vector: %w", err)
+	}
+	const q = `
+		INSERT INTO playthrough.trait_vectors (playthrough_id, vector, scoring_version, computed_at)
+		VALUES ($1, $2::jsonb, $3, COALESCE($4, NOW()))
+		ON CONFLICT (playthrough_id) DO UPDATE
+		SET vector = EXCLUDED.vector,
+		    scoring_version = EXCLUDED.scoring_version,
+		    computed_at = EXCLUDED.computed_at
+	`
+	var computedAt any
+	if !v.ComputedAt.IsZero() {
+		computedAt = v.ComputedAt
+	}
+	if _, err := r.pool.Exec(ctx, q, v.PlaythroughID, string(payload), v.ScoringVersion, computedAt); err != nil {
+		return fmt.Errorf("playthrough: upsert trait vector: %w", err)
+	}
+	return nil
+}
+
+// GetTraitVector fetches the stored trait vector for a playthrough.
+func (r *PgRepository) GetTraitVector(ctx context.Context, playthroughID uuid.UUID) (TraitVector, error) {
+	const q = `
+		SELECT playthrough_id, vector, scoring_version, computed_at
+		FROM playthrough.trait_vectors
+		WHERE playthrough_id = $1
+	`
+	var (
+		v   TraitVector
+		raw []byte
+	)
+	err := r.pool.QueryRow(ctx, q, playthroughID).Scan(
+		&v.PlaythroughID, &raw, &v.ScoringVersion, &v.ComputedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return TraitVector{}, ErrNotFound
+	}
+	if err != nil {
+		return TraitVector{}, fmt.Errorf("playthrough: get trait vector: %w", err)
+	}
+	if err := json.Unmarshal(raw, &v.Values); err != nil {
+		return TraitVector{}, fmt.Errorf("playthrough: unmarshal trait vector: %w", err)
+	}
+	return v, nil
 }

@@ -71,3 +71,17 @@ type RecordChoiceInput struct {
 	ClientTimestamp *time.Time `json:"client_timestamp,omitempty"`
 	DeliberationMS  *int       `json:"deliberation_ms,omitempty"`
 }
+
+// TraitVector is the persisted, post-clamp scoring result for a completed
+// Playthrough. One row per Playthrough in playthrough.trait_vectors.
+//
+// Values is the 18-entry dimension -> float mapping the scoring engine
+// returned. ScoringVersion is the tag stamped by ml-py at compute time
+// (e.g. "rule-v1"), kept for reproducibility — re-running the same
+// playthrough through the same engine must yield byte-identical Values.
+type TraitVector struct {
+	PlaythroughID  uuid.UUID          `json:"playthrough_id"`
+	Values         map[string]float64 `json:"values"`
+	ScoringVersion string             `json:"scoring_version"`
+	ComputedAt     time.Time          `json:"computed_at"`
+}

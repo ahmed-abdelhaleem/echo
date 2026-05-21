@@ -45,6 +45,12 @@ type Config struct {
 	// Empty disables the content endpoints.
 	ContentRoot string
 
+	// MLPyBaseURL is the base URL of the ml-py service (no trailing slash),
+	// e.g. http://ml-py:8081. Empty disables trait scoring; in that case
+	// playthroughs are recorded but never finalised — the (M2) sweeper is
+	// expected to catch them up when the scoring service is configured.
+	MLPyBaseURL string
+
 	// Environment is the deployment environment label (dev|staging|production).
 	Environment string
 }
@@ -61,6 +67,7 @@ func Load() (Config, error) {
 		KratosPublicURL: strings.TrimSpace(os.Getenv("KRATOS_PUBLIC_URL")),
 		KratosAdminURL:  strings.TrimSpace(os.Getenv("KRATOS_ADMIN_URL")),
 		ContentRoot:     strings.TrimSpace(os.Getenv("CONTENT_ROOT")),
+		MLPyBaseURL:     strings.TrimRight(strings.TrimSpace(os.Getenv("ML_PY_BASE_URL")), "/"),
 		Environment:     defaultString(os.Getenv("ECHO_ENV"), "dev"),
 	}
 

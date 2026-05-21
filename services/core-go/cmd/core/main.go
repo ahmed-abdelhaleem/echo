@@ -33,6 +33,7 @@ import (
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/internal/config"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/internal/telemetry"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/playthrough"
+	"github.com/ahmed-abdelhaleem/echo/services/core-go/scoring"
 )
 
 func main() {
@@ -113,14 +114,27 @@ func main() {
 		logger.Info("content disabled; CONTENT_ROOT not set")
 	}
 
+	// Scoring — the trait engine in ml-py. Disabled if ML_PY_BASE_URL is
+	// empty; in that case playthroughs are recorded but never finalised.
+	var scoringClient scoring.Client
+	if cfg.MLPyBaseURL != "" {
+		scoringClient = scoring.NewHTTPClient(cfg.MLPyBaseURL, logger)
+		logger.Info("scoring enabled", "ml_py_base_url", cfg.MLPyBaseURL)
+	} else {
+		logger.Info("scoring disabled; ML_PY_BASE_URL not set")
+	}
+
 	// Playthrough — requires Postgres + Content. Auth is checked at route
 	// registration time so the routes only appear when the full chain is
-	// wired.
+	// wired. scoringClient may be nil; the service handles that case by
+	// skipping the auto-finalise step (sweeper-driven retry in M2).
 	if deps.PG != nil && deps.Content != nil {
 		deps.Users = auth.NewPgUsersRepository(deps.PG)
 		deps.Playthrough = playthrough.NewService(
 			playthrough.NewPgRepository(deps.PG),
 			deps.Content,
+			scoringClient,
+			logger,
 		)
 		logger.Info("playthrough enabled")
 	} else {
