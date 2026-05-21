@@ -3,5 +3,4 @@
 golang 1.23.4
 python 3.12.8
 nodejs 22.12.0
-# Flutter pinned in a comment until apps/client/ lands (see PR 2 plan).
-# flutter 3.27.0
+flutter 3.27.4

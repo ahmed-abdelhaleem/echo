@@ -43,7 +43,7 @@ For full setup details see [`docs/07_AI_Agent_Implementation_Guide.md`](./docs/0
 ```
 echo/
 ├── apps/
-│   ├── client/              # Flutter — iOS, Android, Windows, macOS (PR 2)
+│   ├── client/              # Flutter — iOS, Android, Windows, macOS, web, Linux
 │   ├── share-web/           # Public Portrait sharing pages (M2)
 │   └── b2b-dashboard/       # Institutional web dashboard (V2)
 ├── services/
