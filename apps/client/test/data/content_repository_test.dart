@@ -125,7 +125,6 @@ void main() {
     expect(s2, isNotNull);
     expect(s2!.flatVignettes.single.settingBeat, 'Hello.');
     expect(adapter.calls, hasLength(2));
-
   });
 
   test('404 returns null without populating the cache', () async {
@@ -158,6 +157,5 @@ void main() {
     final repo = ContentRepository(api: api, db: db);
 
     await expectLater(repo.getSeason('x'), throwsA(isA<DioException>()));
-
   });
 }

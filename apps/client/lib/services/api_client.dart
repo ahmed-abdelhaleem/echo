@@ -26,8 +26,7 @@ class ApiClient {
     // needlessly complicated. We apply this on the underlying Dio
     // unconditionally so test fixtures that hand us a configured Dio
     // get the same behaviour without having to remember the knob.
-    _dio.options.validateStatus =
-        (status) => status != null && status < 500;
+    _dio.options.validateStatus = (status) => status != null && status < 500;
   }
 
   final String baseUrl;
