@@ -1,8 +1,8 @@
 // Routing configuration for the Echo client.
 //
-// The router intentionally exposes a tiny surface in M0:
-//   /            -> HomeScreen
-//   /vignette/:id -> VignetteScreen (placeholder until M1)
+// In M1 the router exposes:
+//   /             -> HomeScreen
+//   /season/:id   -> VignetteScreen (drives the whole season — see PR 7)
 //
 // Route registration is centralised here so tests can drive navigation by
 // route name without depending on widget structure.
@@ -22,11 +22,11 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
-        path: '/vignette/:id',
-        name: 'vignette',
+        path: '/season/:id',
+        name: 'season',
         builder: (context, state) {
-          final id = state.pathParameters['id'] ?? 'unknown';
-          return VignetteScreen(vignetteId: id);
+          final id = state.pathParameters['id'] ?? 'season-001';
+          return VignetteScreen(seasonId: id);
         },
       ),
     ],

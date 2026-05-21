@@ -1,0 +1,141 @@
+// Local persistence for the Echo client.
+//
+// Two tables in M1:
+//   - cached_seasons: the JSON envelope returned by GET /content/seasons/{id}.
+//     The renderer reads from this table first and falls back to the network;
+//     this is what makes the renderer keep working without connectivity.
+//   - pending_choice_events: choices the player has tapped but the background
+//     sync (PR 8 / T-CLIENT-012) has not yet POSTed to the server.
+//
+// The schema is deliberately minimal. M2 will gain a Portrait/reflection
+// cache, but those land behind their own schema_version bump.
+
+import 'package:drift/drift.dart';
+import 'package:drift_flutter/drift_flutter.dart';
+
+part 'database.g.dart';
+
+/// Cached Season JSON. Keyed by the Season id (which is also the URL path
+/// param). [body] is the raw JSON envelope `{"season": {...}}` so we don't
+/// have to re-encode on read; [version] is denormalised so the client can
+/// detect a server-side bump and invalidate without parsing.
+@DataClassName('CachedSeasonRow')
+class CachedSeasons extends Table {
+  TextColumn get id => text()();
+  IntColumn get version => integer()();
+  TextColumn get body => text()();
+  DateTimeColumn get fetchedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{id};
+}
+
+/// One row per choice the player has committed locally. The background
+/// sync drains pending rows in `createdAt` order and deletes them on a
+/// successful 200/409 from the server.
+///
+/// We keep `localId` as the primary key (a client-generated UUID) so the
+/// row survives renaming the underlying playthrough id when the sync first
+/// learns the server-assigned id. We do NOT enforce uniqueness on
+/// (localPlaythroughId, vignetteId) here — the server is the source of
+/// truth for that invariant, and the client is allowed to record local
+/// retries (eg if the renderer was force-killed mid-write).
+@DataClassName('PendingChoiceEventRow')
+class PendingChoiceEvents extends Table {
+  TextColumn get localId => text()();
+  TextColumn get localPlaythroughId => text()();
+  TextColumn get seasonId => text()();
+  TextColumn get vignetteId => text()();
+  TextColumn get choiceId => text()();
+
+  /// Time the player committed the choice, on the device. Used by the
+  /// sync to send `client_timestamp` to the server.
+  DateTimeColumn get committedAt => dateTime()();
+
+  /// Milliseconds between vignette presentation and the player's tap.
+  /// Null if the renderer wasn't able to measure (eg restored from a
+  /// crash).
+  IntColumn get deliberationMs => integer().nullable()();
+
+  DateTimeColumn get createdAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{localId};
+}
+
+/// Header row for a playthrough the client has started locally. The
+/// `remoteId` column is null until the sync (PR 8) has POSTed the
+/// playthrough header to /playthroughs and learned the server-assigned
+/// UUID; subsequent sync passes use it to address /playthroughs/{id}/choices.
+@DataClassName('LocalPlaythroughRow')
+class LocalPlaythroughs extends Table {
+  TextColumn get localId => text()();
+  TextColumn get seasonId => text()();
+  TextColumn get remoteId => text().nullable()();
+  DateTimeColumn get startedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{localId};
+}
+
+@DriftDatabase(
+  tables: <Type>[
+    CachedSeasons,
+    PendingChoiceEvents,
+    LocalPlaythroughs,
+  ],
+)
+class EchoDatabase extends _$EchoDatabase {
+  EchoDatabase([QueryExecutor? executor])
+      : super(executor ?? driftDatabase(name: 'echo_local'));
+
+  @override
+  int get schemaVersion => 1;
+
+  // --- Cached seasons --------------------------------------------------
+
+  Future<CachedSeasonRow?> findCachedSeason(String id) {
+    return (select(cachedSeasons)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  Future<int> upsertCachedSeason(CachedSeasonsCompanion row) {
+    return into(cachedSeasons).insertOnConflictUpdate(row);
+  }
+
+  // --- Local playthroughs ---------------------------------------------
+
+  Future<LocalPlaythroughRow?> findLocalPlaythrough(String localId) {
+    return (select(localPlaythroughs)..where((t) => t.localId.equals(localId)))
+        .getSingleOrNull();
+  }
+
+  Future<int> insertLocalPlaythrough(LocalPlaythroughsCompanion row) {
+    return into(localPlaythroughs).insert(row);
+  }
+
+  // --- Pending choice events ------------------------------------------
+
+  Future<int> insertPendingChoice(PendingChoiceEventsCompanion row) {
+    return into(pendingChoiceEvents).insert(row);
+  }
+
+  Future<List<PendingChoiceEventRow>> listPendingChoices() {
+    return (select(pendingChoiceEvents)
+          ..orderBy(<OrderClauseGenerator<PendingChoiceEvents>>[
+            (t) => OrderingTerm.asc(t.createdAt),
+          ]))
+        .get();
+  }
+
+  Future<List<PendingChoiceEventRow>> listPendingChoicesForPlaythrough(
+    String localPlaythroughId,
+  ) {
+    return (select(pendingChoiceEvents)
+          ..where((t) => t.localPlaythroughId.equals(localPlaythroughId))
+          ..orderBy(<OrderClauseGenerator<PendingChoiceEvents>>[
+            (t) => OrderingTerm.asc(t.createdAt),
+          ]))
+        .get();
+  }
+}
