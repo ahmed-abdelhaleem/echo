@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://echo.app/schema/trait_weight.schema.json",
+  "title": "TraitWeight",
+  "description": "A weighted contribution from a Choice to a single trait dimension. The aggregation of all TraitWeights for a playthrough is the Trait Vector.",
+  "type": "object",
+  "required": ["dimension", "delta"],
+  "additionalProperties": false,
+  "properties": {
+    "dimension": {
+      "type": "string",
+      "description": "Identifier of the trait dimension this weight contributes to. Big Five dimensions use the OCEAN prefix; Schwartz values use SCH-; attachment proxies use ATT-.",
+      "enum": [
+        "OCEAN-O",
+        "OCEAN-C",
+        "OCEAN-E",
+        "OCEAN-A",
+        "OCEAN-N",
+        "SCH-SELF_DIRECTION",
+        "SCH-STIMULATION",
+        "SCH-HEDONISM",
+        "SCH-ACHIEVEMENT",
+        "SCH-POWER",
+        "SCH-SECURITY",
+        "SCH-CONFORMITY",
+        "SCH-TRADITION",
+        "SCH-BENEVOLENCE",
+        "SCH-UNIVERSALISM",
+        "ATT-SECURE",
+        "ATT-ANXIOUS",
+        "ATT-AVOIDANT"
+      ]
+    },
+    "delta": {
+      "type": "number",
+      "minimum": -1.0,
+      "maximum": 1.0,
+      "description": "Signed contribution in [-1.0, 1.0]. Aggregated linearly across all choices in a playthrough."
+    },
+    "rationale": {
+      "type": "string",
+      "description": "Author's note on why this choice contributes this weight to this dimension. Not exposed to players. Used for audit and replay."
+    }
+  }
+}

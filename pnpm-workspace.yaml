@@ -1,0 +1,5 @@
+packages:
+  - "packages/*"
+  - "tools/content-validator"
+  # tools/playthrough-sim and tools/trait-replay are Go (M1 scope); not Node workspaces.
+  # apps/share-web and apps/b2b-dashboard land at M2 / V2 — included once they have package.json.

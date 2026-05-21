@@ -1,0 +1,16 @@
+{
+  "name": "echo-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Echo — monorepo root. Real code lives in the workspace packages.",
+  "type": "module",
+  "scripts": {
+    "lint": "echo 'root lint is a no-op; per-package lint runs via pnpm -r'",
+    "test": "echo 'root test is a no-op; per-package test runs via pnpm -r'"
+  },
+  "packageManager": "pnpm@9.15.1",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

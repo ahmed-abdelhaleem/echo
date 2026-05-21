@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package echo.reflection.v1;
+
+option go_package = "github.com/ahmed-abdelhaleem/echo/services/core-go/grpc/echopb";
+
+// ReflectionGenService runs the two-stage prose-reflection pipeline:
+// trait vector + signal moments → template → LLM completion → safety classify
+// → tone classify → output. See docs/04_Game_Design.md §"The prose reflection"
+// and docs/03_Product_Requirements.md F-LLM-001.
+service ReflectionGenService {
+  rpc Generate(GenerateRequest) returns (GenerateResponse);
+}
+
+message GenerateRequest {
+  string playthrough_id = 1;
+  // Whether the player is in the youth-safe path. Triggers the stricter prompt
+  // profile per docs/08_Data_Privacy_Compliance.md.
+  bool youth_safe = 2;
+  // Locale (BCP-47), e.g. "en-GB". Currently only "en-GB" is supported.
+  string locale = 3;
+}
+
+message GenerateResponse {
+  // The 3–5 sentence reflection. Never clinical, never flattering, always specific.
+  string text = 1;
+  // True if the safety/tone classifier rejected the LLM output and a curated
+  // fallback was substituted. Logged for the review queue.
+  bool used_fallback = 2;
+  // The reflection-template ID used (for audit + replay).
+  string template_id = 3;
+}

@@ -1,0 +1,103 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    name: Go (core-go)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/core-go
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.4"
+          cache: true
+          cache-dependency-path: services/core-go/go.sum
+      - name: Download deps
+        run: go mod download
+      - name: go vet
+        run: go vet ./...
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.62.2
+          working-directory: services/core-go
+      - name: Test
+        run: go test ./... -race -count=1
+      - name: Build
+        run: go build -o bin/core ./cmd/core
+
+  python:
+    name: Python (ml-py)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/ml-py
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+          enable-cache: true
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: services/ml-py/pyproject.toml
+      - name: Install
+        run: uv sync --dev
+      - name: Ruff check
+        run: uv run ruff check .
+      - name: Ruff format
+        run: uv run ruff format --check .
+      - name: Mypy
+        run: uv run mypy app
+      - name: Pytest
+        run: uv run pytest -q
+
+  node:
+    name: Node (workspaces)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+      - name: Set up pnpm
+        # version is read from `packageManager` in package.json — single source of truth.
+        uses: pnpm/action-setup@v4
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm -r --if-present lint
+      - name: Test
+        run: pnpm -r --if-present test
+      - name: Validate content
+        run: pnpm --filter @echo/content-validator run validate
+
+  gitleaks:
+    name: Secrets scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

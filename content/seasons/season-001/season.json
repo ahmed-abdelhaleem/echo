@@ -1,0 +1,91 @@
+{
+  "id": "season-001",
+  "title": "The Stranger's Tuesday",
+  "locale": "en-GB",
+  "version": 1,
+  "description": "Placeholder Season for the foundation milestone. Contains a single sample vignette so the content pipeline can be exercised end-to-end. Real Season 1 content lands under T-CONTENT-002 (M1) and the full Season 1 writing is M2 scope per docs/10_Roadmap_Milestones.md.",
+  "acts": [
+    {
+      "id": "act-01",
+      "name": "Morning",
+      "vignettes": [
+        {
+          "id": "vignette-001",
+          "setting_beat": "The kitchen light is already on. Someone has been crying recently and pretended not to. The kettle is half full from the night before.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Boil the kettle and sit with it",
+              "weights": [
+                {
+                  "dimension": "OCEAN-N",
+                  "delta": -0.2,
+                  "rationale": "Choosing presence over distraction in the morning suggests lower reactivity to ambient emotional cues."
+                },
+                {
+                  "dimension": "SCH-BENEVOLENCE",
+                  "delta": 0.15,
+                  "rationale": "Sitting with someone's residue is a quiet care move."
+                }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Empty the kettle and start fresh",
+              "weights": [
+                {
+                  "dimension": "OCEAN-C",
+                  "delta": 0.15,
+                  "rationale": "A small reset of state — conscientious cleanup behavior."
+                },
+                {
+                  "dimension": "ATT-AVOIDANT",
+                  "delta": 0.1,
+                  "rationale": "Erasing the trace of someone else's distress rather than acknowledging it is a mild avoidant signal."
+                }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Leave the kitchen and come back later",
+              "weights": [
+                {
+                  "dimension": "OCEAN-A",
+                  "delta": -0.1,
+                  "rationale": "Choosing not to engage with shared space reduces the agreeableness signal."
+                },
+                {
+                  "dimension": "ATT-AVOIDANT",
+                  "delta": 0.2,
+                  "rationale": "Stronger avoidant pattern — physical removal from the emotional context."
+                }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "The kettle clicks off. Outside, a bus passes. You can hear it but you don't look.",
+            "choice-2": "You rinse the kettle. The water tastes of nothing in particular.",
+            "choice-3": "When you come back, the light is still on, but the room is somehow further away."
+          }
+        }
+      ]
+    },
+    {
+      "id": "act-02",
+      "name": "Midday",
+      "vignettes": []
+    },
+    {
+      "id": "act-03",
+      "name": "Afternoon",
+      "vignettes": []
+    },
+    {
+      "id": "act-04",
+      "name": "Evening",
+      "vignettes": []
+    }
+  ]
+}
