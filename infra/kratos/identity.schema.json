@@ -1,0 +1,70 @@
+{
+  "$id": "https://echo.app/identity/default.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Echo player identity",
+  "type": "object",
+  "properties": {
+    "traits": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "title": "Email",
+          "minLength": 3,
+          "ory.sh/kratos": {
+            "credentials": {
+              "password": {
+                "identifier": true
+              }
+            },
+            "verification": {
+              "via": "email"
+            },
+            "recovery": {
+              "via": "email"
+            }
+          }
+        },
+        "display_name": {
+          "type": "string",
+          "title": "Display name",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "birthdate": {
+          "type": "string",
+          "format": "date",
+          "title": "Date of birth"
+        },
+        "consent": {
+          "type": "object",
+          "title": "Consent",
+          "properties": {
+            "tos_version": {
+              "type": "string",
+              "title": "Terms of service version accepted"
+            },
+            "tos_accepted_at": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Terms of service accepted at"
+            },
+            "privacy_version": {
+              "type": "string",
+              "title": "Privacy policy version accepted"
+            },
+            "privacy_accepted_at": {
+              "type": "string",
+              "format": "date-time",
+              "title": "Privacy policy accepted at"
+            }
+          },
+          "required": ["tos_version", "tos_accepted_at", "privacy_version", "privacy_accepted_at"]
+        }
+      },
+      "required": ["email", "birthdate", "consent"],
+      "additionalProperties": false
+    }
+  }
+}
