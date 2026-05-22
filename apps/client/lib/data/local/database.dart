@@ -114,6 +114,28 @@ class EchoDatabase extends _$EchoDatabase {
     return into(localPlaythroughs).insert(row);
   }
 
+  /// Returns every local playthrough that hasn't yet learned its
+  /// server-assigned id. The background sync (PR 8 / T-CLIENT-012) uses
+  /// this to know which rows to register with the server first.
+  Future<List<LocalPlaythroughRow>> listLocalPlaythroughsWithoutRemote() {
+    return (select(localPlaythroughs)
+          ..where((t) => t.remoteId.isNull())
+          ..orderBy(<OrderClauseGenerator<LocalPlaythroughs>>[
+            (t) => OrderingTerm.asc(t.startedAt),
+          ]))
+        .get();
+  }
+
+  /// Stamps a local playthrough with the server-assigned UUID returned
+  /// from POST /playthroughs.
+  Future<int> setLocalPlaythroughRemoteId({
+    required String localId,
+    required String remoteId,
+  }) {
+    return (update(localPlaythroughs)..where((t) => t.localId.equals(localId)))
+        .write(LocalPlaythroughsCompanion(remoteId: Value<String?>(remoteId)));
+  }
+
   // --- Pending choice events ------------------------------------------
 
   Future<int> insertPendingChoice(PendingChoiceEventsCompanion row) {
@@ -137,5 +159,14 @@ class EchoDatabase extends _$EchoDatabase {
             (t) => OrderingTerm.asc(t.createdAt),
           ]))
         .get();
+  }
+
+  /// Deletes a single pending row by its client-generated id. The sync
+  /// loop calls this once the server has acknowledged the choice (either
+  /// as a fresh write or as an idempotent re-write).
+  Future<int> deletePendingChoice(String localId) {
+    return (delete(pendingChoiceEvents)
+          ..where((t) => t.localId.equals(localId)))
+        .go();
   }
 }
