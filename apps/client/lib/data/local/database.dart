@@ -132,8 +132,7 @@ class EchoDatabase extends _$EchoDatabase {
     required String localId,
     required String remoteId,
   }) {
-    return (update(localPlaythroughs)
-          ..where((t) => t.localId.equals(localId)))
+    return (update(localPlaythroughs)..where((t) => t.localId.equals(localId)))
         .write(LocalPlaythroughsCompanion(remoteId: Value<String?>(remoteId)));
   }
 
@@ -166,7 +165,8 @@ class EchoDatabase extends _$EchoDatabase {
   /// loop calls this once the server has acknowledged the choice (either
   /// as a fresh write or as an idempotent re-write).
   Future<int> deletePendingChoice(String localId) {
-    return (delete(pendingChoiceEvents)..where((t) => t.localId.equals(localId)))
+    return (delete(pendingChoiceEvents)
+          ..where((t) => t.localId.equals(localId)))
         .go();
   }
 }

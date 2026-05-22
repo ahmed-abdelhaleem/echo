@@ -206,9 +206,8 @@ class ProgrammableAdapter implements HttpClientAdapter {
     Stream<List<int>>? requestStream,
     Future<void>? cancelFuture,
   ) async {
-    final rawBody = requestStream == null
-        ? ''
-        : await utf8.decodeStream(requestStream);
+    final rawBody =
+        requestStream == null ? '' : await utf8.decodeStream(requestStream);
     recorded.add(
       RecordedRequest(
         method: options.method.toUpperCase(),
