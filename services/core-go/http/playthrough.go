@@ -138,3 +138,93 @@ func recordChoiceHandler(svc *playthrough.Service) http.HandlerFunc {
 		_ = json.NewEncoder(w).Encode(choiceEventResponse{ChoiceEvent: ev})
 	}
 }
+
+// traitVectorResponse wraps the stored Trait Vector for HTTP egress.
+type traitVectorResponse struct {
+	TraitVector playthrough.StoredTraitVector `json:"trait_vector"`
+}
+
+// finalizePlaythroughHandler triggers trait scoring for the playthrough
+// when every vignette has been answered. The body is empty; the
+// playthrough id comes from the URL.
+//
+// Status surface:
+//   - 200 OK              -> finalized; body has the trait vector.
+//   - 401 Unauthorized    -> no session.
+//   - 404 Not Found       -> playthrough id doesn't exist OR the season
+//     it references is unknown to ml-py (a content packaging bug).
+//   - 409 Conflict        -> ErrPlaythroughIncomplete; some vignettes
+//     still lack a choice. The client should keep playing.
+//   - 503 Service Unavailable -> trait scorer not configured at boot;
+//     a transient infra state, retry later.
+//   - 502 Bad Gateway     -> upstream (ml-py) returned INVALID_ARGUMENT
+//     for an event we sent it; bug at the boundary, log + return.
+//   - 500                 -> anything else.
+//
+// As with recordChoiceHandler, we don't yet check that the playthrough
+// belongs to the authed user; cross-user authz lands in T-CORE-022.
+func finalizePlaythroughHandler(svc *playthrough.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := auth.SessionFromContext(r.Context()); !ok {
+			writeJSONError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+		idStr := r.PathValue("id")
+		playthroughID, err := uuid.Parse(idStr)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, "invalid playthrough id")
+			return
+		}
+
+		stored, err := svc.FinalizeIfComplete(r.Context(), playthroughID)
+		switch {
+		case errors.Is(err, playthrough.ErrNotFound):
+			writeJSONError(w, http.StatusNotFound, "playthrough not found")
+			return
+		case errors.Is(err, playthrough.ErrPlaythroughIncomplete):
+			writeJSONError(w, http.StatusConflict, "playthrough is not yet complete")
+			return
+		case errors.Is(err, playthrough.ErrScorerUnavailable):
+			writeJSONError(w, http.StatusServiceUnavailable, "trait scoring is not configured")
+			return
+		case err != nil:
+			writeJSONError(w, http.StatusBadGateway, "trait scoring failed")
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(traitVectorResponse{TraitVector: stored})
+	}
+}
+
+// getTraitVectorHandler returns the persisted trait vector for a
+// playthrough. 404 if scoring hasn't completed yet.
+func getTraitVectorHandler(svc *playthrough.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := auth.SessionFromContext(r.Context()); !ok {
+			writeJSONError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+		idStr := r.PathValue("id")
+		playthroughID, err := uuid.Parse(idStr)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, "invalid playthrough id")
+			return
+		}
+
+		stored, err := svc.GetTraitVector(r.Context(), playthroughID)
+		switch {
+		case errors.Is(err, playthrough.ErrTraitVectorNotFound):
+			writeJSONError(w, http.StatusNotFound, "trait vector not found")
+			return
+		case err != nil:
+			writeJSONError(w, http.StatusInternalServerError, "get trait vector failed")
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(traitVectorResponse{TraitVector: stored})
+	}
+}

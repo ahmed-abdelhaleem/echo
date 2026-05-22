@@ -43,12 +43,14 @@ func (l *fakeContentLoader) ListSeasonIDs(_ context.Context) ([]string, error) {
 type fakeRepo struct {
 	playthroughs map[uuid.UUID]playthrough.Playthrough
 	choices      map[string]playthrough.ChoiceEvent
+	vectors      map[uuid.UUID]playthrough.StoredTraitVector
 }
 
 func newFakeRepo() *fakeRepo {
 	return &fakeRepo{
 		playthroughs: map[uuid.UUID]playthrough.Playthrough{},
 		choices:      map[string]playthrough.ChoiceEvent{},
+		vectors:      map[uuid.UUID]playthrough.StoredTraitVector{},
 	}
 }
 func key(p uuid.UUID, v string) string { return p.String() + "|" + v }
@@ -79,6 +81,66 @@ func (r *fakeRepo) GetChoice(_ context.Context, pID uuid.UUID, vID string) (play
 		return playthrough.ChoiceEvent{}, playthrough.ErrNotFound
 	}
 	return ev, nil
+}
+func (r *fakeRepo) ListChoices(_ context.Context, playthroughID uuid.UUID) ([]playthrough.ChoiceEvent, error) {
+	var out []playthrough.ChoiceEvent
+	prefix := playthroughID.String() + "|"
+	for k, ev := range r.choices {
+		if strings.HasPrefix(k, prefix) {
+			out = append(out, ev)
+		}
+	}
+	return out, nil
+}
+func (r *fakeRepo) MarkCompleted(_ context.Context, playthroughID uuid.UUID) (playthrough.Playthrough, error) {
+	p, ok := r.playthroughs[playthroughID]
+	if !ok {
+		return playthrough.Playthrough{}, playthrough.ErrNotFound
+	}
+	now := time.Now()
+	p.Status = playthrough.StatusCompleted
+	if p.CompletedAt == nil {
+		p.CompletedAt = &now
+	}
+	p.UpdatedAt = now
+	r.playthroughs[playthroughID] = p
+	return p, nil
+}
+func (r *fakeRepo) UpsertTraitVector(
+	_ context.Context,
+	playthroughID uuid.UUID,
+	vec playthrough.TraitVector,
+	scoringVersion, seasonVersion int,
+) (playthrough.StoredTraitVector, error) {
+	stored := playthrough.StoredTraitVector{
+		PlaythroughID: playthroughID, BigFive: vec.BigFive, Schwartz: vec.Schwartz, Attachment: vec.Attachment,
+		ScoringVersion: scoringVersion, SeasonVersion: seasonVersion, CreatedAt: time.Now(),
+	}
+	r.vectors[playthroughID] = stored
+	return stored, nil
+}
+func (r *fakeRepo) GetTraitVector(_ context.Context, playthroughID uuid.UUID) (playthrough.StoredTraitVector, error) {
+	stored, ok := r.vectors[playthroughID]
+	if !ok {
+		return playthrough.StoredTraitVector{}, playthrough.ErrTraitVectorNotFound
+	}
+	return stored, nil
+}
+
+// fakeScorer is a recording stand-in for the gRPC client. The HTTP
+// tests don't care what the vector looks like — the contract under
+// test here is the HTTP <-> service — so we return a constant vector.
+type fakeScorer struct {
+	called bool
+	in     playthrough.TraitScoringInput
+	out    playthrough.TraitVector
+	err    error
+}
+
+func (f *fakeScorer) Score(_ context.Context, in playthrough.TraitScoringInput) (playthrough.TraitVector, error) {
+	f.called = true
+	f.in = in
+	return f.out, f.err
 }
 
 type fakeUsersRepo struct {
@@ -159,7 +221,14 @@ func newPlaythroughSuite(t *testing.T, usersRepo *fakeUsersRepo) (http.Handler, 
 	loader := &fakeContentLoader{seasons: map[string]content.Season{"season-001": fixtureSeason()}}
 	contentSvc := content.NewService(loader)
 	repo := newFakeRepo()
-	ptSvc := playthrough.NewService(repo, contentSvc)
+	scorer := &fakeScorer{
+		out: playthrough.TraitVector{
+			BigFive:    []float64{0.1, 0, 0, 0, 0},
+			Schwartz:   make([]float64, 10),
+			Attachment: []float64{0.2, 0, 0},
+		},
+	}
+	ptSvc := playthrough.NewService(repo, contentSvc, scorer)
 
 	kc := auth.NewKratosClient(kratos.URL, kratos.URL, nil)
 	authSvc := auth.New(kc)
@@ -358,4 +427,68 @@ func TestPlaythroughRoutes_Disabled(t *testing.T) {
 // to the right HTTP status (catch regressions where someone returns 500).
 func TestRecordChoice_ErrChoiceConflict_Symbol(t *testing.T) {
 	require.True(t, errors.Is(playthrough.ErrChoiceConflict, playthrough.ErrChoiceConflict))
+}
+
+// --- Finalize + trait vector ----------------------------------------------
+
+func TestFinalize_HappyPath(t *testing.T) {
+	users := &fakeUsersRepo{}
+	mux, cookie, _ := newPlaythroughSuite(t, users)
+
+	createRec := doJSON(t, mux, http.MethodPost, "/playthroughs", cookie,
+		map[string]string{"season_id": "season-001"})
+	require.Equal(t, http.StatusCreated, createRec.Code, createRec.Body.String())
+	var created playthroughResponse
+	require.NoError(t, json.Unmarshal(createRec.Body.Bytes(), &created))
+	pid := created.Playthrough.ID.String()
+
+	rec := doJSON(t, mux, http.MethodPost, "/playthroughs/"+pid+"/choices", cookie,
+		map[string]string{"vignette_id": "vignette-001", "choice_id": "choice-1"})
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+	finRec := doJSON(t, mux, http.MethodPost, "/playthroughs/"+pid+"/finalize", cookie, nil)
+	require.Equal(t, http.StatusOK, finRec.Code, finRec.Body.String())
+	var fin traitVectorResponse
+	require.NoError(t, json.Unmarshal(finRec.Body.Bytes(), &fin))
+	require.Equal(t, created.Playthrough.ID, fin.TraitVector.PlaythroughID)
+	require.Len(t, fin.TraitVector.BigFive, 5)
+	require.Len(t, fin.TraitVector.Schwartz, 10)
+	require.Len(t, fin.TraitVector.Attachment, 3)
+	require.Equal(t, playthrough.ScoringVersionM1, fin.TraitVector.ScoringVersion)
+
+	getRec := doJSON(t, mux, http.MethodGet, "/playthroughs/"+pid+"/trait-vector", cookie, nil)
+	require.Equal(t, http.StatusOK, getRec.Code, getRec.Body.String())
+}
+
+func TestFinalize_Incomplete(t *testing.T) {
+	mux, cookie, _ := newPlaythroughSuite(t, &fakeUsersRepo{})
+	createRec := doJSON(t, mux, http.MethodPost, "/playthroughs", cookie,
+		map[string]string{"season_id": "season-001"})
+	var created playthroughResponse
+	require.NoError(t, json.Unmarshal(createRec.Body.Bytes(), &created))
+
+	finRec := doJSON(t, mux, http.MethodPost,
+		"/playthroughs/"+created.Playthrough.ID.String()+"/finalize", cookie, nil)
+	require.Equal(t, http.StatusConflict, finRec.Code)
+}
+
+func TestFinalize_NotFound(t *testing.T) {
+	mux, cookie, _ := newPlaythroughSuite(t, &fakeUsersRepo{})
+	finRec := doJSON(t, mux, http.MethodPost,
+		"/playthroughs/"+uuid.New().String()+"/finalize", cookie, nil)
+	require.Equal(t, http.StatusNotFound, finRec.Code)
+}
+
+func TestFinalize_Unauthenticated(t *testing.T) {
+	mux, _, _ := newPlaythroughSuite(t, &fakeUsersRepo{})
+	finRec := doJSON(t, mux, http.MethodPost,
+		"/playthroughs/"+uuid.New().String()+"/finalize", "", nil)
+	require.Equal(t, http.StatusUnauthorized, finRec.Code)
+}
+
+func TestGetTraitVector_NotFound(t *testing.T) {
+	mux, cookie, _ := newPlaythroughSuite(t, &fakeUsersRepo{})
+	rec := doJSON(t, mux, http.MethodGet,
+		"/playthroughs/"+uuid.New().String()+"/trait-vector", cookie, nil)
+	require.Equal(t, http.StatusNotFound, rec.Code)
 }

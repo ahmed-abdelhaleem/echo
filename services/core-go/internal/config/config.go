@@ -45,6 +45,11 @@ type Config struct {
 	// Empty disables the content endpoints.
 	ContentRoot string
 
+	// MLgRPCAddr is the host:port of the ml-py gRPC service. Empty
+	// disables trait scoring (FinalizeIfComplete returns
+	// ErrScorerUnavailable until the dependency is wired).
+	MLgRPCAddr string
+
 	// Environment is the deployment environment label (dev|staging|production).
 	Environment string
 }
@@ -61,6 +66,7 @@ func Load() (Config, error) {
 		KratosPublicURL: strings.TrimSpace(os.Getenv("KRATOS_PUBLIC_URL")),
 		KratosAdminURL:  strings.TrimSpace(os.Getenv("KRATOS_ADMIN_URL")),
 		ContentRoot:     strings.TrimSpace(os.Getenv("CONTENT_ROOT")),
+		MLgRPCAddr:      strings.TrimSpace(os.Getenv("ML_GRPC_ADDR")),
 		Environment:     defaultString(os.Getenv("ECHO_ENV"), "dev"),
 	}
 

@@ -7,15 +7,38 @@ option go_package = "github.com/ahmed-abdelhaleem/echo/services/core-go/grpc/ech
 // TraitScoringService produces a TraitVector from a finalized playthrough event log.
 // See docs/04_Game_Design.md §"Trait model" and docs/05_Technical_Architecture.md
 // §"Trait, Portrait, and Reflection pipeline".
+//
+// The service is intentionally stateless: the caller (core-go) provides
+// the finalized event log along with the season id and version so the
+// scorer can resolve the trait weights. ml-py never reads core-go's
+// Postgres in M1; that coupling lands later behind T-CORE-011-followup.
 service TraitScoringService {
-  // Score reads the playthrough event log keyed by playthrough_id and returns
-  // the deterministic Trait Vector. Idempotent on repeated calls with the same
-  // finalized log. Auditable: the trait-replay tool reproduces this output.
+  // Score consumes the playthrough's choice events and returns the
+  // deterministic Trait Vector. Idempotent on repeated calls with the
+  // same input. Auditable: the trait-replay tool (M2) reproduces this
+  // output offline.
   rpc Score(ScoreRequest) returns (ScoreResponse);
 }
 
+// One recorded choice on a single vignette. The (vignette_id, choice_id)
+// pair indexes into the Season at season_version to find the
+// TraitWeight list to aggregate.
+message ScoredChoice {
+  string vignette_id = 1;
+  string choice_id = 2;
+}
+
 message ScoreRequest {
+  // Stable id of the playthrough being scored. Carried for telemetry /
+  // log correlation only; scoring itself doesn't depend on it.
   string playthrough_id = 1;
+  // The Season the playthrough was played against, at the version that
+  // was locked in at playthrough creation. The scorer loads this Season
+  // from the content tree to resolve trait weights.
+  string season_id = 2;
+  int32 season_version = 3;
+  // The finalized choice event log in commit order.
+  repeated ScoredChoice events = 4;
 }
 
 message ScoreResponse {
@@ -23,6 +46,7 @@ message ScoreResponse {
   // Values are floats in [-1.0, 1.0]; never displayed clinically to under-18 users.
   repeated double big_five = 1;
   // 10-vector mapping to Schwartz Basic Human Values per docs/04_Game_Design.md.
+  // Order matches `content.AllDimensions` (SCH-SELF_DIRECTION ... SCH-UNIVERSALISM).
   repeated double schwartz = 2;
   // Three attachment-proxy scores: secure, anxious, avoidant in [0.0, 1.0].
   // Never exposed as labels to under-18 players per docs/08_Data_Privacy_Compliance.md.
