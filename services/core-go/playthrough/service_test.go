@@ -409,7 +409,7 @@ func TestService_FinalizeIfComplete_IdempotentReplay(t *testing.T) {
 	t.Parallel()
 	scorer := &fakeScorer{
 		out: playthrough.TraitVector{
-			BigFive: []float64{0.1, 0.0, 0.0, 0.0, 0.0},
+			BigFive:  []float64{0.1, 0.0, 0.0, 0.0, 0.0},
 			Schwartz: make([]float64, 10), Attachment: make([]float64, 3),
 		},
 	}
