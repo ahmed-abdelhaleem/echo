@@ -67,6 +67,8 @@ func NewMux(deps Dependencies) http.Handler {
 		mw := auth.Middleware(deps.Auth.Kratos, deps.Logger)
 		mux.Handle("POST /playthroughs", mw(createPlaythroughHandler(deps.Playthrough, deps.Users, nowFn)))
 		mux.Handle("POST /playthroughs/{id}/choices", mw(recordChoiceHandler(deps.Playthrough)))
+		mux.Handle("POST /playthroughs/{id}/finalize", mw(finalizePlaythroughHandler(deps.Playthrough)))
+		mux.Handle("GET /playthroughs/{id}/trait-vector", mw(getTraitVectorHandler(deps.Playthrough)))
 	}
 
 	return mux

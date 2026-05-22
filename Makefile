@@ -313,8 +313,46 @@ simulate:
 
 .PHONY: replay
 replay:
-	@echo "→ replay: tools/trait-replay is a placeholder until M1 (T-ML-010)."
+	@echo "→ replay: tools/trait-replay is a placeholder until M2 (post T-ML-010)."
 	@echo "  Adding a no-op exit-0 to keep the convention from docs/07."
+
+# ---------------------------------------------------------------------------
+# Proto codegen (committed to the tree so CI doesn't need protoc)
+# ---------------------------------------------------------------------------
+
+PROTO_DIR := packages/proto
+GO_PB_OUT := services/core-go/grpc/echopb
+PY_PB_OUT := services/ml-py/app/grpc_gen
+
+.PHONY: proto
+proto:
+	@command -v protoc >/dev/null 2>&1 || (echo "protoc not installed; run make bootstrap-proto" && exit 1)
+	@command -v protoc-gen-go >/dev/null 2>&1 || (echo "protoc-gen-go not installed; run make bootstrap-proto" && exit 1)
+	@command -v protoc-gen-go-grpc >/dev/null 2>&1 || (echo "protoc-gen-go-grpc not installed; run make bootstrap-proto" && exit 1)
+	@mkdir -p $(GO_PB_OUT) $(PY_PB_OUT)
+	@touch $(PY_PB_OUT)/__init__.py
+	@protoc -I=$(PROTO_DIR) \
+		--go_out=$(GO_PB_OUT) --go_opt=paths=source_relative \
+		--go-grpc_out=$(GO_PB_OUT) --go-grpc_opt=paths=source_relative \
+		$(PROTO_DIR)/trait_scoring.proto
+	@cd services/ml-py && uv run python -m grpc_tools.protoc \
+		-I=../../$(PROTO_DIR) \
+		--python_out=app/grpc_gen \
+		--grpc_python_out=app/grpc_gen \
+		../../$(PROTO_DIR)/trait_scoring.proto
+	@# grpc_tools emits absolute imports (`import trait_scoring_pb2`) which
+	@# break when the package is imported as `app.grpc_gen`. Patch them to
+	@# explicit relative imports so the generated module is portable.
+	@sed -i 's/^import trait_scoring_pb2 as /from . import trait_scoring_pb2 as /' \
+		$(PY_PB_OUT)/trait_scoring_pb2_grpc.py
+	@echo "✓ proto stubs regenerated under $(GO_PB_OUT) and $(PY_PB_OUT)"
+
+.PHONY: bootstrap-proto
+bootstrap-proto:
+	@echo "→ installing Go proto plugins"
+	@go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.0
+	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+	@echo "→ Python protoc tooling is a uv dev-dep on grpcio-tools; already in pyproject.toml"
 
 # ---------------------------------------------------------------------------
 # Dev (long-running)

@@ -29,6 +29,7 @@ import (
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/auth"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/content"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/db"
+	coregrpc "github.com/ahmed-abdelhaleem/echo/services/core-go/grpc"
 	corehttp "github.com/ahmed-abdelhaleem/echo/services/core-go/http"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/internal/config"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/internal/telemetry"
@@ -113,6 +114,23 @@ func main() {
 		logger.Info("content disabled; CONTENT_ROOT not set")
 	}
 
+	// Trait scoring — optional dependency on ml-py via gRPC. When the
+	// endpoint isn't set, FinalizeIfComplete returns
+	// ErrScorerUnavailable until the dependency is wired.
+	var scorer playthrough.TraitScorer
+	if cfg.MLgRPCAddr != "" {
+		mlClient, err := coregrpc.DialML(ctx, cfg.MLgRPCAddr)
+		if err != nil {
+			logger.Warn("ml gRPC not reachable at startup; trait scoring disabled", "err", err)
+		} else {
+			scorer = mlClient
+			defer func() { _ = mlClient.Close() }()
+			logger.Info("trait scoring enabled", "ml_grpc_addr", cfg.MLgRPCAddr)
+		}
+	} else {
+		logger.Info("trait scoring disabled; ML_GRPC_ADDR not set")
+	}
+
 	// Playthrough — requires Postgres + Content. Auth is checked at route
 	// registration time so the routes only appear when the full chain is
 	// wired.
@@ -121,6 +139,7 @@ func main() {
 		deps.Playthrough = playthrough.NewService(
 			playthrough.NewPgRepository(deps.PG),
 			deps.Content,
+			scorer,
 		)
 		logger.Info("playthrough enabled")
 	} else {

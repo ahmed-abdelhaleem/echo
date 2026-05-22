@@ -71,3 +71,41 @@ type RecordChoiceInput struct {
 	ClientTimestamp *time.Time `json:"client_timestamp,omitempty"`
 	DeliberationMS  *int       `json:"deliberation_ms,omitempty"`
 }
+
+// ScoredChoice is the (vignette_id, choice_id) pair the trait scorer
+// consumes. Kept separate from ChoiceEvent so the scoring client doesn't
+// have to round-trip the entire DB row.
+type ScoredChoice struct {
+	VignetteID string
+	ChoiceID   string
+}
+
+// TraitScoringInput is the payload sent to the ml-py scoring service.
+type TraitScoringInput struct {
+	PlaythroughID string
+	SeasonID      string
+	SeasonVersion int
+	Events        []ScoredChoice
+}
+
+// TraitVector is the 18-dimensional output of the scoring engine. The
+// three sub-arrays are stored separately in Postgres
+// (playthrough.trait_vectors) so SQL can be written against them
+// directly. Order is locked to `content.AllDimensions`.
+type TraitVector struct {
+	BigFive    []float64 `json:"big_five"`
+	Schwartz   []float64 `json:"schwartz"`
+	Attachment []float64 `json:"attachment"`
+}
+
+// StoredTraitVector is a TraitVector plus the bookkeeping columns
+// persisted alongside it. Returned by Repository.GetTraitVector.
+type StoredTraitVector struct {
+	PlaythroughID  uuid.UUID `json:"playthrough_id"`
+	BigFive        []float64 `json:"big_five"`
+	Schwartz       []float64 `json:"schwartz"`
+	Attachment     []float64 `json:"attachment"`
+	ScoringVersion int       `json:"scoring_version"`
+	SeasonVersion  int       `json:"season_version"`
+	CreatedAt      time.Time `json:"created_at"`
+}
