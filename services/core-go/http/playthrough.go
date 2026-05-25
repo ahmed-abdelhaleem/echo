@@ -230,10 +230,17 @@ func getTraitVectorHandler(svc *playthrough.Service) http.HandlerFunc {
 	}
 }
 
-// getPortraitHandler returns the rendered Portrait for a playthrough as
-// raw PNG bytes. The renderer is deterministic, so the client can cache
-// on (playthrough_id, renderer_version) — we surface the version as a
-// custom response header.
+// getPortraitHandler returns the rendered Portrait for a playthrough.
+//
+// By default it serves the static PNG (Content-Type: image/png). When
+// the request includes “?format=webp“ the response is the animated
+// WebP loop (T-ML-031). Animated rendering is roughly 2x as expensive
+// on the ml-py side, so only the share-web Story / in-app reveal
+// surfaces opt in.
+//
+// The renderer is deterministic, so clients can cache on
+// (playthrough_id, format, renderer_version). The version is surfaced
+// via the X-Renderer-Version response header.
 //
 // Status surface mirrors getTraitVectorHandler: 404 if the trait vector
 // hasn't been computed yet; 503 if the Portrait generator isn't wired.
@@ -250,7 +257,17 @@ func getPortraitHandler(svc *playthrough.Service) http.HandlerFunc {
 			return
 		}
 
-		assets, err := svc.GetPortrait(r.Context(), playthroughID)
+		format := r.URL.Query().Get("format")
+		switch format {
+		case "", "png", "webp":
+			// ok
+		default:
+			writeJSONError(w, http.StatusBadRequest, "format must be 'png' or 'webp'")
+			return
+		}
+		animate := format == "webp"
+
+		assets, err := svc.GetPortrait(r.Context(), playthroughID, animate)
 		switch {
 		case errors.Is(err, playthrough.ErrPortraitUnavailable):
 			writeJSONError(w, http.StatusServiceUnavailable, "portrait renderer is not configured")
@@ -263,11 +280,17 @@ func getPortraitHandler(svc *playthrough.Service) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Set("Content-Type", "image/png")
 		w.Header().Set("X-Renderer-Version", strconv.Itoa(assets.RendererVersion))
 		// Deterministic output; client can cache forever and bust on
-		// X-Renderer-Version. private — Portraits are personal.
+		// (format, X-Renderer-Version). private — Portraits are personal.
 		w.Header().Set("Cache-Control", "private, max-age=31536000, immutable")
+		if animate {
+			w.Header().Set("Content-Type", "image/webp")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write(assets.AnimatedWebP)
+			return
+		}
+		w.Header().Set("Content-Type", "image/png")
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write(assets.PNG)
 	}

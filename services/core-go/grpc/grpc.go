@@ -128,7 +128,10 @@ type PortraitGenClient interface {
 }
 
 // GeneratePortrait sends the trait vector to ml-py and returns the
-// inline PNG bytes (M1) or R2 keys (M2; empty in M1).
+// rendered Portrait. PNG bytes are always populated; AnimatedWebP is
+// populated only when in.Animate was true (T-ML-031). StaticPNGKey /
+// AnimatedWebPKey are populated by ml-py once T-CORE-030 wires R2
+// persistence; empty otherwise.
 func (c *MLClient) GeneratePortrait(ctx context.Context, in playthrough.PortraitInput) (playthrough.PortraitAssets, error) {
 	req := &echopb.GeneratePortraitRequest{
 		PlaythroughId: in.PlaythroughID,
@@ -136,6 +139,7 @@ func (c *MLClient) GeneratePortrait(ctx context.Context, in playthrough.Portrait
 		BigFive:       in.BigFive,
 		Schwartz:      in.Schwartz,
 		Attachment:    in.Attachment,
+		Animate:       in.Animate,
 	}
 	resp, err := c.portrait.Generate(ctx, req)
 	if err != nil {
@@ -143,6 +147,7 @@ func (c *MLClient) GeneratePortrait(ctx context.Context, in playthrough.Portrait
 	}
 	return playthrough.PortraitAssets{
 		PNG:             resp.Png,
+		AnimatedWebP:    resp.AnimatedWebp,
 		StaticPNGKey:    resp.StaticPngKey,
 		AnimatedWebPKey: resp.AnimatedWebpKey,
 		RendererVersion: int(resp.RendererVersion),

@@ -60,9 +60,34 @@ def test_portrait_generate_returns_inline_png(grpc_channel: grpc.Channel) -> Non
         ),
     )
     assert resp.png.startswith(b"\x89PNG\r\n\x1a\n")
-    assert resp.renderer_version == 1
+    # M2 parametric renderer (T-ML-030) bumps to version 2.
+    assert resp.renderer_version == 2
     assert resp.static_png_key == ""
     assert resp.animated_webp_key == ""
+    # Default request didn't ask for animation, so the WebP slot is empty.
+    assert resp.animated_webp == b""
+
+
+def test_portrait_generate_with_animation_returns_inline_webp(
+    grpc_channel: grpc.Channel,
+) -> None:
+    """When ``animate=true`` the response carries both the PNG and an
+    animated WebP loop (T-ML-031). Other fields are unchanged."""
+    stub = portrait_gen_pb2_grpc.PortraitGenServiceStub(grpc_channel)
+    resp = stub.Generate(
+        portrait_gen_pb2.GeneratePortraitRequest(
+            playthrough_id="pt-1",
+            seed=0,
+            big_five=[0.3, 0.4, -0.5, 0.2, 0.6],
+            schwartz=[0.5, -0.4, 0.6, 0.2, -0.3, 0.4, -0.5, 0.3, -0.2, 0.5],
+            attachment=[0.7, 0.3, 0.4],
+            animate=True,
+        ),
+    )
+    assert resp.png.startswith(b"\x89PNG\r\n\x1a\n")
+    assert resp.animated_webp.startswith(b"RIFF")
+    assert b"WEBP" in resp.animated_webp[:16]
+    assert resp.renderer_version == 2
 
 
 def test_portrait_invalid_dimension_count_raises_invalid_argument(

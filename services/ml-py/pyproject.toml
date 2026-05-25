@@ -15,6 +15,12 @@ dependencies = [
     "grpcio>=1.66.0",
     "grpcio-tools>=1.66.0",
     "protobuf>=5.27.0",
+    # Pillow underpins the parametric Portrait renderer (T-ML-030 /
+    # T-ML-031). Used for static 1080x1080 PNG composition and animated
+    # WebP loop encoding. Pure-Python stdlib was sufficient for the M1
+    # placeholder; M2 requires alpha compositing, gradients, and WebP
+    # encoding which are not in stdlib.
+    "pillow>=11.0.0",
 ]
 
 [project.optional-dependencies]
