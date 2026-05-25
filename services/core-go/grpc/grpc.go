@@ -1,8 +1,9 @@
-// Package grpc wires the core-go service to the ml-py gRPC surface
-// (TraitScoringService for now; PortraitGen / Reflection land at M2).
+// Package grpc wires the core-go service to the ml-py gRPC surface:
+// TraitScoringService (T-ML-010), PortraitGenService (T-ML-020 stub),
+// ReflectionGenService (T-ML-021 stub).
 //
 // Wire format lives under ./echopb (`make proto` regenerates from
-// packages/proto/*.proto). This package exposes a thin Client that
+// packages/proto/*.proto). This package exposes thin clients that
 // callers (playthrough.Service in particular) can depend on without
 // reaching into the generated code.
 package grpc
@@ -35,10 +36,14 @@ type TraitScoringClient interface {
 	Score(ctx context.Context, in playthrough.TraitScoringInput) (playthrough.TraitVector, error)
 }
 
-// MLClient holds the gRPC connection to ml-py.
+// MLClient holds the gRPC connection to ml-py. The single connection
+// is shared across all three service clients (scorer / portrait /
+// reflection) to keep socket churn down.
 type MLClient struct {
-	conn   *grpc.ClientConn
-	scorer echopb.TraitScoringServiceClient
+	conn       *grpc.ClientConn
+	scorer     echopb.TraitScoringServiceClient
+	portrait   echopb.PortraitGenServiceClient
+	reflection echopb.ReflectionGenServiceClient
 }
 
 // DialML opens an insecure gRPC connection to ml-py. Insecure is
@@ -52,8 +57,10 @@ func DialML(ctx context.Context, target string) (*MLClient, error) {
 		return nil, fmt.Errorf("grpc: dial ml at %s: %w", target, err)
 	}
 	return &MLClient{
-		conn:   conn,
-		scorer: echopb.NewTraitScoringServiceClient(conn),
+		conn:       conn,
+		scorer:     echopb.NewTraitScoringServiceClient(conn),
+		portrait:   echopb.NewPortraitGenServiceClient(conn),
+		reflection: echopb.NewReflectionGenServiceClient(conn),
 	}, nil
 }
 
@@ -105,5 +112,81 @@ func translateScoreError(err error) error {
 		return fmt.Errorf("%w: %s", ErrInvalidEvent, st.Message())
 	default:
 		return fmt.Errorf("trait scoring: rpc %s: %s", st.Code(), st.Message())
+	}
+}
+
+// --- PortraitGenService (T-ML-020) -----------------------------------------
+
+// ErrInvalidVector is returned when ml-py rejects the trait vector as
+// the wrong shape (INVALID_ARGUMENT). Practically: a content authoring
+// bug got past the validator, or a client called with a partial vector.
+var ErrInvalidVector = errors.New("ml: invalid trait vector")
+
+// PortraitGenClient adapts ml-py's PortraitGenService.
+type PortraitGenClient interface {
+	GeneratePortrait(ctx context.Context, in playthrough.PortraitInput) (playthrough.PortraitAssets, error)
+}
+
+// GeneratePortrait sends the trait vector to ml-py and returns the
+// inline PNG bytes (M1) or R2 keys (M2; empty in M1).
+func (c *MLClient) GeneratePortrait(ctx context.Context, in playthrough.PortraitInput) (playthrough.PortraitAssets, error) {
+	req := &echopb.GeneratePortraitRequest{
+		PlaythroughId: in.PlaythroughID,
+		Seed:          in.Seed,
+		BigFive:       in.BigFive,
+		Schwartz:      in.Schwartz,
+		Attachment:    in.Attachment,
+	}
+	resp, err := c.portrait.Generate(ctx, req)
+	if err != nil {
+		return playthrough.PortraitAssets{}, translateVectorError(err, "portrait")
+	}
+	return playthrough.PortraitAssets{
+		PNG:             resp.Png,
+		StaticPNGKey:    resp.StaticPngKey,
+		AnimatedWebPKey: resp.AnimatedWebpKey,
+		RendererVersion: int(resp.RendererVersion),
+	}, nil
+}
+
+// --- ReflectionGenService (T-ML-021) ---------------------------------------
+
+// ReflectionGenClient adapts ml-py's ReflectionGenService.
+type ReflectionGenClient interface {
+	GenerateReflection(ctx context.Context, in playthrough.ReflectionInput) (playthrough.Reflection, error)
+}
+
+// GenerateReflection sends the trait vector + flags to ml-py and
+// returns the templated reflection.
+func (c *MLClient) GenerateReflection(ctx context.Context, in playthrough.ReflectionInput) (playthrough.Reflection, error) {
+	req := &echopb.GenerateReflectionRequest{
+		PlaythroughId: in.PlaythroughID,
+		YouthSafe:     in.YouthSafe,
+		Locale:        in.Locale,
+		BigFive:       in.BigFive,
+		Schwartz:      in.Schwartz,
+		Attachment:    in.Attachment,
+	}
+	resp, err := c.reflection.Generate(ctx, req)
+	if err != nil {
+		return playthrough.Reflection{}, translateVectorError(err, "reflection")
+	}
+	return playthrough.Reflection{
+		Text:         resp.Text,
+		UsedFallback: resp.UsedFallback,
+		TemplateID:   resp.TemplateId,
+	}, nil
+}
+
+func translateVectorError(err error, surface string) error {
+	st, ok := status.FromError(err)
+	if !ok {
+		return fmt.Errorf("%s: %w", surface, err)
+	}
+	switch st.Code() {
+	case codes.InvalidArgument:
+		return fmt.Errorf("%w: %s", ErrInvalidVector, st.Message())
+	default:
+		return fmt.Errorf("%s: rpc %s: %s", surface, st.Code(), st.Message())
 	}
 }

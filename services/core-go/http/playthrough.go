@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/auth"
@@ -226,5 +227,93 @@ func getTraitVectorHandler(svc *playthrough.Service) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_ = json.NewEncoder(w).Encode(traitVectorResponse{TraitVector: stored})
+	}
+}
+
+// getPortraitHandler returns the rendered Portrait for a playthrough as
+// raw PNG bytes. The renderer is deterministic, so the client can cache
+// on (playthrough_id, renderer_version) — we surface the version as a
+// custom response header.
+//
+// Status surface mirrors getTraitVectorHandler: 404 if the trait vector
+// hasn't been computed yet; 503 if the Portrait generator isn't wired.
+func getPortraitHandler(svc *playthrough.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := auth.SessionFromContext(r.Context()); !ok {
+			writeJSONError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+		idStr := r.PathValue("id")
+		playthroughID, err := uuid.Parse(idStr)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, "invalid playthrough id")
+			return
+		}
+
+		assets, err := svc.GetPortrait(r.Context(), playthroughID)
+		switch {
+		case errors.Is(err, playthrough.ErrPortraitUnavailable):
+			writeJSONError(w, http.StatusServiceUnavailable, "portrait renderer is not configured")
+			return
+		case errors.Is(err, playthrough.ErrTraitVectorNotFound):
+			writeJSONError(w, http.StatusNotFound, "trait vector not found; finalize the playthrough first")
+			return
+		case err != nil:
+			writeJSONError(w, http.StatusBadGateway, "portrait rendering failed")
+			return
+		}
+
+		w.Header().Set("Content-Type", "image/png")
+		w.Header().Set("X-Renderer-Version", strconv.Itoa(assets.RendererVersion))
+		// Deterministic output; client can cache forever and bust on
+		// X-Renderer-Version. private — Portraits are personal.
+		w.Header().Set("Cache-Control", "private, max-age=31536000, immutable")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(assets.PNG)
+	}
+}
+
+// reflectionResponse wraps the templated reflection for HTTP egress.
+type reflectionResponse struct {
+	Reflection playthrough.Reflection `json:"reflection"`
+}
+
+// getReflectionHandler returns the templated reflection for a
+// playthrough. The M1 stub is deterministic on the trait vector; the
+// M2 LLM pipeline will persist instead of regenerate.
+func getReflectionHandler(svc *playthrough.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := auth.SessionFromContext(r.Context()); !ok {
+			writeJSONError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+		idStr := r.PathValue("id")
+		playthroughID, err := uuid.Parse(idStr)
+		if err != nil {
+			writeJSONError(w, http.StatusBadRequest, "invalid playthrough id")
+			return
+		}
+
+		// youth_safe is not yet plumbed from the session; M2's
+		// auth tightening (T-CORE-022) carries the age-band flag
+		// through the request context. For now we default to the
+		// stricter profile, which is what the M1 stub uses
+		// uniformly anyway.
+		reflection, err := svc.GetReflection(r.Context(), playthroughID, true)
+		switch {
+		case errors.Is(err, playthrough.ErrReflectionUnavailable):
+			writeJSONError(w, http.StatusServiceUnavailable, "reflection pipeline is not configured")
+			return
+		case errors.Is(err, playthrough.ErrTraitVectorNotFound):
+			writeJSONError(w, http.StatusNotFound, "trait vector not found; finalize the playthrough first")
+			return
+		case err != nil:
+			writeJSONError(w, http.StatusBadGateway, "reflection rendering failed")
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_ = json.NewEncoder(w).Encode(reflectionResponse{Reflection: reflection})
 	}
 }

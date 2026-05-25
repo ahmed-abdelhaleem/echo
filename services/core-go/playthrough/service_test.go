@@ -440,3 +440,150 @@ func TestService_GetTraitVector_NotFound(t *testing.T) {
 		t.Errorf("want ErrTraitVectorNotFound, got %v", err)
 	}
 }
+
+// --- Portrait + Reflection (T-ML-020 / T-ML-021) ----------------------------
+
+// fakePortraitGen is a recording PortraitGenerator for tests.
+type fakePortraitGen struct {
+	called bool
+	in     playthrough.PortraitInput
+	out    playthrough.PortraitAssets
+	err    error
+}
+
+func (f *fakePortraitGen) GeneratePortrait(_ context.Context, in playthrough.PortraitInput) (playthrough.PortraitAssets, error) {
+	f.called = true
+	f.in = in
+	return f.out, f.err
+}
+
+// fakeReflectionGen is a recording ReflectionGenerator for tests.
+type fakeReflectionGen struct {
+	called bool
+	in     playthrough.ReflectionInput
+	out    playthrough.Reflection
+	err    error
+}
+
+func (f *fakeReflectionGen) GenerateReflection(_ context.Context, in playthrough.ReflectionInput) (playthrough.Reflection, error) {
+	f.called = true
+	f.in = in
+	return f.out, f.err
+}
+
+func seedTraitVector(t *testing.T, repo *fakeRepo) uuid.UUID {
+	t.Helper()
+	id := uuid.New()
+	repo.vectors[id] = playthrough.StoredTraitVector{
+		PlaythroughID:  id,
+		BigFive:        []float64{0.4, -0.2, 0.0, 0.1, -0.1},
+		Schwartz:       []float64{0.0, 0.1, 0.2, 0.0, -0.1, 0.0, 0.0, 0.0, 0.3, -0.2},
+		Attachment:     []float64{0.7, 0.2, 0.5},
+		ScoringVersion: playthrough.ScoringVersionM1,
+		SeasonVersion:  7,
+		CreatedAt:      time.Now(),
+	}
+	return id
+}
+
+func TestService_GetPortrait_HappyPath(t *testing.T) {
+	t.Parallel()
+	svc, repo := newServiceFixture(t)
+	pg := &fakePortraitGen{out: playthrough.PortraitAssets{
+		PNG:             []byte("\x89PNGFAKE"),
+		RendererVersion: 1,
+	}}
+	svc.WithPortraitGenerator(pg)
+
+	id := seedTraitVector(t, repo)
+	assets, err := svc.GetPortrait(context.Background(), id)
+	if err != nil {
+		t.Fatalf("GetPortrait: %v", err)
+	}
+	if !pg.called {
+		t.Fatal("portrait generator was not called")
+	}
+	if string(assets.PNG) != "\x89PNGFAKE" {
+		t.Errorf("png passthrough broke: %q", assets.PNG)
+	}
+	// Inputs forwarded verbatim from the stored vector.
+	if pg.in.PlaythroughID != id.String() {
+		t.Errorf("playthrough id not propagated: got %s want %s", pg.in.PlaythroughID, id)
+	}
+	if len(pg.in.BigFive) != 5 || len(pg.in.Schwartz) != 10 || len(pg.in.Attachment) != 3 {
+		t.Errorf("vector shape not propagated: %+v", pg.in)
+	}
+}
+
+func TestService_GetPortrait_NoGenerator(t *testing.T) {
+	t.Parallel()
+	svc, repo := newServiceFixture(t)
+	id := seedTraitVector(t, repo)
+	_, err := svc.GetPortrait(context.Background(), id)
+	if !errors.Is(err, playthrough.ErrPortraitUnavailable) {
+		t.Errorf("want ErrPortraitUnavailable, got %v", err)
+	}
+}
+
+func TestService_GetPortrait_TraitVectorMissing(t *testing.T) {
+	t.Parallel()
+	svc, _ := newServiceFixture(t)
+	pg := &fakePortraitGen{}
+	svc.WithPortraitGenerator(pg)
+	_, err := svc.GetPortrait(context.Background(), uuid.New())
+	if !errors.Is(err, playthrough.ErrTraitVectorNotFound) {
+		t.Errorf("want ErrTraitVectorNotFound, got %v", err)
+	}
+	if pg.called {
+		t.Error("generator should not be called when trait vector is missing")
+	}
+}
+
+func TestService_GetReflection_HappyPath(t *testing.T) {
+	t.Parallel()
+	svc, repo := newServiceFixture(t)
+	rg := &fakeReflectionGen{out: playthrough.Reflection{
+		Text:       "Today you reach toward what is unfamiliar.",
+		TemplateID: "m1-stub.v1",
+	}}
+	svc.WithReflectionGenerator(rg)
+
+	id := seedTraitVector(t, repo)
+	reflection, err := svc.GetReflection(context.Background(), id, true)
+	if err != nil {
+		t.Fatalf("GetReflection: %v", err)
+	}
+	if !rg.called {
+		t.Fatal("reflection generator was not called")
+	}
+	if reflection.Text != "Today you reach toward what is unfamiliar." {
+		t.Errorf("text passthrough broke: %q", reflection.Text)
+	}
+	if !rg.in.YouthSafe {
+		t.Error("youth-safe flag did not propagate to the generator")
+	}
+	if rg.in.Locale != "en-GB" {
+		t.Errorf("locale default broken: got %q want en-GB", rg.in.Locale)
+	}
+}
+
+func TestService_GetReflection_NoGenerator(t *testing.T) {
+	t.Parallel()
+	svc, repo := newServiceFixture(t)
+	id := seedTraitVector(t, repo)
+	_, err := svc.GetReflection(context.Background(), id, true)
+	if !errors.Is(err, playthrough.ErrReflectionUnavailable) {
+		t.Errorf("want ErrReflectionUnavailable, got %v", err)
+	}
+}
+
+func TestService_GetReflection_TraitVectorMissing(t *testing.T) {
+	t.Parallel()
+	svc, _ := newServiceFixture(t)
+	rg := &fakeReflectionGen{}
+	svc.WithReflectionGenerator(rg)
+	_, err := svc.GetReflection(context.Background(), uuid.New(), false)
+	if !errors.Is(err, playthrough.ErrTraitVectorNotFound) {
+		t.Errorf("want ErrTraitVectorNotFound, got %v", err)
+	}
+}
