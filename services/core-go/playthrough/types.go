@@ -109,3 +109,46 @@ type StoredTraitVector struct {
 	SeasonVersion  int       `json:"season_version"`
 	CreatedAt      time.Time `json:"created_at"`
 }
+
+// --- Portrait + Reflection (M1 stubs) --------------------------------------
+
+// PortraitInput is the payload sent to ml-py's PortraitGenService. The
+// trait vector is passed inline; ml-py never reaches into core-go's
+// Postgres (stateless RPC, per docs/05 §"ml-py service boundary").
+type PortraitInput struct {
+	PlaythroughID string
+	Seed          uint64
+	BigFive       []float64
+	Schwartz      []float64
+	Attachment    []float64
+}
+
+// PortraitAssets is the Portrait Generator's result. In M1 “PNG“
+// carries the inline bytes; in M2 the renderer writes to R2 and
+// populates the key fields instead.
+type PortraitAssets struct {
+	PNG             []byte `json:"png,omitempty"`
+	StaticPNGKey    string `json:"static_png_key"`
+	AnimatedWebPKey string `json:"animated_webp_key"`
+	RendererVersion int    `json:"renderer_version"`
+}
+
+// ReflectionInput is the payload sent to ml-py's ReflectionGenService.
+type ReflectionInput struct {
+	PlaythroughID string
+	YouthSafe     bool
+	Locale        string
+	BigFive       []float64
+	Schwartz      []float64
+	Attachment    []float64
+}
+
+// Reflection is the reflection generator's result. “UsedFallback“ is
+// always false for the M1 stub (no LLM to fall back from); the field
+// stays in the type so the M2 pipeline can populate it without a
+// breaking change.
+type Reflection struct {
+	Text         string `json:"text"`
+	UsedFallback bool   `json:"used_fallback"`
+	TemplateID   string `json:"template_id"`
+}

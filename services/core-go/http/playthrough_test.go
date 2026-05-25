@@ -198,9 +198,54 @@ func fixtureSeason() content.Season {
 	}
 }
 
+// fakePortraitGen returns a fixed PNG; satisfies playthrough.PortraitGenerator.
+type fakePortraitGen struct {
+	called bool
+	in     playthrough.PortraitInput
+}
+
+func (f *fakePortraitGen) GeneratePortrait(_ context.Context, in playthrough.PortraitInput) (playthrough.PortraitAssets, error) {
+	f.called = true
+	f.in = in
+	return playthrough.PortraitAssets{
+		PNG:             []byte("\x89PNG\r\n\x1a\nFAKE"),
+		RendererVersion: 1,
+	}, nil
+}
+
+// fakeReflectionGen returns a fixed reflection; satisfies playthrough.ReflectionGenerator.
+type fakeReflectionGen struct {
+	called bool
+	in     playthrough.ReflectionInput
+}
+
+func (f *fakeReflectionGen) GenerateReflection(_ context.Context, in playthrough.ReflectionInput) (playthrough.Reflection, error) {
+	f.called = true
+	f.in = in
+	return playthrough.Reflection{
+		Text:       "Today, you reach toward what is unfamiliar.",
+		TemplateID: "m1-stub.v1",
+	}, nil
+}
+
 // newPlaythroughSuite builds a fully-wired mux + a session cookie + the
-// fakes the tests want to assert against.
+// fakes the tests want to assert against. The Portrait + Reflection
+// generators are wired by default; tests that need the unwired path
+// use newPlaythroughSuiteWithoutML.
 func newPlaythroughSuite(t *testing.T, usersRepo *fakeUsersRepo) (http.Handler, string, *fakeRepo) {
+	t.Helper()
+	mux, cookie, repo, _, _ := newPlaythroughSuiteFull(t, usersRepo, true)
+	return mux, cookie, repo
+}
+
+// newPlaythroughSuiteFull is the underlying constructor exposed to tests
+// that need to inspect the Portrait / Reflection fakes or run with the
+// generators left unwired.
+func newPlaythroughSuiteFull(
+	t *testing.T,
+	usersRepo *fakeUsersRepo,
+	wireML bool,
+) (http.Handler, string, *fakeRepo, *fakePortraitGen, *fakeReflectionGen) {
 	t.Helper()
 	// Kratos identity used by the session below. Any valid UUID works.
 	identityID := uuid.New()
@@ -229,6 +274,15 @@ func newPlaythroughSuite(t *testing.T, usersRepo *fakeUsersRepo) (http.Handler, 
 		},
 	}
 	ptSvc := playthrough.NewService(repo, contentSvc, scorer)
+	var (
+		portrait   *fakePortraitGen
+		reflection *fakeReflectionGen
+	)
+	if wireML {
+		portrait = &fakePortraitGen{}
+		reflection = &fakeReflectionGen{}
+		ptSvc.WithPortraitGenerator(portrait).WithReflectionGenerator(reflection)
+	}
 
 	kc := auth.NewKratosClient(kratos.URL, kratos.URL, nil)
 	authSvc := auth.New(kc)
@@ -245,7 +299,7 @@ func newPlaythroughSuite(t *testing.T, usersRepo *fakeUsersRepo) (http.Handler, 
 		Users:       usersRepo,
 	})
 
-	return mux, "session-token", repo
+	return mux, "session-token", repo, portrait, reflection
 }
 
 func doJSON(t *testing.T, mux http.Handler, method, path, cookie string, body any) *httptest.ResponseRecorder {
@@ -491,4 +545,107 @@ func TestGetTraitVector_NotFound(t *testing.T) {
 	rec := doJSON(t, mux, http.MethodGet,
 		"/playthroughs/"+uuid.New().String()+"/trait-vector", cookie, nil)
 	require.Equal(t, http.StatusNotFound, rec.Code)
+}
+
+// --- Portrait + Reflection endpoints (T-ML-020 / T-ML-021) ------------------
+
+func TestGetPortrait_HappyPath(t *testing.T) {
+	users := &fakeUsersRepo{}
+	mux, cookie, repo, portrait, _ := newPlaythroughSuiteFull(t, users, true)
+
+	pid := uuid.New()
+	repo.vectors[pid] = playthrough.StoredTraitVector{
+		PlaythroughID:  pid,
+		BigFive:        []float64{0.1, 0, 0, 0, 0},
+		Schwartz:       make([]float64, 10),
+		Attachment:     []float64{0.2, 0, 0},
+		ScoringVersion: playthrough.ScoringVersionM1,
+		SeasonVersion:  7,
+		CreatedAt:      time.Now(),
+	}
+
+	rec := doJSON(t, mux, http.MethodGet, "/playthroughs/"+pid.String()+"/portrait", cookie, nil)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	require.Equal(t, "image/png", rec.Header().Get("Content-Type"))
+	require.Equal(t, "1", rec.Header().Get("X-Renderer-Version"))
+	require.True(t, bytes.HasPrefix(rec.Body.Bytes(), []byte("\x89PNG")), "body should be PNG")
+	require.True(t, portrait.called, "portrait generator must be invoked")
+	require.Equal(t, pid.String(), portrait.in.PlaythroughID)
+}
+
+func TestGetPortrait_TraitVectorNotFound(t *testing.T) {
+	mux, cookie, _, _, _ := newPlaythroughSuiteFull(t, &fakeUsersRepo{}, true)
+	rec := doJSON(t, mux, http.MethodGet, "/playthroughs/"+uuid.New().String()+"/portrait", cookie, nil)
+	require.Equal(t, http.StatusNotFound, rec.Code)
+}
+
+func TestGetPortrait_Unauthenticated(t *testing.T) {
+	mux, _, _, _, _ := newPlaythroughSuiteFull(t, &fakeUsersRepo{}, true)
+	rec := doJSON(t, mux, http.MethodGet, "/playthroughs/"+uuid.New().String()+"/portrait", "", nil)
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+func TestGetPortrait_Unwired_Returns503(t *testing.T) {
+	mux, cookie, repo, _, _ := newPlaythroughSuiteFull(t, &fakeUsersRepo{}, false)
+	pid := uuid.New()
+	repo.vectors[pid] = playthrough.StoredTraitVector{
+		PlaythroughID: pid, BigFive: []float64{0, 0, 0, 0, 0},
+		Schwartz: make([]float64, 10), Attachment: []float64{0, 0, 0},
+		ScoringVersion: 1, SeasonVersion: 7, CreatedAt: time.Now(),
+	}
+	rec := doJSON(t, mux, http.MethodGet, "/playthroughs/"+pid.String()+"/portrait", cookie, nil)
+	require.Equal(t, http.StatusServiceUnavailable, rec.Code)
+}
+
+func TestGetReflection_HappyPath(t *testing.T) {
+	users := &fakeUsersRepo{}
+	mux, cookie, repo, _, reflection := newPlaythroughSuiteFull(t, users, true)
+
+	pid := uuid.New()
+	repo.vectors[pid] = playthrough.StoredTraitVector{
+		PlaythroughID:  pid,
+		BigFive:        []float64{0.9, 0, 0, 0, 0},
+		Schwartz:       make([]float64, 10),
+		Attachment:     []float64{0, 0, 0},
+		ScoringVersion: playthrough.ScoringVersionM1,
+		SeasonVersion:  7,
+		CreatedAt:      time.Now(),
+	}
+
+	rec := doJSON(t, mux, http.MethodGet, "/playthroughs/"+pid.String()+"/reflection", cookie, nil)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+	var resp reflectionResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &resp))
+	require.Contains(t, resp.Reflection.Text, "reach toward what is unfamiliar")
+	require.Equal(t, "m1-stub.v1", resp.Reflection.TemplateID)
+	require.False(t, resp.Reflection.UsedFallback)
+	require.True(t, reflection.called)
+	// HTTP handler currently sends youth_safe=true unconditionally
+	// (M2 T-CORE-022 plumbs the real age band).
+	require.True(t, reflection.in.YouthSafe)
+}
+
+func TestGetReflection_TraitVectorNotFound(t *testing.T) {
+	mux, cookie, _, _, _ := newPlaythroughSuiteFull(t, &fakeUsersRepo{}, true)
+	rec := doJSON(t, mux, http.MethodGet, "/playthroughs/"+uuid.New().String()+"/reflection", cookie, nil)
+	require.Equal(t, http.StatusNotFound, rec.Code)
+}
+
+func TestGetReflection_Unauthenticated(t *testing.T) {
+	mux, _, _, _, _ := newPlaythroughSuiteFull(t, &fakeUsersRepo{}, true)
+	rec := doJSON(t, mux, http.MethodGet, "/playthroughs/"+uuid.New().String()+"/reflection", "", nil)
+	require.Equal(t, http.StatusUnauthorized, rec.Code)
+}
+
+func TestGetReflection_Unwired_Returns503(t *testing.T) {
+	mux, cookie, repo, _, _ := newPlaythroughSuiteFull(t, &fakeUsersRepo{}, false)
+	pid := uuid.New()
+	repo.vectors[pid] = playthrough.StoredTraitVector{
+		PlaythroughID: pid, BigFive: []float64{0, 0, 0, 0, 0},
+		Schwartz: make([]float64, 10), Attachment: []float64{0, 0, 0},
+		ScoringVersion: 1, SeasonVersion: 7, CreatedAt: time.Now(),
+	}
+	rec := doJSON(t, mux, http.MethodGet, "/playthroughs/"+pid.String()+"/reflection", cookie, nil)
+	require.Equal(t, http.StatusServiceUnavailable, rec.Code)
 }

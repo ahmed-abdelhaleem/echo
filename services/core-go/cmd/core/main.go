@@ -114,21 +114,28 @@ func main() {
 		logger.Info("content disabled; CONTENT_ROOT not set")
 	}
 
-	// Trait scoring — optional dependency on ml-py via gRPC. When the
-	// endpoint isn't set, FinalizeIfComplete returns
-	// ErrScorerUnavailable until the dependency is wired.
-	var scorer playthrough.TraitScorer
+	// Trait scoring + Portrait + Reflection share a single gRPC
+	// connection to ml-py. When ML_GRPC_ADDR isn't set, all three
+	// dependencies stay nil and the relevant endpoints surface 503 so
+	// the player can retry once the ml-py wiring is up.
+	var (
+		scorer        playthrough.TraitScorer
+		portraitGen   playthrough.PortraitGenerator
+		reflectionGen playthrough.ReflectionGenerator
+	)
 	if cfg.MLgRPCAddr != "" {
 		mlClient, err := coregrpc.DialML(ctx, cfg.MLgRPCAddr)
 		if err != nil {
-			logger.Warn("ml gRPC not reachable at startup; trait scoring disabled", "err", err)
+			logger.Warn("ml gRPC not reachable at startup; trait scoring + portrait + reflection disabled", "err", err)
 		} else {
 			scorer = mlClient
+			portraitGen = mlClient
+			reflectionGen = mlClient
 			defer func() { _ = mlClient.Close() }()
-			logger.Info("trait scoring enabled", "ml_grpc_addr", cfg.MLgRPCAddr)
+			logger.Info("ml dependencies enabled", "ml_grpc_addr", cfg.MLgRPCAddr)
 		}
 	} else {
-		logger.Info("trait scoring disabled; ML_GRPC_ADDR not set")
+		logger.Info("ml dependencies disabled; ML_GRPC_ADDR not set")
 	}
 
 	// Playthrough — requires Postgres + Content. Auth is checked at route
@@ -136,11 +143,10 @@ func main() {
 	// wired.
 	if deps.PG != nil && deps.Content != nil {
 		deps.Users = auth.NewPgUsersRepository(deps.PG)
-		deps.Playthrough = playthrough.NewService(
-			playthrough.NewPgRepository(deps.PG),
-			deps.Content,
-			scorer,
-		)
+		deps.Playthrough = playthrough.
+			NewService(playthrough.NewPgRepository(deps.PG), deps.Content, scorer).
+			WithPortraitGenerator(portraitGen).
+			WithReflectionGenerator(reflectionGen)
 		logger.Info("playthrough enabled")
 	} else {
 		logger.Info("playthrough disabled; postgres or content not available")

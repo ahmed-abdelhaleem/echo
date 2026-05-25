@@ -8,17 +8,30 @@ option go_package = "github.com/ahmed-abdelhaleem/echo/services/core-go/grpc/ech
 // (TraitVector, seed). MVP is server-side parametric rendering using Pillow/Cairo;
 // AI image generation is explicitly deferred per docs/05_Technical_Architecture.md.
 service PortraitGenService {
-  rpc Generate(GenerateRequest) returns (GenerateResponse);
+  rpc Generate(GeneratePortraitRequest) returns (GeneratePortraitResponse);
 }
 
-message GenerateRequest {
+message GeneratePortraitRequest {
   string playthrough_id = 1;
   // Optional seed for stable regeneration; defaults to a hash of trait_vector.
   uint64 seed = 2;
+  // Trait vector. Stateless RPC: the caller computes the vector and
+  // passes it in. ml-py does not reach into core-go's Postgres. The
+  // dimension ordering matches services/core-go/content/types.go and
+  // services/ml-py/app/services/trait_scoring.py.
+  repeated double big_five = 3;     // 5 values
+  repeated double schwartz = 4;     // 10 values
+  repeated double attachment = 5;   // 3 values
 }
 
-message GenerateResponse {
-  // Cloudflare R2 keys for the rendered assets.
-  string static_png_key = 1;
-  string animated_webp_key = 2;
+message GeneratePortraitResponse {
+  // M1 stub: inline PNG bytes (server-side R2 upload lands at M2 / T-ML-030).
+  // The image is small (64x64) and deterministic for a given trait vector.
+  bytes png = 1;
+  // Cloudflare R2 keys for the rendered assets. Populated at M2; empty in M1.
+  string static_png_key = 2;
+  string animated_webp_key = 3;
+  // Bumped when the renderer changes in a way that would produce a
+  // different image for the same trait vector. M1 stub == 1.
+  uint32 renderer_version = 4;
 }

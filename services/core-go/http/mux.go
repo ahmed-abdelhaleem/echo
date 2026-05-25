@@ -69,6 +69,8 @@ func NewMux(deps Dependencies) http.Handler {
 		mux.Handle("POST /playthroughs/{id}/choices", mw(recordChoiceHandler(deps.Playthrough)))
 		mux.Handle("POST /playthroughs/{id}/finalize", mw(finalizePlaythroughHandler(deps.Playthrough)))
 		mux.Handle("GET /playthroughs/{id}/trait-vector", mw(getTraitVectorHandler(deps.Playthrough)))
+		mux.Handle("GET /playthroughs/{id}/portrait", mw(getPortraitHandler(deps.Playthrough)))
+		mux.Handle("GET /playthroughs/{id}/reflection", mw(getReflectionHandler(deps.Playthrough)))
 	}
 
 	return mux
