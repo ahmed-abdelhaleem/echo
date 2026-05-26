@@ -86,8 +86,30 @@ class LocalPlaythroughs extends Table {
   ],
 )
 class EchoDatabase extends _$EchoDatabase {
-  EchoDatabase([QueryExecutor? executor])
-      : super(executor ?? driftDatabase(name: 'echo_local'));
+  EchoDatabase([QueryExecutor? executor]) : super(executor ?? _openDefault());
+
+  /// Default executor used by the production app. On native targets
+  /// (iOS / Android / macOS / Linux / Windows) `drift_flutter` picks a
+  /// sensible NativeDatabase backed by `path_provider`. On the web,
+  /// `drift_flutter >= 0.2.5` requires an explicit `DriftWebOptions`
+  /// pointing at the sqlite3 wasm bundle + dedicated drift worker that
+  /// `dart run drift_dev setup_web` drops into `web/`. Without these
+  /// the helper throws `ArgumentError: When compiling to the web, the
+  /// `web` parameter needs to be set.` at the first DB access.
+  ///
+  /// We keep the asset names matching the defaults written by
+  /// `drift_dev setup_web` (sqlite3.wasm + drift_worker.js) so the
+  /// command is the only step a contributor needs to run for the web
+  /// build to come up.
+  static QueryExecutor _openDefault() {
+    return driftDatabase(
+      name: 'echo_local',
+      web: DriftWebOptions(
+        sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+        driftWorker: Uri.parse('drift_worker.js'),
+      ),
+    );
+  }
 
   @override
   int get schemaVersion => 1;

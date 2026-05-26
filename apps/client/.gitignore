@@ -43,3 +43,8 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# drift_dev setup_web artifacts. Generated per checkout (size + drift /
+# sqlite3 version coupling); see README.md "Web target — one-time setup".
+/web/sqlite3.wasm
+/web/drift_worker.js
