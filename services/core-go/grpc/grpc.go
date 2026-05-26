@@ -171,6 +171,7 @@ func (c *MLClient) GenerateReflection(ctx context.Context, in playthrough.Reflec
 		BigFive:       in.BigFive,
 		Schwartz:      in.Schwartz,
 		Attachment:    in.Attachment,
+		SignalMoments: in.SignalMoments,
 	}
 	resp, err := c.reflection.Generate(ctx, req)
 	if err != nil {

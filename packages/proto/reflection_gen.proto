@@ -24,6 +24,13 @@ message GenerateReflectionRequest {
   repeated double big_five = 4;     // 5 values
   repeated double schwartz = 5;     // 10 values
   repeated double attachment = 6;   // 3 values
+  // Concrete moments from this playthrough used to anchor specificity.
+  // The pipeline (T-ML-042) feeds these into the LLM prompt; the tone
+  // classifier checks the LLM output for at least one match against
+  // this list. Optional but strongly recommended: a reflection with
+  // no signal moments may end up generic (and may trip the
+  // not-specific tone rule).
+  repeated string signal_moments = 7;
 }
 
 message GenerateReflectionResponse {

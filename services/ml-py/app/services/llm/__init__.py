@@ -28,6 +28,7 @@ from app.services.llm.base import LLMClient
 from app.services.llm.errors import (
     AllProvidersFailedError,
     LLMConfigurationError,
+    LLMError,
     LLMProviderError,
     LLMProviderTimeoutError,
 )
@@ -54,6 +55,7 @@ __all__ = [
     "CompletionRequest",
     "LLMClient",
     "LLMConfigurationError",
+    "LLMError",
     "LLMProviderError",
     "LLMProviderTimeoutError",
     "Message",

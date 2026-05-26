@@ -2,17 +2,24 @@
 
 Serves three RPC services on a single port:
   - TraitScoringService (T-ML-010, real)
-  - PortraitGenService (T-ML-020, M1 stub)
-  - ReflectionGenService (T-ML-021, M1 stub)
+  - PortraitGenService (T-ML-020 / T-ML-030, real parametric renderer)
+  - ReflectionGenService
 
-The M1 stubs return deterministic, trait-vector-keyed output. Real
-renderers replace them at M2 (T-ML-030, T-ML-040..042) behind the
-same proto contracts.
+ReflectionGenService has two paths:
+  - **M1 templated stub** (``reflection_gen.generate``): deterministic
+    trait-keyed prose. Used as the default for back-compat.
+  - **M2 reflection pipeline** (``reflection.ReflectionPipeline``):
+    template selection -> prompt assembly -> LLM completion -> safety
+    classify -> tone classify. Opted into via
+    ``ECHO_REFLECTION_PIPELINE=enabled``; otherwise the stub serves the
+    call. The pipeline is built once at server start; the templates are
+    loaded eagerly from ``content/reflection-templates/``.
 """
 
 from __future__ import annotations
 
 import logging
+import os
 from concurrent import futures
 from typing import Any, Final
 
@@ -28,6 +35,7 @@ from app.grpc_gen import (
     trait_scoring_pb2_grpc,
 )
 from app.services import portrait_gen, reflection_gen, trait_scoring
+from app.services.reflection import ReflectionPipeline, build_pipeline_from_env
 
 # protoc emits dynamically-generated message classes that mypy cannot
 # follow (attribute lookups happen at descriptor-set load time). We
@@ -150,13 +158,63 @@ class PortraitGenServicer(portrait_gen_pb2_grpc.PortraitGenServiceServicer):
 
 
 class ReflectionGenServicer(reflection_gen_pb2_grpc.ReflectionGenServiceServicer):
-    """gRPC adapter around the M1 reflection stub (T-ML-021).
+    """gRPC adapter for ReflectionGen.
 
-    M1 returns a templated string. The real LLM-backed pipeline
-    (T-ML-040..042) replaces this at M2 behind the same proto.
+    Routes between the M1 templated stub and the M2 reflection pipeline
+    depending on whether a pipeline was injected at construction time.
+    The M2 pipeline call shape is async; this sync servicer wraps it
+    via :meth:`ReflectionPipeline.generate_sync`.
     """
 
+    def __init__(self, pipeline: ReflectionPipeline | None = None) -> None:
+        self._pipeline = pipeline
+
     def Generate(
+        self,
+        request: Any,
+        context: grpc.ServicerContext,
+    ) -> Any:
+        if self._pipeline is not None:
+            return self._generate_via_pipeline(request, context)
+        return self._generate_via_stub(request, context)
+
+    def _generate_via_pipeline(
+        self,
+        request: Any,
+        context: grpc.ServicerContext,
+    ) -> Any:
+        try:
+            result = self._pipeline.generate_sync(  # type: ignore[union-attr]
+                big_five=tuple(request.big_five),
+                schwartz=tuple(request.schwartz),
+                attachment=tuple(request.attachment),
+                signal_moments=tuple(request.signal_moments),
+                fallback_seed=hash(str(request.playthrough_id)) & 0xFFFF,
+            )
+        except ValueError as exc:
+            logger.warning(
+                "reflection_pipeline.invalid_input",
+                playthrough_id=request.playthrough_id,
+                error=str(exc),
+            )
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
+
+        logger.info(
+            "reflection_pipeline.generated",
+            playthrough_id=request.playthrough_id,
+            template_id=result.template_id,
+            provider=result.provider,
+            is_fallback=result.is_fallback,
+            fallback_reason=result.fallback_reason,
+        )
+        generate_response = reflection_gen_pb2.GenerateReflectionResponse  # type: ignore[attr-defined]
+        return generate_response(
+            text=result.text,
+            used_fallback=result.is_fallback,
+            template_id=result.template_id,
+        )
+
+    def _generate_via_stub(
         self,
         request: Any,
         context: grpc.ServicerContext,
@@ -194,11 +252,21 @@ class ReflectionGenServicer(reflection_gen_pb2_grpc.ReflectionGenServiceServicer
 def build_server(
     bind: str = DEFAULT_BIND,
     max_workers: int = 10,
+    *,
+    reflection_pipeline: ReflectionPipeline | None = None,
 ) -> grpc.Server:
     """Build a configured but unstarted gRPC server.
 
     The server is built but not started so callers (or tests) can attach
     additional servicers before calling `.start()`.
+
+    Args:
+        reflection_pipeline: Optional pre-built reflection pipeline. If
+            provided, ReflectionGenService uses it; otherwise it falls
+            back to the M1 templated stub. Tests inject a pipeline with
+            a mock LLM client; production wires this from env via
+            :func:`build_pipeline_from_env` when
+            ``ECHO_REFLECTION_PIPELINE=enabled``.
     """
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
     trait_scoring_pb2_grpc.add_TraitScoringServiceServicer_to_server(  # type: ignore[no-untyped-call]
@@ -210,11 +278,27 @@ def build_server(
         server,
     )
     reflection_gen_pb2_grpc.add_ReflectionGenServiceServicer_to_server(  # type: ignore[no-untyped-call]
-        ReflectionGenServicer(),
+        ReflectionGenServicer(pipeline=reflection_pipeline),
         server,
     )
     server.add_insecure_port(bind)
     return server
+
+
+def _build_pipeline_if_enabled() -> ReflectionPipeline | None:
+    """Return a reflection pipeline iff the env opts in.
+
+    The opt-in keeps production traffic on the M1 stub until provider
+    keys + the real wire impls land in a follow-up PR. CI never opts
+    in; the pipeline tests use direct injection.
+    """
+    if os.environ.get("ECHO_REFLECTION_PIPELINE", "").lower() != "enabled":
+        return None
+    try:
+        return build_pipeline_from_env()
+    except Exception:
+        logger.exception("reflection_pipeline.bootstrap_failed")
+        return None
 
 
 def serve_forever(bind: str = DEFAULT_BIND) -> None:
@@ -225,7 +309,8 @@ def serve_forever(bind: str = DEFAULT_BIND) -> None:
     server runs alongside it (different port).
     """
     logging.basicConfig(level=logging.INFO)
-    server = build_server(bind=bind)
+    pipeline = _build_pipeline_if_enabled()
+    server = build_server(bind=bind, reflection_pipeline=pipeline)
     server.start()
     logger.info("ml_grpc.serving", bind=bind)
     server.wait_for_termination()
