@@ -1,0 +1,71 @@
+{
+  "id": "open-experience-cluster",
+  "version": 1,
+  "summary": "Openness, self-direction, and stimulation all prominent: the day was an appetite.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-O",
+            "direction": "high",
+            "min_magnitude": 0.35
+          },
+          {
+            "dimension": "SCH-SELF_DIRECTION",
+            "direction": "high",
+            "min_magnitude": 0.35
+          },
+          {
+            "dimension": "SCH-STIMULATION",
+            "direction": "high",
+            "min_magnitude": 0.35
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 75,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "sensory_detail",
+      "no_archetype"
+    ],
+    "avoid": [
+      "explorer",
+      "free spirit",
+      "adrenaline junkie"
+    ],
+    "notes": "Three-axis appetite for the new, the self-chosen, and the live edge. Never the explorer trope. Sensory detail across all three is the point."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the side street that was your own idea",
+        "the loud bar you stayed in for an hour past sense",
+        "the late book you started in the dark"
+      ],
+      "output": "The side street was your own idea, the loud bar was where you stayed for an hour past sense, and the book you started late, you started in the dark and read by the light from the kitchen. None of that was someone else's plan. The shape of the day was reach and the reach was yours, and you were not tired of it by the end.",
+      "notes": "Three distinct sensory moments; closes on undiminished appetite."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

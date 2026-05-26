@@ -1,0 +1,60 @@
+{
+  "id": "low-tradition",
+  "version": 1,
+  "summary": "A day on which you set down what was passed down.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-TRADITION",
+            "direction": "low",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "acknowledge_contradiction"
+    ],
+    "avoid": [
+      "disrespectful",
+      "rootless",
+      "ungrateful"
+    ],
+    "notes": "Low tradition reads as deliberate refusal to carry forward an inherited line. Never frame this as ingratitude. Setting things down is a real labour."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the holiday you did not celebrate this year",
+        "the phrase you stopped using because it was not yours"
+      ],
+      "output": "There was a holiday you did not mark this year, and you did not feel guilty about not marking it. A phrase you used to use you set down a while back because it was not yours, and the room you spoke in today was lighter for the absence. Putting inherited things down is not the same as throwing them away.",
+      "notes": "Acknowledges the work of putting down inheritance; preserves the player's dignity in doing so."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

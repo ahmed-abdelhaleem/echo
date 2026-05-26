@@ -1,0 +1,60 @@
+{
+  "id": "high-stimulation",
+  "version": 1,
+  "summary": "A day spent turning toward what crackled.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-STIMULATION",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "sensory_detail",
+      "no_archetype"
+    ],
+    "avoid": [
+      "thrill-seeker",
+      "adrenaline junkie",
+      "the wild one"
+    ],
+    "notes": "High stimulation reads as appetite for the live edge of the day. Sensory detail is critical: name what the player saw, heard, felt that drew them in."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the loud street you cut through on purpose",
+        "the second drink you said yes to"
+      ],
+      "output": "You cut through the loud street on purpose; the noise was the point. You said yes to the second drink not because you were thirsty but because the room was about to tip into something more interesting, and you wanted to be there for the tipping. None of that was an accident. The day's live edge is the edge you walked.",
+      "notes": "Two stimulation-seeking moves and the underlying preference for the live edge of the moment."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

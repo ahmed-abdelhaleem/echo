@@ -1,0 +1,66 @@
+{
+  "id": "lead-from-the-front",
+  "version": 1,
+  "summary": "Low agreeableness, high power: the day asked for direction and you gave it.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-A",
+            "direction": "low",
+            "min_magnitude": 0.3
+          },
+          {
+            "dimension": "SCH-POWER",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 65,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "alpha",
+      "boss",
+      "domineering",
+      "ruthless"
+    ],
+    "notes": "Low agreeableness plus high power reads as a willingness to lead without prioritising everyone's comfort. Never call this ruthless or alpha. Describe the leading."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the decision you made before consensus had formed",
+        "the hard thing you said clearly"
+      ],
+      "output": "You made the decision before consensus had formed, because consensus was not going to form in time. The hard thing, you said clearly, in plain language, and you did not soften it on the way out. That cost you some warmth in the room. You knew it would cost you some warmth, and you spent it.",
+      "notes": "Frames the trade explicitly; never moralises in either direction."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

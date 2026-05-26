@@ -1,0 +1,61 @@
+{
+  "id": "low-benevolence",
+  "version": 1,
+  "summary": "A day on which you let those near you find their own warmth.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-BENEVOLENCE",
+            "direction": "low",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "cold",
+      "callous",
+      "unloving",
+      "selfish"
+    ],
+    "notes": "Low benevolence reads as restraint from supplying everyone's warmth. Never call this cold or selfish. There are people who need to find their own warmth, and the player is not lighting their fire today."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the question you did not ask because it was not yours to ask",
+        "the favour you did not offer because it would have been the wrong one"
+      ],
+      "output": "There was a question you did not ask because it was not your question. A favour you did not offer because the wrong favour is worse than no favour. The people near you today were responsible for their own warmth, and you did not take that responsibility from them. That is a different kind of care.",
+      "notes": "Reframes low benevolence as a respect for others' autonomy."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "id": "high-conscientiousness",
+  "version": 1,
+  "summary": "A day in which you wanted the path swept before you walked it.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-C",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "small_image_close"
+    ],
+    "avoid": [
+      "you are tidy",
+      "you are responsible",
+      "type A"
+    ],
+    "notes": "High conscientiousness reads as wanting the world ordered before moving through it. The risk is making it sound like a virtue; we are describing a temperament, not handing out grades."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the list you rewrote in cleaner handwriting",
+        "the door you went back to lock"
+      ],
+      "output": "You rewrote the list in cleaner handwriting and went back once to check the lock. The work that was already done well, you wanted done a little better. By the end of the evening the small ledger of the day had a tidy total at the bottom, and the tidiness was its own reward.",
+      "notes": "Two small concrete acts; closes on the quiet pleasure of order, not on praise."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "id": "high-tradition",
+  "version": 1,
+  "summary": "A day in which you honoured what was passed down.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-TRADITION",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "old-fashioned",
+      "traditional",
+      "stuck in the past"
+    ],
+    "notes": "High tradition reads as taking up an inheritance on purpose. Be careful: the player may have inherited bad things too. Describe the carrying, not the inheritance."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the phrase you used that was your mother's",
+        "the recipe you made the way it was taught to you"
+      ],
+      "output": "There was a phrase you used in conversation today that you got from your mother. The recipe you made tonight, you made it the way it was taught to you, even when the modern way would have been easier. The carrying-over of small things is something you do without explaining, and the day was a little warmer for it.",
+      "notes": "Centres the act of carrying-over rather than the content of the tradition."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

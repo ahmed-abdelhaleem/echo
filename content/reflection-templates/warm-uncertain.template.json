@@ -1,0 +1,66 @@
+{
+  "id": "warm-uncertain",
+  "version": 1,
+  "summary": "High extraversion alongside high neuroticism: the day brightens around people and then weighs after.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-E",
+            "direction": "high",
+            "min_magnitude": 0.35
+          },
+          {
+            "dimension": "OCEAN-N",
+            "direction": "high",
+            "min_magnitude": 0.35
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 65,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "acknowledge_contradiction",
+      "describe_not_evaluate"
+    ],
+    "avoid": [
+      "bipolar",
+      "manic",
+      "moody",
+      "anxious"
+    ],
+    "notes": "High extraversion plus high neuroticism reads as warmth that arrives with weather attached. CRITICAL: never clinical terms; never alarming. Describe the texture."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the room you brightened over dinner",
+        "the long quiet you needed afterwards"
+      ],
+      "output": "Over dinner the room brightened in the way that rooms brighten around you, and you were not pretending. Afterwards you needed a longer quiet than the evening had room for. Both of those were honest. The same day held the brightness and the weight, and the day did not require you to choose between them.",
+      "notes": "Holds the contradiction explicitly; refuses both clinical framing and choice."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

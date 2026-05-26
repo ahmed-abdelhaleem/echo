@@ -1,0 +1,60 @@
+{
+  "id": "high-openness",
+  "version": 1,
+  "summary": "A day that pulled you toward what was new or strange.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-O",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "no_archetype",
+      "sensory_detail"
+    ],
+    "avoid": [
+      "the curious one",
+      "the explorer",
+      "you are open-minded"
+    ],
+    "notes": "High openness reads as appetite for the unfamiliar. The danger is making the player sound like a brochure for travel; ground every clause in something they actually did today."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the unfamiliar word you wrote down",
+        "the side street you took instead"
+      ],
+      "output": "You wrote down a word you did not yet know and then took a side street that was not on the way home. Neither of those was useful. Both of them were the same gesture, reaching for something the day had not offered yet.",
+      "notes": "Anchors high openness in two concrete moves rather than calling the player curious."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

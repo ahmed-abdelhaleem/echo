@@ -24,5 +24,5 @@ test("validator passes against repo content/", () => {
   const out = execFileSync("node", [validator], {
     encoding: "utf-8",
   });
-  assert.match(out, /season\(s\) validated/);
+  assert.match(out, /season\(s\) and \d+ reflection template\(s\) validated/);
 });

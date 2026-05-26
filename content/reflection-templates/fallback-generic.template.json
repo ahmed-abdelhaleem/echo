@@ -1,0 +1,59 @@
+{
+  "id": "fallback-generic",
+  "version": 1,
+  "summary": "Catch-all when no other template matches.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-O",
+            "direction": "prominent",
+            "min_magnitude": 0.05
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 5,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate"
+    ],
+    "avoid": [
+      "typical day",
+      "usual day",
+      "regular day"
+    ],
+    "notes": "Lowest-priority catch-all. The applies_when is intentionally permissive (very low magnitude prominence on the most common dimension). The pipeline (T-ML-042) should rarely select this template; if it does, the LLM must work especially hard at specificity. This template exists so the selector never returns an empty set for a player whose trait vector is unusual."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the small specific moment the day will be remembered for",
+        "the choice that lingered after the rest of the day faded"
+      ],
+      "output": "The day will be remembered for one small specific moment. The choice that lingered after the rest of the day faded is the choice your evening is shaped around tonight. There were other moments too, and they may matter later, and they may not. The one you are still holding is the one to start with.",
+      "notes": "Final-fallback exemplar. Deliberately leans on the player's own remembered specifics rather than fabricating them."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}
