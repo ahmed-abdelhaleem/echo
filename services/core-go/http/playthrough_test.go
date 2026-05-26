@@ -207,10 +207,14 @@ type fakePortraitGen struct {
 func (f *fakePortraitGen) GeneratePortrait(_ context.Context, in playthrough.PortraitInput) (playthrough.PortraitAssets, error) {
 	f.called = true
 	f.in = in
-	return playthrough.PortraitAssets{
+	assets := playthrough.PortraitAssets{
 		PNG:             []byte("\x89PNG\r\n\x1a\nFAKE"),
-		RendererVersion: 1,
-	}, nil
+		RendererVersion: 2,
+	}
+	if in.Animate {
+		assets.AnimatedWebP = []byte("RIFFFAKE\x00\x00\x00WEBPVP8L")
+	}
+	return assets, nil
 }
 
 // fakeReflectionGen returns a fixed reflection; satisfies playthrough.ReflectionGenerator.
@@ -567,10 +571,38 @@ func TestGetPortrait_HappyPath(t *testing.T) {
 	rec := doJSON(t, mux, http.MethodGet, "/playthroughs/"+pid.String()+"/portrait", cookie, nil)
 	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
 	require.Equal(t, "image/png", rec.Header().Get("Content-Type"))
-	require.Equal(t, "1", rec.Header().Get("X-Renderer-Version"))
+	require.Equal(t, "2", rec.Header().Get("X-Renderer-Version"))
 	require.True(t, bytes.HasPrefix(rec.Body.Bytes(), []byte("\x89PNG")), "body should be PNG")
 	require.True(t, portrait.called, "portrait generator must be invoked")
 	require.Equal(t, pid.String(), portrait.in.PlaythroughID)
+	require.False(t, portrait.in.Animate, "default format=png must NOT request animation")
+}
+
+func TestGetPortrait_AnimatedWebP(t *testing.T) {
+	users := &fakeUsersRepo{}
+	mux, cookie, repo, portrait, _ := newPlaythroughSuiteFull(t, users, true)
+
+	pid := uuid.New()
+	repo.vectors[pid] = playthrough.StoredTraitVector{
+		PlaythroughID: pid, BigFive: []float64{0.1, 0, 0, 0, 0},
+		Schwartz: make([]float64, 10), Attachment: []float64{0.2, 0, 0},
+		ScoringVersion: playthrough.ScoringVersionM1, SeasonVersion: 7, CreatedAt: time.Now(),
+	}
+
+	rec := doJSON(t, mux, http.MethodGet,
+		"/playthroughs/"+pid.String()+"/portrait?format=webp", cookie, nil)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	require.Equal(t, "image/webp", rec.Header().Get("Content-Type"))
+	require.Equal(t, "2", rec.Header().Get("X-Renderer-Version"))
+	require.True(t, bytes.HasPrefix(rec.Body.Bytes(), []byte("RIFF")), "body should be WebP")
+	require.True(t, portrait.in.Animate, "format=webp must propagate animate=true")
+}
+
+func TestGetPortrait_RejectsUnknownFormat(t *testing.T) {
+	mux, cookie, _, _, _ := newPlaythroughSuiteFull(t, &fakeUsersRepo{}, true)
+	rec := doJSON(t, mux, http.MethodGet,
+		"/playthroughs/"+uuid.New().String()+"/portrait?format=gif", cookie, nil)
+	require.Equal(t, http.StatusBadRequest, rec.Code)
 }
 
 func TestGetPortrait_TraitVectorNotFound(t *testing.T) {

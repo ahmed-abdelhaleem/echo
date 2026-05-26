@@ -491,12 +491,12 @@ func TestService_GetPortrait_HappyPath(t *testing.T) {
 	svc, repo := newServiceFixture(t)
 	pg := &fakePortraitGen{out: playthrough.PortraitAssets{
 		PNG:             []byte("\x89PNGFAKE"),
-		RendererVersion: 1,
+		RendererVersion: 2,
 	}}
 	svc.WithPortraitGenerator(pg)
 
 	id := seedTraitVector(t, repo)
-	assets, err := svc.GetPortrait(context.Background(), id)
+	assets, err := svc.GetPortrait(context.Background(), id, false)
 	if err != nil {
 		t.Fatalf("GetPortrait: %v", err)
 	}
@@ -513,13 +513,39 @@ func TestService_GetPortrait_HappyPath(t *testing.T) {
 	if len(pg.in.BigFive) != 5 || len(pg.in.Schwartz) != 10 || len(pg.in.Attachment) != 3 {
 		t.Errorf("vector shape not propagated: %+v", pg.in)
 	}
+	if pg.in.Animate {
+		t.Errorf("animate should default to false, got true")
+	}
+}
+
+func TestService_GetPortrait_AnimateRequested(t *testing.T) {
+	t.Parallel()
+	svc, repo := newServiceFixture(t)
+	pg := &fakePortraitGen{out: playthrough.PortraitAssets{
+		PNG:             []byte("\x89PNGFAKE"),
+		AnimatedWebP:    []byte("RIFFFAKEWEBP"),
+		RendererVersion: 2,
+	}}
+	svc.WithPortraitGenerator(pg)
+
+	id := seedTraitVector(t, repo)
+	assets, err := svc.GetPortrait(context.Background(), id, true)
+	if err != nil {
+		t.Fatalf("GetPortrait: %v", err)
+	}
+	if !pg.in.Animate {
+		t.Error("animate flag must be propagated to the generator")
+	}
+	if string(assets.AnimatedWebP) != "RIFFFAKEWEBP" {
+		t.Errorf("animated webp passthrough broke: %q", assets.AnimatedWebP)
+	}
 }
 
 func TestService_GetPortrait_NoGenerator(t *testing.T) {
 	t.Parallel()
 	svc, repo := newServiceFixture(t)
 	id := seedTraitVector(t, repo)
-	_, err := svc.GetPortrait(context.Background(), id)
+	_, err := svc.GetPortrait(context.Background(), id, false)
 	if !errors.Is(err, playthrough.ErrPortraitUnavailable) {
 		t.Errorf("want ErrPortraitUnavailable, got %v", err)
 	}
@@ -530,7 +556,7 @@ func TestService_GetPortrait_TraitVectorMissing(t *testing.T) {
 	svc, _ := newServiceFixture(t)
 	pg := &fakePortraitGen{}
 	svc.WithPortraitGenerator(pg)
-	_, err := svc.GetPortrait(context.Background(), uuid.New())
+	_, err := svc.GetPortrait(context.Background(), uuid.New(), false)
 	if !errors.Is(err, playthrough.ErrTraitVectorNotFound) {
 		t.Errorf("want ErrTraitVectorNotFound, got %v", err)
 	}

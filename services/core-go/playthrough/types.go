@@ -115,19 +115,33 @@ type StoredTraitVector struct {
 // PortraitInput is the payload sent to ml-py's PortraitGenService. The
 // trait vector is passed inline; ml-py never reaches into core-go's
 // Postgres (stateless RPC, per docs/05 §"ml-py service boundary").
+//
+// Animate selects the additional animated WebP loop output
+// (T-ML-031). It defaults to false; only the share-web Story and
+// in-app reveal surfaces opt in, since animation roughly doubles
+// render time on the ml-py side.
 type PortraitInput struct {
 	PlaythroughID string
 	Seed          uint64
 	BigFive       []float64
 	Schwartz      []float64
 	Attachment    []float64
+	Animate       bool
 }
 
-// PortraitAssets is the Portrait Generator's result. In M1 “PNG“
-// carries the inline bytes; in M2 the renderer writes to R2 and
-// populates the key fields instead.
+// PortraitAssets is the Portrait Generator's result.
+//
+//   - PNG carries the inline static image bytes. Always populated.
+//   - AnimatedWebP carries the inline animated loop bytes. Populated
+//     only when PortraitInput.Animate was true (T-ML-031).
+//   - StaticPNGKey / AnimatedWebPKey are populated once T-CORE-030
+//     (sharing endpoint) wires R2 persistence; empty otherwise.
+//   - RendererVersion is bumped whenever the renderer would produce a
+//     different image for the same trait vector. M1 stub == 1; M2
+//     parametric renderer == 2.
 type PortraitAssets struct {
 	PNG             []byte `json:"png,omitempty"`
+	AnimatedWebP    []byte `json:"animated_webp,omitempty"`
 	StaticPNGKey    string `json:"static_png_key"`
 	AnimatedWebPKey string `json:"animated_webp_key"`
 	RendererVersion int    `json:"renderer_version"`

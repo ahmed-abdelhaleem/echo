@@ -97,11 +97,17 @@ class TraitScoringServicer(trait_scoring_pb2_grpc.TraitScoringServiceServicer):
 
 
 class PortraitGenServicer(portrait_gen_pb2_grpc.PortraitGenServiceServicer):
-    """gRPC adapter around the M1 Portrait stub (T-ML-020).
+    """gRPC adapter around the Portrait renderer (T-ML-020 / T-ML-030).
 
-    The pure function lives in ``portrait_gen``; this class translates
-    the proto message and returns the inline PNG bytes. The real
-    parametric renderer (T-ML-030) is M2.
+    The pure function lives in ``portrait_gen`` (which delegates to the
+    parametric renderer in ``portrait_renderer``); this class translates
+    the proto message into Python kwargs and returns the inline asset
+    bytes.
+
+    When ``request.animate`` is true the response carries both the
+    static PNG and the animated WebP loop (T-ML-031). Animation roughly
+    doubles render time, so callers only opt in for the share-web Story
+    / in-app reveal surfaces.
     """
 
     def Generate(
@@ -115,6 +121,7 @@ class PortraitGenServicer(portrait_gen_pb2_grpc.PortraitGenServiceServicer):
                 schwartz=tuple(request.schwartz),
                 attachment=tuple(request.attachment),
                 seed=int(request.seed),
+                animate=bool(request.animate),
             )
         except ValueError as exc:
             logger.warning(
@@ -129,6 +136,8 @@ class PortraitGenServicer(portrait_gen_pb2_grpc.PortraitGenServiceServicer):
             playthrough_id=request.playthrough_id,
             renderer_version=assets.renderer_version,
             png_bytes=len(assets.png),
+            webp_bytes=len(assets.animated_webp),
+            animate=bool(request.animate),
         )
         generate_response = portrait_gen_pb2.GeneratePortraitResponse  # type: ignore[attr-defined]
         return generate_response(
@@ -136,6 +145,7 @@ class PortraitGenServicer(portrait_gen_pb2_grpc.PortraitGenServiceServicer):
             static_png_key=assets.static_png_key,
             animated_webp_key=assets.animated_webp_key,
             renderer_version=assets.renderer_version,
+            animated_webp=assets.animated_webp,
         )
 
 

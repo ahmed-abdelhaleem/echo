@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12portrait_gen.proto\x12\x10\x65\x63ho.portrait.v1\"w\n\x17GeneratePortraitRequest\x12\x16\n\x0eplaythrough_id\x18\x01 \x01(\t\x12\x0c\n\x04seed\x18\x02 \x01(\x04\x12\x10\n\x08\x62ig_five\x18\x03 \x03(\x01\x12\x10\n\x08schwartz\x18\x04 \x03(\x01\x12\x12\n\nattachment\x18\x05 \x03(\x01\"t\n\x18GeneratePortraitResponse\x12\x0b\n\x03png\x18\x01 \x01(\x0c\x12\x16\n\x0estatic_png_key\x18\x02 \x01(\t\x12\x19\n\x11\x61nimated_webp_key\x18\x03 \x01(\t\x12\x18\n\x10renderer_version\x18\x04 \x01(\r2w\n\x12PortraitGenService\x12\x61\n\x08Generate\x12).echo.portrait.v1.GeneratePortraitRequest\x1a*.echo.portrait.v1.GeneratePortraitResponseB@Z>github.com/ahmed-abdelhaleem/echo/services/core-go/grpc/echopbb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12portrait_gen.proto\x12\x10\x65\x63ho.portrait.v1\"\x88\x01\n\x17GeneratePortraitRequest\x12\x16\n\x0eplaythrough_id\x18\x01 \x01(\t\x12\x0c\n\x04seed\x18\x02 \x01(\x04\x12\x10\n\x08\x62ig_five\x18\x03 \x03(\x01\x12\x10\n\x08schwartz\x18\x04 \x03(\x01\x12\x12\n\nattachment\x18\x05 \x03(\x01\x12\x0f\n\x07\x61nimate\x18\x06 \x01(\x08\"\x8b\x01\n\x18GeneratePortraitResponse\x12\x0b\n\x03png\x18\x01 \x01(\x0c\x12\x16\n\x0estatic_png_key\x18\x02 \x01(\t\x12\x19\n\x11\x61nimated_webp_key\x18\x03 \x01(\t\x12\x18\n\x10renderer_version\x18\x04 \x01(\r\x12\x15\n\ranimated_webp\x18\x05 \x01(\x0c\x32w\n\x12PortraitGenService\x12\x61\n\x08Generate\x12).echo.portrait.v1.GeneratePortraitRequest\x1a*.echo.portrait.v1.GeneratePortraitResponseB@Z>github.com/ahmed-abdelhaleem/echo/services/core-go/grpc/echopbb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,10 +32,10 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'portrait_gen_pb2', _globals
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'Z>github.com/ahmed-abdelhaleem/echo/services/core-go/grpc/echopb'
-  _globals['_GENERATEPORTRAITREQUEST']._serialized_start=40
-  _globals['_GENERATEPORTRAITREQUEST']._serialized_end=159
-  _globals['_GENERATEPORTRAITRESPONSE']._serialized_start=161
-  _globals['_GENERATEPORTRAITRESPONSE']._serialized_end=277
-  _globals['_PORTRAITGENSERVICE']._serialized_start=279
-  _globals['_PORTRAITGENSERVICE']._serialized_end=398
+  _globals['_GENERATEPORTRAITREQUEST']._serialized_start=41
+  _globals['_GENERATEPORTRAITREQUEST']._serialized_end=177
+  _globals['_GENERATEPORTRAITRESPONSE']._serialized_start=180
+  _globals['_GENERATEPORTRAITRESPONSE']._serialized_end=319
+  _globals['_PORTRAITGENSERVICE']._serialized_start=321
+  _globals['_PORTRAITGENSERVICE']._serialized_end=440
 # @@protoc_insertion_point(module_scope)

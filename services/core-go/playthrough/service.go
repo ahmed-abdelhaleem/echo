@@ -248,11 +248,15 @@ func (s *Service) GetTraitVector(ctx context.Context, playthroughID uuid.UUID) (
 // GetPortrait fetches the trait vector for the playthrough and asks the
 // PortraitGenerator to render it. The renderer is deterministic, so we
 // don't persist; regeneration is cheap and avoids a blob-storage round
-// trip in M1.
+// trip until T-CORE-030 wires R2.
+//
+// `animate` toggles the animated WebP loop output (T-ML-031). The
+// static PNG is always returned; the WebP slot is empty unless animate
+// is true.
 //
 // Returns ErrPortraitUnavailable if no generator is wired. Surfaces the
 // underlying repo errors (e.g. ErrTraitVectorNotFound) verbatim.
-func (s *Service) GetPortrait(ctx context.Context, playthroughID uuid.UUID) (PortraitAssets, error) {
+func (s *Service) GetPortrait(ctx context.Context, playthroughID uuid.UUID, animate bool) (PortraitAssets, error) {
 	if s.portraitGen == nil {
 		return PortraitAssets{}, ErrPortraitUnavailable
 	}
@@ -265,6 +269,7 @@ func (s *Service) GetPortrait(ctx context.Context, playthroughID uuid.UUID) (Por
 		BigFive:       vec.BigFive,
 		Schwartz:      vec.Schwartz,
 		Attachment:    vec.Attachment,
+		Animate:       animate,
 	})
 }
 

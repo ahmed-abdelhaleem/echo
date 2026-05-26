@@ -1,6 +1,16 @@
-"""Tests for the M1 Portrait stub (T-ML-020).
+"""Public-API tests for the Portrait generator (T-ML-020 / T-ML-030).
 
-Acceptance: same trait vector -> same PNG; different vector -> different PNG.
+These tests pin the contract the gRPC servicer + core-go rely on:
+- same trait vector → byte-identical PNG;
+- different vector → different PNG;
+- seed sensitivity;
+- shape validation;
+- renderer version surface;
+- ``animate=True`` adds a non-empty WebP and leaves the static PNG
+  unchanged.
+
+The visual *output* is exercised in
+``tests/test_portrait_renderer_goldens.py`` (the 10 golden vectors).
 """
 
 from __future__ import annotations
@@ -20,6 +30,13 @@ def _png_signature() -> bytes:
     return b"\x89PNG\r\n\x1a\n"
 
 
+def _png_dimensions(png: bytes) -> tuple[int, int]:
+    """Parse the IHDR chunk to confirm we're producing the right size."""
+    ihdr_start = len(_png_signature()) + 4 + 4  # past length + "IHDR"
+    width, height = struct.unpack(">II", png[ihdr_start : ihdr_start + 8])
+    return width, height
+
+
 def test_returns_a_valid_png() -> None:
     assets = portrait_gen.generate(
         big_five=_ZERO_BIG_FIVE,
@@ -27,11 +44,12 @@ def test_returns_a_valid_png() -> None:
         attachment=_ZERO_ATTACHMENT,
     )
     assert assets.png.startswith(_png_signature())
-    # IHDR chunk follows: 4 length + 4 type "IHDR" + 13 data + 4 crc
-    ihdr_start = len(_png_signature()) + 4 + 4  # past length + "IHDR"
-    width, height = struct.unpack(">II", assets.png[ihdr_start : ihdr_start + 8])
-    assert width == 64
-    assert height == 64
+    width, height = _png_dimensions(assets.png)
+    # M2 renderer ships 1080x1080. Tests in
+    # tests/test_portrait_renderer_goldens.py use a smaller size to
+    # keep the committed golden fixtures lightweight.
+    assert width == 1080
+    assert height == 1080
 
 
 def test_same_vector_produces_byte_identical_png() -> None:
@@ -60,7 +78,7 @@ def test_different_vectors_produce_different_pngs() -> None:
     assert a.png != b.png
 
 
-def test_different_seeds_produce_different_palettes() -> None:
+def test_different_seeds_produce_different_outputs() -> None:
     vector = dict(
         big_five=(0.2, -0.4, 0.6, 0.1, -0.3),
         schwartz=(0.1, 0.2, 0.3, 0.4, 0.5, -0.1, -0.2, -0.3, -0.4, -0.5),
@@ -71,17 +89,19 @@ def test_different_seeds_produce_different_palettes() -> None:
     assert a.png != b.png
 
 
-def test_renderer_version_is_m1() -> None:
+def test_renderer_version_is_m2() -> None:
     assets = portrait_gen.generate(
         big_five=_ZERO_BIG_FIVE,
         schwartz=_ZERO_SCHWARTZ,
         attachment=_ZERO_ATTACHMENT,
     )
-    assert assets.renderer_version == portrait_gen.RENDERER_VERSION_M1
+    assert assets.renderer_version == portrait_gen.RENDERER_VERSION
+    assert assets.renderer_version == 2
 
 
-def test_r2_keys_are_empty_in_m1() -> None:
-    # M2 will populate these once we upload to object storage.
+def test_r2_keys_are_empty_by_default() -> None:
+    # T-CORE-030 (sharing endpoint, M2) writes to R2 and populates these
+    # keys. The renderer itself never touches object storage.
     assets = portrait_gen.generate(
         big_five=_ZERO_BIG_FIVE,
         schwartz=_ZERO_SCHWARTZ,
@@ -89,6 +109,31 @@ def test_r2_keys_are_empty_in_m1() -> None:
     )
     assert assets.static_png_key == ""
     assert assets.animated_webp_key == ""
+
+
+def test_animation_off_by_default() -> None:
+    assets = portrait_gen.generate(
+        big_five=_ZERO_BIG_FIVE,
+        schwartz=_ZERO_SCHWARTZ,
+        attachment=_ZERO_ATTACHMENT,
+    )
+    assert assets.animated_webp == b""
+
+
+def test_animate_emits_webp_and_preserves_static_png() -> None:
+    vector = dict(
+        big_five=(0.2, -0.4, 0.6, 0.1, -0.3),
+        schwartz=(0.1, 0.2, 0.3, 0.4, 0.5, -0.1, -0.2, -0.3, -0.4, -0.5),
+        attachment=(0.7, 0.2, 0.5),
+    )
+    plain = portrait_gen.generate(**vector)
+    animated = portrait_gen.generate(**vector, animate=True)
+    # Animation must NOT alter the static frame — the share-web Story
+    # surface uses the static PNG as the poster image.
+    assert plain.png == animated.png
+    # WebP must be present and start with RIFF/WEBP magic.
+    assert animated.animated_webp.startswith(b"RIFF")
+    assert b"WEBP" in animated.animated_webp[:16]
 
 
 @pytest.mark.parametrize(

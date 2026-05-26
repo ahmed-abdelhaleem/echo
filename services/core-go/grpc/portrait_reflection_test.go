@@ -91,7 +91,7 @@ func TestMLClient_GeneratePortrait_HappyPath_TranslatesPayload(t *testing.T) {
 	stub := &portraitStub{
 		resp: &echopb.GeneratePortraitResponse{
 			Png:             []byte("\x89PNGFAKE"),
-			RendererVersion: 1,
+			RendererVersion: 2,
 		},
 	}
 	client := newPortraitReflectionClient(t, stub, nil)
@@ -109,8 +109,8 @@ func TestMLClient_GeneratePortrait_HappyPath_TranslatesPayload(t *testing.T) {
 	if !bytes.Equal(got.PNG, []byte("\x89PNGFAKE")) {
 		t.Errorf("png round-trip broke: %q", got.PNG)
 	}
-	if got.RendererVersion != 1 {
-		t.Errorf("renderer version: want 1, got %d", got.RendererVersion)
+	if got.RendererVersion != 2 {
+		t.Errorf("renderer version: want 2, got %d", got.RendererVersion)
 	}
 	if stub.gotReq.PlaythroughId != "pt-1" {
 		t.Errorf("playthrough_id: want pt-1, got %q", stub.gotReq.PlaythroughId)
@@ -118,9 +118,40 @@ func TestMLClient_GeneratePortrait_HappyPath_TranslatesPayload(t *testing.T) {
 	if stub.gotReq.Seed != 42 {
 		t.Errorf("seed: want 42, got %d", stub.gotReq.Seed)
 	}
+	if stub.gotReq.Animate {
+		t.Error("animate must default to false on the wire")
+	}
 	if len(stub.gotReq.BigFive) != 5 || len(stub.gotReq.Schwartz) != 10 || len(stub.gotReq.Attachment) != 3 {
 		t.Errorf("vector shape lost on the wire: %d/%d/%d",
 			len(stub.gotReq.BigFive), len(stub.gotReq.Schwartz), len(stub.gotReq.Attachment))
+	}
+}
+
+func TestMLClient_GeneratePortrait_AnimateRoundTripsWebPBytes(t *testing.T) {
+	stub := &portraitStub{
+		resp: &echopb.GeneratePortraitResponse{
+			Png:             []byte("\x89PNGFAKE"),
+			AnimatedWebp:    []byte("RIFFFAKEWEBPVP8L"),
+			RendererVersion: 2,
+		},
+	}
+	client := newPortraitReflectionClient(t, stub, nil)
+
+	got, err := client.GeneratePortrait(context.Background(), playthrough.PortraitInput{
+		PlaythroughID: "pt-1",
+		BigFive:       []float64{0, 0, 0, 0, 0},
+		Schwartz:      make([]float64, 10),
+		Attachment:    []float64{0, 0, 0},
+		Animate:       true,
+	})
+	if err != nil {
+		t.Fatalf("GeneratePortrait: %v", err)
+	}
+	if !stub.gotReq.Animate {
+		t.Error("animate must be propagated to the wire request")
+	}
+	if !bytes.Equal(got.AnimatedWebP, []byte("RIFFFAKEWEBPVP8L")) {
+		t.Errorf("animated webp round-trip broke: %q", got.AnimatedWebP)
 	}
 }
 

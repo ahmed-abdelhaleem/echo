@@ -22,16 +22,28 @@ message GeneratePortraitRequest {
   repeated double big_five = 3;     // 5 values
   repeated double schwartz = 4;     // 10 values
   repeated double attachment = 5;   // 3 values
+  // When true, the response includes an inline animated WebP loop
+  // (T-ML-031). The static PNG is always rendered. Animation roughly
+  // doubles render time and is only needed for the share-web Story /
+  // in-app reveal surfaces.
+  bool animate = 6;
 }
 
 message GeneratePortraitResponse {
-  // M1 stub: inline PNG bytes (server-side R2 upload lands at M2 / T-ML-030).
-  // The image is small (64x64) and deterministic for a given trait vector.
+  // Inline static PNG bytes. The M2 parametric renderer produces a
+  // 1080x1080 image; the M1 stub produced a 64x64 image. Both are
+  // deterministic for a given trait vector + seed.
   bytes png = 1;
-  // Cloudflare R2 keys for the rendered assets. Populated at M2; empty in M1.
+  // Cloudflare R2 keys for the rendered assets. Populated once
+  // T-CORE-030 (sharing) wires R2; empty when the caller did not
+  // request persistence.
   string static_png_key = 2;
   string animated_webp_key = 3;
   // Bumped when the renderer changes in a way that would produce a
-  // different image for the same trait vector. M1 stub == 1.
+  // different image for the same trait vector. M1 stub == 1; M2
+  // parametric renderer == 2.
   uint32 renderer_version = 4;
+  // Inline animated WebP bytes (T-ML-031). 1080x1080, ~2-second loop,
+  // <800 KB. Empty when the caller did not request animation.
+  bytes animated_webp = 5;
 }
