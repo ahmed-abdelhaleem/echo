@@ -1,0 +1,61 @@
+{
+  "id": "low-achievement",
+  "version": 1,
+  "summary": "A day on which the work was simply done.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-ACHIEVEMENT",
+            "direction": "low",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "underachiever",
+      "lazy",
+      "uncommitted",
+      "settles"
+    ],
+    "notes": "Low achievement reads as not needing the work to be the best version of itself today. We are not scolding. Done is often the right unit."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the email you sent that was good enough",
+        "the small task you closed off without polishing"
+      ],
+      "output": "The email went out today and it was good enough. The small task you closed off, you closed off without polishing the corners. That is not a failure to care. It is the recognition that done was the correct unit today, and that the carving and refining that some days ask for, this day did not.",
+      "notes": "Validates 'good enough' without scolding or congratulating."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "id": "boundaried-self",
+  "version": 1,
+  "summary": "High self-direction, prominent avoidant attachment, low extraversion: the day was singular.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-SELF_DIRECTION",
+            "direction": "high",
+            "min_magnitude": 0.4
+          },
+          {
+            "dimension": "ATT-AVOIDANT",
+            "direction": "high",
+            "min_magnitude": 0.35
+          },
+          {
+            "dimension": "OCEAN-E",
+            "direction": "low",
+            "min_magnitude": 0.3
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 75,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_clinical_term"
+    ],
+    "avoid": [
+      "lone wolf",
+      "loner",
+      "avoidant",
+      "isolated"
+    ],
+    "notes": "Self-direction plus the avoidant distance plus low extraversion reads as a day held singular by deliberate small distances. CRITICAL: never the clinical term; never 'isolated'."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the offered company you declined politely",
+        "the route you walked alone on purpose",
+        "the question you decided not to answer"
+      ],
+      "output": "There was company on offer today that you declined politely, and a route you walked alone on purpose. A question came up that you decided not to answer. The size of the day's quiet was a size you arranged, on purpose, more than once, and the day at the end of it was yours in a way that has its own particular cost and its own particular reward.",
+      "notes": "Names the trade (cost + reward) without judgement."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

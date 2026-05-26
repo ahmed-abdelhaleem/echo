@@ -1,0 +1,60 @@
+{
+  "id": "secure-attachment-prominent",
+  "version": 1,
+  "summary": "A day on which you trusted the people in the room to still be there.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "ATT-SECURE",
+            "direction": "high",
+            "min_magnitude": 0.35
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 55,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_clinical_term"
+    ],
+    "avoid": [
+      "healthy",
+      "you are well-adjusted",
+      "you have it together"
+    ],
+    "notes": "Secure attachment reads as the absence of the door-watching that other styles do. We are not certifying the player as healthy; we are describing the texture of a day in which they did not check."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the silence in a conversation you did not rush to fill",
+        "the friend's late reply you took at face value"
+      ],
+      "output": "There was a silence in the middle of a conversation that you did not rush to fill. The friend whose reply came late, you took at face value, without backfilling a story about what their lateness meant. The room had people in it and you trusted the room to still have people in it, and the trust was a small everyday thing.",
+      "notes": "Secure attachment described by absence: no rushing, no backfilling."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

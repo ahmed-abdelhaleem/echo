@@ -1,0 +1,60 @@
+{
+  "id": "low-hedonism",
+  "version": 1,
+  "summary": "A day on which pleasure was a small thing.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-HEDONISM",
+            "direction": "low",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "puritan",
+      "ascetic",
+      "joyless"
+    ],
+    "notes": "Low hedonism reads as a quiet downgrading of pleasure as a reason. Never frame this as repressed or sad. The pleasures in the day may have been adequate without being central."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the cake you said no to without much thought",
+        "the early night you chose"
+      ],
+      "output": "There was cake on the counter and you said no to it without making a moment of it. The night you went to bed early was not an act of discipline. Pleasure was simply not where the centre of the day lived, and the centre of the day was where you wanted to be.",
+      "notes": "Refuses both the discipline narrative and the deprivation narrative."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

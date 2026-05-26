@@ -1,0 +1,60 @@
+{
+  "id": "high-achievement",
+  "version": 1,
+  "summary": "A day that wanted the work done well.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-ACHIEVEMENT",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "overachiever",
+      "you are ambitious",
+      "high-performer"
+    ],
+    "notes": "High achievement reads as caring about the quality of the thing you made today. Never flatten this into ambition; the texture matters."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the paragraph you rewrote three times",
+        "the small detail no one else would have caught"
+      ],
+      "output": "The paragraph that no one had asked you to revise, you revised three times. The small detail you caught at the end, no one in the room would have noticed if you had let it go. You did not let it go. The day's small ledger was not about how much; it was about whether the small thing you handed over was good.",
+      "notes": "Distinguishes achievement (quality) from ambition (visible reward)."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

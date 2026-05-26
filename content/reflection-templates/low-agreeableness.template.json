@@ -1,0 +1,61 @@
+{
+  "id": "low-agreeableness",
+  "version": 1,
+  "summary": "A day on which you kept your own line steady.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-A",
+            "direction": "low",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "selfish",
+      "rude",
+      "cold",
+      "difficult"
+    ],
+    "notes": "Low agreeableness reads as willingness to take up the disagreement that the day put in front of you. Never frame this as bad; never call it brave. Just describe."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the answer you gave that was not what they wanted to hear",
+        "the line you held in a small argument"
+      ],
+      "output": "You gave the answer that was not the warm one, and held the line in a small argument when softening it would have closed the room faster. That has a price you know the shape of. You paid it on purpose. The day did not require you to keep your line, and you kept it anyway.",
+      "notes": "Names the cost of low agreeableness and refuses the soft virtue narrative."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

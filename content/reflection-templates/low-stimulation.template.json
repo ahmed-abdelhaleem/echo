@@ -1,0 +1,60 @@
+{
+  "id": "low-stimulation",
+  "version": 1,
+  "summary": "A day spent turning toward what was quiet.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-STIMULATION",
+            "direction": "low",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "small_image_close",
+      "no_archetype"
+    ],
+    "avoid": [
+      "boring",
+      "you are dull",
+      "afraid of fun"
+    ],
+    "notes": "Low stimulation reads as preference for the soft edge of the day. Never frame this as fearful or boring. Describe the textures of quiet that the player chose."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the cafe you stayed in past closing time",
+        "the song you played twice"
+      ],
+      "output": "There was a cafe whose music was already turned down and you stayed past closing time. The song you played twice tonight is a song that does not ask much of you. You spent the day picking the quieter of the two doors, more than once, and the rooms behind those doors were rooms you would choose again.",
+      "notes": "Quiet as a positive preference; ends affirming the choice without flattering."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

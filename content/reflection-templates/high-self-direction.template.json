@@ -1,0 +1,60 @@
+{
+  "id": "high-self-direction",
+  "version": 1,
+  "summary": "A day in which you wanted to choose your own way.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-SELF_DIRECTION",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "independent",
+      "you are a free spirit",
+      "maverick"
+    ],
+    "notes": "High self-direction reads as preference for picking the route yourself even when a route was offered. Avoid romanticising independence; describe the small acts of choosing."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the suggestion you set aside without explanation",
+        "the route you took that no one would have predicted"
+      ],
+      "output": "Someone offered a sensible plan and you set it down without making a speech about why. The route you ended up taking, no one in the room would have predicted, and you did not feel obligated to explain. The day belonged to you in a small specific way: nothing in it was inherited.",
+      "notes": "Two concrete acts of self-direction; refuses the lone-wolf narrative."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "id": "open-with-direction",
+  "version": 1,
+  "summary": "High openness, high self-direction: the day reached and the reach was yours to make.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-O",
+            "direction": "high",
+            "min_magnitude": 0.4
+          },
+          {
+            "dimension": "SCH-SELF_DIRECTION",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 65,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "maverick",
+      "free spirit",
+      "explorer"
+    ],
+    "notes": "High openness plus high self-direction reads as reaching toward the new on your own terms. Never the explorer trope."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the unfamiliar route you chose for yourself",
+        "the small risk you took without telling anyone first"
+      ],
+      "output": "The unfamiliar route, you chose for yourself, and the small risk you took today, you did not tell anyone about first. The reach was yours to make and you made it without asking. The day was new in a specific direction, and the direction was one you chose.",
+      "notes": "Pairs openness and self-direction without metaphor inflation."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}
