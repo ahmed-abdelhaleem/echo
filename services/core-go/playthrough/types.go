@@ -155,6 +155,12 @@ type ReflectionInput struct {
 	BigFive       []float64
 	Schwartz      []float64
 	Attachment    []float64
+	// SignalMoments are concrete moments from the play through that
+	// anchor specificity in the prose reflection. The M2 pipeline
+	// (T-ML-042) feeds these into the LLM prompt and runs them against
+	// the tone classifier. Empty list is allowed but discouraged; a
+	// reflection without signal moments is more likely to fall back.
+	SignalMoments []string
 }
 
 // Reflection is the reflection generator's result. “UsedFallback“ is
