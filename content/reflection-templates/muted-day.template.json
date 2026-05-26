@@ -1,0 +1,70 @@
+{
+  "id": "muted-day",
+  "version": 1,
+  "summary": "All dimensions sit close to neutral: the day moved through you without strong colour.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-O",
+            "direction": "muted",
+            "min_magnitude": 0.2
+          },
+          {
+            "dimension": "OCEAN-C",
+            "direction": "muted",
+            "min_magnitude": 0.2
+          },
+          {
+            "dimension": "OCEAN-E",
+            "direction": "muted",
+            "min_magnitude": 0.2
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 20,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate"
+    ],
+    "avoid": [
+      "nothing happened",
+      "uneventful",
+      "boring",
+      "blank"
+    ],
+    "notes": "When the trait vector sits near zero across the dimensions we read, the day is not blank — it just did not register a strong signal in any direction. Describe the texture of mildness without flattering it."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the small task you closed without ceremony",
+        "the evening that ended close to when you expected"
+      ],
+      "output": "There was a small task you closed today without ceremony, and the evening ended close to when you expected. The day did not pull you in any one direction with much force. That is not nothing. It is the kind of day a year is mostly made of, and the kind that does not need a story attached.",
+      "notes": "Validates the unremarkable day without making it a parable."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

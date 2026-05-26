@@ -25,6 +25,7 @@ import {
   vignetteSchema,
   choiceSchema,
   traitWeightSchema,
+  reflectionTemplateSchema,
 } from "@echo/content-schema";
 
 // ---------------------------------------------------------------------------
@@ -102,6 +103,7 @@ ajv.addSchema(vignetteSchema);
 ajv.addSchema(choiceSchema);
 ajv.addSchema(traitWeightSchema);
 const validateSeason = ajv.compile(seasonSchema);
+const validateReflectionTemplate = ajv.compile(reflectionTemplateSchema);
 
 if (flags.selfCheck) {
   console.log("✓ content-validator self-check: all schemas compiled.");
@@ -113,10 +115,10 @@ if (flags.selfCheck) {
 // ---------------------------------------------------------------------------
 
 const seasonsDir = join(repoRoot, "content", "seasons");
-const pattern = join(seasonsDir, "*", "season.json");
+const seasonPattern = join(seasonsDir, "*", "season.json");
 
 const seasonFiles = [];
-for await (const entry of glob(pattern)) {
+for await (const entry of glob(seasonPattern)) {
   seasonFiles.push(entry);
 }
 
@@ -125,11 +127,31 @@ if (seasonFiles.length === 0) {
   process.exit(2);
 }
 
+const templatesDir = join(repoRoot, "content", "reflection-templates");
+const templatePattern = join(templatesDir, "*.template.json");
+
+const templateFiles = [];
+for await (const entry of glob(templatePattern)) {
+  templateFiles.push(entry);
+}
+
+// Reflection templates are required by T-ML-040 (≥50 templates). We do
+// NOT short-circuit on an empty directory the way we do for seasons —
+// missing template content is a hard fail because the M2 reflection
+// pipeline depends on it.
+if (templateFiles.length === 0) {
+  console.error(
+    `no *.template.json files found under ${templatesDir} (T-ML-040 requires ≥50 templates)`,
+  );
+  process.exit(2);
+}
+
 // ---------------------------------------------------------------------------
 // Validate each
 // ---------------------------------------------------------------------------
 
 let failed = 0;
+
 for (const file of seasonFiles) {
   const rel = file.slice(repoRoot.length + 1);
   let raw;
@@ -161,8 +183,66 @@ for (const file of seasonFiles) {
   console.log(`✓ ${rel}`);
 }
 
+for (const file of templateFiles) {
+  const rel = file.slice(repoRoot.length + 1);
+  let raw;
+  try {
+    raw = readFileSync(file, "utf-8");
+  } catch (err) {
+    console.error(`✗ ${rel}: ${err.message}`);
+    failed++;
+    continue;
+  }
+  let data;
+  try {
+    data = JSON.parse(raw);
+  } catch (err) {
+    console.error(`✗ ${rel}: invalid JSON: ${err.message}`);
+    failed++;
+    continue;
+  }
+  const ok = validateReflectionTemplate(data);
+  if (!ok) {
+    console.error(`✗ ${rel}: schema validation failed:`);
+    for (const e of validateReflectionTemplate.errors ?? []) {
+      const p = e.instancePath || "(root)";
+      console.error(`    ${p} ${e.message}`);
+    }
+    failed++;
+    continue;
+  }
+
+  // id must match basename (filename is the canonical key).
+  const baseId = rel
+    .split("/")
+    .pop()
+    .replace(/\.template\.json$/, "");
+  if (data.id !== baseId) {
+    console.error(
+      `✗ ${rel}: id "${data.id}" does not match filename "${baseId}"`,
+    );
+    failed++;
+    continue;
+  }
+
+  // min_sentences <= max_sentences.
+  if (data.constraints.min_sentences > data.constraints.max_sentences) {
+    console.error(
+      `✗ ${rel}: constraints.min_sentences (${data.constraints.min_sentences}) > max_sentences (${data.constraints.max_sentences})`,
+    );
+    failed++;
+    continue;
+  }
+
+  console.log(`✓ ${rel}`);
+}
+
 if (failed > 0) {
-  console.error(`\n${failed} season(s) failed validation.`);
+  console.error(
+    `\n${failed} content file(s) failed validation (across ${seasonFiles.length} season(s) and ${templateFiles.length} template(s)).`,
+  );
   process.exit(1);
 }
-console.log(`\n${seasonFiles.length} season(s) validated.`);
+console.log(
+  `\n${seasonFiles.length} season(s) and ${templateFiles.length} reflection template(s) validated.`,
+);

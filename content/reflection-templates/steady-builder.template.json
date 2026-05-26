@@ -1,0 +1,66 @@
+{
+  "id": "steady-builder",
+  "version": 1,
+  "summary": "Low openness, high conscientiousness: the day puts down a careful next stone.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-O",
+            "direction": "low",
+            "min_magnitude": 0.3
+          },
+          {
+            "dimension": "OCEAN-C",
+            "direction": "high",
+            "min_magnitude": 0.35
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 65,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "small_image_close"
+    ],
+    "avoid": [
+      "boring",
+      "rigid",
+      "stuck",
+      "predictable"
+    ],
+    "notes": "Low openness with high conscientiousness reads as careful continuity. Never frame as boring or stuck. The day is building."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the routine you protected when the day tried to interrupt it",
+        "the small piece you added to a long-running project"
+      ],
+      "output": "There was a routine the day tried to interrupt and you protected it. The small piece you added to the long-running project, you added cleanly, in the place it was meant to go. The shape you are building is a slow shape. The day was a stone in it. Tomorrow will be another.",
+      "notes": "Slow continuity as positive; uses the building image to close."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

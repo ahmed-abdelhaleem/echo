@@ -19,6 +19,7 @@ export const actSchema = load("act.schema.json");
 export const vignetteSchema = load("vignette.schema.json");
 export const choiceSchema = load("choice.schema.json");
 export const traitWeightSchema = load("trait_weight.schema.json");
+export const reflectionTemplateSchema = load("reflection_template.schema.json");
 
 export const allSchemas = [
   seasonSchema,
@@ -26,4 +27,5 @@ export const allSchemas = [
   vignetteSchema,
   choiceSchema,
   traitWeightSchema,
+  reflectionTemplateSchema,
 ];

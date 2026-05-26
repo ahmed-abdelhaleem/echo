@@ -1,0 +1,60 @@
+{
+  "id": "high-extraversion",
+  "version": 1,
+  "summary": "A day that warmed up when other people walked into it.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-E",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "sensory_detail",
+      "no_archetype"
+    ],
+    "avoid": [
+      "you are an extrovert",
+      "social butterfly",
+      "life of the party"
+    ],
+    "notes": "High extraversion reads as a body that brightens around others. Ground in a particular noisy moment, not in 'you love people'."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the small table you pulled two extra chairs to",
+        "the voice you raised slightly to be heard"
+      ],
+      "output": "You pulled two extra chairs to a small table without being asked. The voice you used to be heard over the kitchen noise was a little louder than the one you use alone, and the difference did not feel like a costume. By the time you walked home the warmth in your face was a thing you noticed and did not put down.",
+      "notes": "Sensory anchoring (chairs, voice, warmth) and the deliberate refusal of the 'extrovert' label."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

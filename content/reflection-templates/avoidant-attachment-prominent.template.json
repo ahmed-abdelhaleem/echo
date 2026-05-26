@@ -1,0 +1,61 @@
+{
+  "id": "avoidant-attachment-prominent",
+  "version": 1,
+  "summary": "A day on which you kept a little distance, just in case.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "ATT-AVOIDANT",
+            "direction": "high",
+            "min_magnitude": 0.35
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 55,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_clinical_term"
+    ],
+    "avoid": [
+      "avoidant",
+      "cold",
+      "emotionally unavailable",
+      "distant"
+    ],
+    "notes": "Avoidant attachment reads as a small space kept between you and the room. CRITICAL: never the clinical term; never 'distant' as a verdict. Describe the gap as a known and chosen one."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the conversation you let end early",
+        "the question you answered with a short sentence"
+      ],
+      "output": "There was a conversation you let end a little before it was finished. The question that followed, you answered in a short sentence when a longer one would have been welcomed. The distance you kept today was a small distance, and it was an old distance, and you did not pretend it was anything else.",
+      "notes": "Avoidant attachment as old and chosen; refuses both the clinical term and the moralising one."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}
