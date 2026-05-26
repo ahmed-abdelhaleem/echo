@@ -86,8 +86,7 @@ class LocalPlaythroughs extends Table {
   ],
 )
 class EchoDatabase extends _$EchoDatabase {
-  EchoDatabase([QueryExecutor? executor])
-      : super(executor ?? _openDefault());
+  EchoDatabase([QueryExecutor? executor]) : super(executor ?? _openDefault());
 
   /// Default executor used by the production app. On native targets
   /// (iOS / Android / macOS / Linux / Windows) `drift_flutter` picks a
