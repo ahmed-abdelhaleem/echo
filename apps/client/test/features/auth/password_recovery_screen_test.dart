@@ -55,15 +55,16 @@ void main() {
     await tester.pumpAndSettle();
     await _go(tester);
     await tester.enterText(
-        find.byKey(const Key('recover.email')), 'a@x.io');
+      find.byKey(const Key('recover.email')),
+      'a@x.io',
+    );
     await tester.tap(find.byKey(const Key('recover.submit')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('recover.confirmation')), findsOneWidget);
     expect(find.textContaining('Check your email'), findsOneWidget);
   });
 
-  testWidgets('4xx: also shows confirmation copy (privacy)',
-      (tester) async {
+  testWidgets('4xx: also shows confirmation copy (privacy)', (tester) async {
     final adapter = ProgrammableAdapter()
       ..registerJson(
         method: 'GET',
@@ -81,7 +82,9 @@ void main() {
     await tester.pumpAndSettle();
     await _go(tester);
     await tester.enterText(
-        find.byKey(const Key('recover.email')), 'nobody@x.io');
+      find.byKey(const Key('recover.email')),
+      'nobody@x.io',
+    );
     await tester.tap(find.byKey(const Key('recover.submit')));
     await tester.pumpAndSettle();
     // Privacy: same confirmation copy regardless of whether the email

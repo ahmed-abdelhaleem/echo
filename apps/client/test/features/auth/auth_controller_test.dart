@@ -148,7 +148,8 @@ void main() {
                   <String, dynamic>{
                     'id': 4000001,
                     'type': 'error',
-                    'text': 'Registrants must be at least 13 years old; under 13 is not allowed.',
+                    'text':
+                        'Registrants must be at least 13 years old; under 13 is not allowed.',
                   },
                 ],
               },
@@ -311,5 +312,3 @@ void main() {
     expect(ctrl.state, isA<AuthStateAnonymous>());
   });
 }
-
-

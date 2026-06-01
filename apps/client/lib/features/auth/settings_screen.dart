@@ -67,7 +67,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(
-          () => _topError = 'We couldn\'t delete your account. Please try again.');
+        () => _topError = 'We couldn\'t delete your account. Please try again.',
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -136,7 +137,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 if (youthSafe)
                   Card(
                     key: const Key('settings.youthSafeCard'),
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    color:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     child: const Padding(
                       padding: EdgeInsets.all(16),
                       child: Column(

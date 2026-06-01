@@ -44,7 +44,8 @@ class _PasswordRecoveryScreenState
     } catch (_) {
       if (!mounted) return;
       setState(
-          () => _topError = 'Echo is having a moment. Please try again.');
+        () => _topError = 'Echo is having a moment. Please try again.',
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -123,8 +124,7 @@ class _PasswordRecoveryScreenState
             autocorrect: false,
             decoration: const InputDecoration(
               labelText: 'Email',
-              helperText:
-                  'We\'ll email you a link to set a new password.',
+              helperText: 'We\'ll email you a link to set a new password.',
             ),
             validator: (v) {
               final s = (v ?? '').trim();

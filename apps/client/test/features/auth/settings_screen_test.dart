@@ -35,15 +35,18 @@ Future<void> _loginAdult(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await tester.enterText(find.byKey(const Key('login.email')), 'a@x.io');
   await tester.enterText(
-      find.byKey(const Key('login.password')), 'pw-strong');
+    find.byKey(const Key('login.password')),
+    'pw-strong',
+  );
   await tester.tap(find.byKey(const Key('login.submit')));
   await tester.pumpAndSettle();
 }
 
-ProgrammableAdapter _loginFixture(
-    {required String identityId,
-    required String ageBand,
-    required bool youthSafe}) {
+ProgrammableAdapter _loginFixture({
+  required String identityId,
+  required String ageBand,
+  required bool youthSafe,
+}) {
   return ProgrammableAdapter()
     ..registerJson(
       method: 'GET',
@@ -89,7 +92,8 @@ void main() {
       overrides: <Override>[
         ...testOverrides(seasons: const <String, Season>{}),
         authClientProvider.overrideWithValue(
-            _clientWith(ProgrammableAdapter())),
+          _clientWith(ProgrammableAdapter()),
+        ),
       ],
     );
     addTearDown(container.dispose);
@@ -110,7 +114,10 @@ void main() {
   testWidgets('adult: shows email + display name; no youth-safe card',
       (tester) async {
     final adapter = _loginFixture(
-        identityId: 'id-1', ageBand: 'adult', youthSafe: false);
+      identityId: 'id-1',
+      ageBand: 'adult',
+      youthSafe: false,
+    );
     await tester.pumpWidget(_bootApp(adapter));
     await tester.pumpAndSettle();
     await _loginAdult(tester);
@@ -123,10 +130,12 @@ void main() {
     expect(find.byKey(const Key('settings.youthSafeCard')), findsNothing);
   });
 
-  testWidgets('youth: shows the youth-safe explainer card',
-      (tester) async {
+  testWidgets('youth: shows the youth-safe explainer card', (tester) async {
     final adapter = _loginFixture(
-        identityId: 'id-y', ageBand: 'youth', youthSafe: true);
+      identityId: 'id-y',
+      ageBand: 'youth',
+      youthSafe: true,
+    );
     await tester.pumpWidget(_bootApp(adapter));
     await tester.pumpAndSettle();
     await _loginAdult(tester);
@@ -138,7 +147,10 @@ void main() {
 
   testWidgets('sign out routes to login and clears state', (tester) async {
     final adapter = _loginFixture(
-        identityId: 'id-1', ageBand: 'adult', youthSafe: false);
+      identityId: 'id-1',
+      ageBand: 'adult',
+      youthSafe: false,
+    );
     await tester.pumpWidget(_bootApp(adapter));
     await tester.pumpAndSettle();
     await _loginAdult(tester);
@@ -152,8 +164,10 @@ void main() {
   testWidgets('delete: confirm dialog -> DELETE /me -> routes to login',
       (tester) async {
     final adapter = _loginFixture(
-        identityId: 'id-d', ageBand: 'adult', youthSafe: false)
-      ..registerJson(
+      identityId: 'id-d',
+      ageBand: 'adult',
+      youthSafe: false,
+    )..registerJson(
         method: 'DELETE',
         path: RegExp(r'/me$'),
         status: 204,
@@ -176,7 +190,10 @@ void main() {
 
   testWidgets('delete: cancel keeps us on settings', (tester) async {
     final adapter = _loginFixture(
-        identityId: 'id-c', ageBand: 'adult', youthSafe: false);
+      identityId: 'id-c',
+      ageBand: 'adult',
+      youthSafe: false,
+    );
     await tester.pumpWidget(_bootApp(adapter));
     await tester.pumpAndSettle();
     await _loginAdult(tester);
@@ -191,5 +208,3 @@ void main() {
     expect(adapter.recorded.any((r) => r.method == 'DELETE'), isFalse);
   });
 }
-
-

@@ -64,8 +64,7 @@ void main() {
   });
 
   group('signUp', () {
-    test('happy path returns an AuthSession with token + identity',
-        () async {
+    test('happy path returns an AuthSession with token + identity', () async {
       final adapter = ProgrammableAdapter()
         ..registerJson(
           method: 'GET',
@@ -103,8 +102,7 @@ void main() {
       expect(session.displayName, 'Alice');
     });
 
-    test('under-13 hook rejection maps to AuthFailureKind.under13',
-        () async {
+    test('under-13 hook rejection maps to AuthFailureKind.under13', () async {
       final adapter = ProgrammableAdapter()
         ..registerJson(
           method: 'GET',
@@ -125,7 +123,8 @@ void main() {
                     <String, dynamic>{
                       'id': 4000001,
                       'type': 'error',
-                      'text': 'Echo is for users 13 and up — under 13 is not allowed.',
+                      'text':
+                          'Echo is for users 13 and up — under 13 is not allowed.',
                     },
                   ],
                 },
@@ -169,7 +168,8 @@ void main() {
                     <String, dynamic>{
                       'id': 4000007,
                       'type': 'error',
-                      'text': 'An account with the same identifier exists already.',
+                      'text':
+                          'An account with the same identifier exists already.',
                     },
                   ],
                 },
@@ -246,7 +246,8 @@ void main() {
                 <String, dynamic>{
                   'id': 4000006,
                   'type': 'error',
-                  'text': 'The provided credentials are invalid, check for spelling mistakes.',
+                  'text':
+                      'The provided credentials are invalid, check for spelling mistakes.',
                 },
               ],
             },
@@ -262,8 +263,7 @@ void main() {
   });
 
   group('recoverPassword', () {
-    test('completes normally even when Kratos returns 4xx (privacy)',
-        () async {
+    test('completes normally even when Kratos returns 4xx (privacy)', () async {
       final adapter = ProgrammableAdapter()
         ..registerJson(
           method: 'GET',

@@ -382,9 +382,11 @@ class AuthClient {
   Future<WhoamiResponse?> whoami(String token) async {
     final response = await _dio.get<Map<String, dynamic>>(
       '$coreBaseUrl/whoami',
-      options: Options(headers: <String, String>{
-        'X-Session-Token': token,
-      }),
+      options: Options(
+        headers: <String, String>{
+          'X-Session-Token': token,
+        },
+      ),
     );
     final status = response.statusCode ?? 0;
     if (status == 200) {
@@ -406,9 +408,11 @@ class AuthClient {
   Future<void> deleteAccount(String token) async {
     final response = await _dio.delete<Map<String, dynamic>>(
       '$coreBaseUrl/me',
-      options: Options(headers: <String, String>{
-        'X-Session-Token': token,
-      }),
+      options: Options(
+        headers: <String, String>{
+          'X-Session-Token': token,
+        },
+      ),
     );
     final status = response.statusCode ?? 0;
     if (status == 204 || status == 200 || status == 404) return;

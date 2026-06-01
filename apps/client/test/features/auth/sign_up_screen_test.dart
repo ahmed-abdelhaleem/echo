@@ -41,11 +41,17 @@ Future<void> _navigateToSignUp(WidgetTester tester) async {
 Future<void> _fill(WidgetTester tester) async {
   await tester.enterText(find.byKey(const Key('signup.email')), 'alice@x.io');
   await tester.enterText(
-      find.byKey(const Key('signup.displayName')), 'Alice');
+    find.byKey(const Key('signup.displayName')),
+    'Alice',
+  );
   await tester.enterText(
-      find.byKey(const Key('signup.password')), 'correct-horse');
+    find.byKey(const Key('signup.password')),
+    'correct-horse',
+  );
   await tester.enterText(
-      find.byKey(const Key('signup.birthdate')), '1990-06-15');
+    find.byKey(const Key('signup.birthdate')),
+    '1990-06-15',
+  );
 }
 
 void main() {
@@ -155,13 +161,21 @@ void main() {
     await tester.pumpAndSettle();
     await _navigateToSignUp(tester);
     await tester.enterText(
-        find.byKey(const Key('signup.email')), 'kid@x.io');
+      find.byKey(const Key('signup.email')),
+      'kid@x.io',
+    );
     await tester.enterText(
-        find.byKey(const Key('signup.displayName')), 'Kid');
+      find.byKey(const Key('signup.displayName')),
+      'Kid',
+    );
     await tester.enterText(
-        find.byKey(const Key('signup.password')), 'correct-horse');
+      find.byKey(const Key('signup.password')),
+      'correct-horse',
+    );
     await tester.enterText(
-        find.byKey(const Key('signup.birthdate')), '2018-01-01');
+      find.byKey(const Key('signup.birthdate')),
+      '2018-01-01',
+    );
     // Move focus to trigger the preflight call.
     await tester.tap(find.byKey(const Key('signup.email')));
     await tester.pumpAndSettle();
@@ -224,13 +238,21 @@ void main() {
     await tester.pumpAndSettle();
     await _navigateToSignUp(tester);
     await tester.enterText(
-        find.byKey(const Key('signup.email')), 'yara@x.io');
+      find.byKey(const Key('signup.email')),
+      'yara@x.io',
+    );
     await tester.enterText(
-        find.byKey(const Key('signup.displayName')), 'Yara');
+      find.byKey(const Key('signup.displayName')),
+      'Yara',
+    );
     await tester.enterText(
-        find.byKey(const Key('signup.password')), 'correct-horse');
+      find.byKey(const Key('signup.password')),
+      'correct-horse',
+    );
     await tester.enterText(
-        find.byKey(const Key('signup.birthdate')), '2012-06-15');
+      find.byKey(const Key('signup.birthdate')),
+      '2012-06-15',
+    );
     await tester.tap(find.byKey(const Key('signup.submit')));
     await tester.pumpAndSettle();
 

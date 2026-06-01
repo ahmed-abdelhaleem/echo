@@ -57,7 +57,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(
-          () => _topError = 'Echo is having a moment. Please try again.');
+        () => _topError = 'Echo is having a moment. Please try again.',
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -89,9 +90,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: Text(
                           _topError!,
                           style: TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onErrorContainer,
+                            color:
+                                Theme.of(context).colorScheme.onErrorContainer,
                           ),
                         ),
                       ),
@@ -131,17 +131,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 8),
                     TextButton(
                       key: const Key('login.toRecover'),
-                      onPressed: _busy
-                          ? null
-                          : () => context.goNamed('recover'),
+                      onPressed:
+                          _busy ? null : () => context.goNamed('recover'),
                       child: const Text('Forgot your password?'),
                     ),
                     const SizedBox(height: 4),
                     TextButton(
                       key: const Key('login.toSignUp'),
-                      onPressed: _busy
-                          ? null
-                          : () => context.goNamed('signup'),
+                      onPressed: _busy ? null : () => context.goNamed('signup'),
                       child: const Text('New here? Create an account.'),
                     ),
                   ],

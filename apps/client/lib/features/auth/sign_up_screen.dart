@@ -67,7 +67,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
         setState(() => _birthdateError = 'Echo is for ages 13 and up.');
       } else {
         setState(
-            () => _birthdateError = 'Please enter a valid date (YYYY-MM-DD).');
+          () => _birthdateError = 'Please enter a valid date (YYYY-MM-DD).',
+        );
       }
     } catch (_) {
       // Network blip during preflight — don't block the user; the
@@ -102,8 +103,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               case 'traits.email':
                 _emailError = e.message ?? 'Please enter a valid email.';
               case 'password':
-                _passwordError =
-                    e.message ?? 'Please use a longer, harder-to-guess password.';
+                _passwordError = e.message ??
+                    'Please use a longer, harder-to-guess password.';
               case 'traits.birthdate':
                 _birthdateError = e.message ?? 'Please enter a valid date.';
               default:
@@ -119,7 +120,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(
-          () => _topError = 'Echo is having a moment. Please try again.');
+        () => _topError = 'Echo is having a moment. Please try again.',
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -174,7 +176,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       validator: (v) {
                         final s = (v ?? '').trim();
                         if (s.isEmpty) return 'Please enter a display name.';
-                        if (s.length > 50) return 'Keep it under 50 characters.';
+                        if (s.length > 50) {
+                          return 'Keep it under 50 characters.';
+                        }
                         return null;
                       },
                     ),
@@ -194,8 +198,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         }
                         return null;
                       },
-                      onChanged: (_) =>
-                          setState(() => _passwordError = null),
+                      onChanged: (_) => setState(() => _passwordError = null),
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
@@ -216,8 +219,17 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         }
                         return null;
                       },
-                      onChanged: (_) =>
-                          setState(() => _birthdateError = null),
+                      onChanged: (v) {
+                        setState(() => _birthdateError = null);
+                        // Fire preflight as soon as the user finishes
+                        // typing a well-formed YYYY-MM-DD — gives the
+                        // earliest possible field-level feedback and
+                        // doesn't depend on blur/focus mechanics (which
+                        // are flaky to drive from widget tests).
+                        if (RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(v.trim())) {
+                          _onBirthdateBlur();
+                        }
+                      },
                       onEditingComplete: _onBirthdateBlur,
                       onTapOutside: (_) => _onBirthdateBlur(),
                     ),
@@ -230,9 +242,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     const SizedBox(height: 12),
                     TextButton(
                       key: const Key('signup.toLogin'),
-                      onPressed: _busy
-                          ? null
-                          : () => context.goNamed('login'),
+                      onPressed: _busy ? null : () => context.goNamed('login'),
                       child: const Text('Already have an account? Sign in.'),
                     ),
                   ],
