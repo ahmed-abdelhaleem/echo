@@ -81,11 +81,17 @@ services:
     depends_on:
       kratos-migrate:
         condition: service_completed_successfully
+      mailhog:
+        condition: service_started
     ports:
       - "4433:4433"  # public API
       - "4434:4434"  # admin API
     environment:
       DSN: postgres://echo:echo_dev@postgres:5432/kratos?sslmode=disable
+      # Shared secret Kratos sends in `X-Echo-Hook-Secret` when invoking
+      # the registration web hooks served by core-go. Local-dev only —
+      # production wires a real secret from the secret store.
+      KRATOS_HOOK_SECRET: echo_dev_hook_secret_change_me_in_prod
     command: ["serve", "-c", "/etc/config/kratos/kratos.yml", "--dev", "--watch-courier"]
     volumes:
       - ./infra/kratos:/etc/config/kratos:ro
@@ -94,6 +100,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  # MailHog catches Kratos's recovery / verification emails in dev so the
+  # password reset and email verification flows are testable end-to-end
+  # without a real SMTP provider. Web UI: http://localhost:8025.
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: echo-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
 
 volumes:
   postgres_data:

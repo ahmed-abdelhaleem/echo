@@ -161,6 +161,12 @@ func (f *fakeUsersRepo) EnsureFromSession(_ context.Context, sess auth.Session, 
 	}
 	return f.user, nil
 }
+func (f *fakeUsersRepo) EnsureForKratosIdentity(_ context.Context, _ uuid.UUID, _ auth.AgeBand, _ time.Time) (auth.User, error) {
+	return f.user, nil
+}
+func (f *fakeUsersRepo) SoftDeleteByKratosID(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	return nil
+}
 
 // stubKratos returns an httptest.Server whose /sessions/whoami returns the
 // given body. Pulled in here (rather than reusing auth/kratos_client_test.go)
