@@ -17,6 +17,7 @@ regexes = [
     # the deployment secret store and never appear in the repo.
     '''echodev0123456789abcdefghijklmno''',
     '''echo_dev_cookie_secret_change_me_in_prod''',
+    '''echo_dev_hook_secret_change_me_in_prod''',
 ]
 paths = [
     # docs/ folder contains illustrative strings only.

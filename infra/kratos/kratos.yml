@@ -72,9 +72,45 @@ selfservice:
     registration:
       lifespan: 10m
       ui_url: http://localhost:8080/auth/registration
+      # Age gating (docs/08 §"Age gating and minor protections" + AGENTS.md §10.7).
+      # The hard rule (under-13 rejection) is enforced by the Go backend
+      # at the before-registration web hook. The after-registration hook
+      # provisions the `auth.users` row with the right age band.
+      before:
+        hooks:
+          - hook: web_hook
+            config:
+              url: http://core-go:8080/auth/hooks/before-registration
+              method: POST
+              body: file:///etc/config/kratos/hooks/before-registration.jsonnet
+              response:
+                ignore: false
+                parse: true
+              auth:
+                type: api_key
+                config:
+                  name: X-Echo-Hook-Secret
+                  value: ${KRATOS_HOOK_SECRET}
+                  in: header
+              can_interrupt: true
       after:
         password:
           hooks:
+            - hook: web_hook
+              config:
+                url: http://core-go:8080/auth/hooks/after-registration
+                method: POST
+                body: file:///etc/config/kratos/hooks/after-registration.jsonnet
+                response:
+                  ignore: false
+                  parse: true
+                auth:
+                  type: api_key
+                  config:
+                    name: X-Echo-Hook-Secret
+                    value: ${KRATOS_HOOK_SECRET}
+                    in: header
+                can_interrupt: true
             - hook: session
 
 log:
@@ -108,9 +144,13 @@ identity:
 
 courier:
   smtp:
-    # In dev we point at MailHog (added to docker-compose alongside Kratos
-    # in a follow-up PR). For M0/M1 unverified emails are accepted.
-    connection_uri: smtps://test:test@mailhog:1025/?skip_ssl_verify=true
+    # MailHog runs in docker-compose alongside Kratos for local dev. The
+    # web UI is at http://localhost:8025 — every recovery / verification
+    # email shows up there. Production wires its own SMTP provider.
+    # Note: the smtp scheme (no TLS, no auth) matches MailHog's listener.
+    connection_uri: smtp://mailhog:1025/?disable_starttls=true
+    from_address: noreply@echo.localhost
+    from_name: Echo (local dev)
 
 session:
   lifespan: 720h # 30 days — matches the refresh-token policy in docs/05.

@@ -32,6 +32,13 @@ type Dependencies struct {
 	Playthrough *playthrough.Service
 	Users       auth.UsersRepository
 
+	// KratosHookSecret is the shared secret that Kratos must include in
+	// the [auth.HookSecretHeader] header when invoking the registration
+	// hooks (`/auth/hooks/before-registration`,
+	// `/auth/hooks/after-registration`). Empty in tests; required in
+	// production.
+	KratosHookSecret string
+
 	// Now is the time source for handlers that need it (user provisioning
 	// stamps consent timestamps). Defaults to time.Now when nil.
 	Now func() time.Time
@@ -43,12 +50,50 @@ func NewMux(deps Dependencies) http.Handler {
 	mux.HandleFunc("GET /healthz", healthz)
 	mux.HandleFunc("GET /readyz", readyz(deps))
 
+	nowFn := deps.Now
+	if nowFn == nil {
+		nowFn = time.Now
+	}
+
+	// /auth/preflight is unauthenticated by design — a not-yet-signed-up
+	// applicant uses it to pre-check their birthdate against the age
+	// gate before submitting a full registration form.
+	mux.Handle("POST /auth/preflight", auth.PreflightHandler(nowFn))
+
 	// /whoami is the smallest possible authenticated endpoint. It also
 	// doubles as a CSRF/cookie-domain sanity check from the client.
 	if deps.Auth != nil && deps.Auth.Kratos != nil {
-		whoamiHandler := http.HandlerFunc(whoami)
+		whoamiHandler := whoamiHandler(deps.Users, nowFn)
 		mw := auth.Middleware(deps.Auth.Kratos, deps.Logger)
 		mux.Handle("GET /whoami", mw(whoamiHandler))
+	}
+
+	// Account deletion: DELETE /me. Auth required; the handler reads the
+	// session, soft-deletes the auth.users row, then deletes the Kratos
+	// identity via the admin API.
+	if deps.Auth != nil && deps.Auth.Kratos != nil && deps.Users != nil {
+		mw := auth.Middleware(deps.Auth.Kratos, deps.Logger)
+		mux.Handle("DELETE /me", mw(auth.DeleteMeHandler(auth.DeleteMeConfig{
+			Users:  deps.Users,
+			Kratos: deps.Auth.Kratos,
+			Logger: deps.Logger,
+			Now:    nowFn,
+		})))
+	}
+
+	// Kratos web hooks. These are called by Kratos (server-to-server) so
+	// they do NOT go through the session middleware. Authentication is
+	// the shared secret in [auth.HookSecretHeader].
+	if deps.Auth != nil && deps.Auth.Kratos != nil && deps.Users != nil {
+		hookCfg := auth.HookConfig{
+			Secret: deps.KratosHookSecret,
+			Users:  deps.Users,
+			Kratos: deps.Auth.Kratos,
+			Logger: deps.Logger,
+			Now:    nowFn,
+		}
+		mux.Handle("POST /auth/hooks/before-registration", auth.BeforeRegistrationHandler(hookCfg))
+		mux.Handle("POST /auth/hooks/after-registration", auth.AfterRegistrationHandler(hookCfg))
 	}
 
 	// Content endpoints are public: anyone with the client can browse the
@@ -60,10 +105,6 @@ func NewMux(deps Dependencies) http.Handler {
 	// Playthrough endpoints require authentication. Both routes go through
 	// auth.Middleware so the handlers can rely on a session being attached.
 	if deps.Playthrough != nil && deps.Auth != nil && deps.Auth.Kratos != nil && deps.Users != nil {
-		nowFn := deps.Now
-		if nowFn == nil {
-			nowFn = time.Now
-		}
 		mw := auth.Middleware(deps.Auth.Kratos, deps.Logger)
 		mux.Handle("POST /playthroughs", mw(createPlaythroughHandler(deps.Playthrough, deps.Users, nowFn)))
 		mux.Handle("POST /playthroughs/{id}/choices", mw(recordChoiceHandler(deps.Playthrough)))
@@ -80,24 +121,55 @@ func healthz(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
-// whoami returns the session attached by [auth.Middleware]. Reaching this
-// handler without a session is a programming error (the middleware should
-// have rejected the request) and surfaces as 500.
-func whoami(w http.ResponseWriter, r *http.Request) {
-	sess, ok := auth.SessionFromContext(r.Context())
-	if !ok {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{
-			"error": "session not attached; middleware misconfigured",
-		})
-		return
+// whoamiHandler returns the session attached by [auth.Middleware] plus, if
+// the auth.users row has been provisioned, the player's age band and
+// youth-safe flag. The flag is what the rest of the system gates
+// privacy-sensitive features on (sharing, extended analytics).
+//
+// Reaching this handler without a session is a programming error (the
+// middleware should have rejected the request) and surfaces as 500.
+//
+// If the auth.users row does not exist yet — e.g. registration just
+// completed and the after-hook has not run, or the user predates the
+// hook flow — the handler attempts a lazy provision via
+// [auth.UsersRepository.EnsureFromSession]. That path enforces the same
+// age gate as the hook, so the response can never carry a youth_safe=false
+// flag for an under-13 identity.
+func whoamiHandler(users auth.UsersRepository, now func() time.Time) http.HandlerFunc {
+	if now == nil {
+		now = time.Now
 	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"session_id":   sess.ID,
-		"identity_id":  sess.IdentityID,
-		"email":        sess.Email,
-		"display_name": sess.DisplayName,
-		"expires_at":   sess.ExpiresAt,
-	})
+	return func(w http.ResponseWriter, r *http.Request) {
+		sess, ok := auth.SessionFromContext(r.Context())
+		if !ok {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{
+				"error": "session not attached; middleware misconfigured",
+			})
+			return
+		}
+
+		body := map[string]any{
+			"session_id":   sess.ID,
+			"identity_id":  sess.IdentityID,
+			"email":        sess.Email,
+			"display_name": sess.DisplayName,
+			"expires_at":   sess.ExpiresAt,
+		}
+
+		// Best-effort lookup of the auth.users row to attach
+		// (age_band, youth_safe). The middleware path never depended
+		// on this lookup so any failure must not change the contract
+		// of /whoami; we degrade quietly.
+		if users != nil {
+			user, err := users.EnsureFromSession(r.Context(), sess, now())
+			if err == nil {
+				body["age_band"] = string(user.AgeBand)
+				body["youth_safe"] = user.AgeBand == auth.AgeBandYouth
+			}
+		}
+
+		writeJSON(w, http.StatusOK, body)
+	}
 }
 
 // readyz reports 200 only when all configured dependencies are reachable.

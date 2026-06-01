@@ -43,6 +43,12 @@ var ErrSessionNotActive = errors.New("kratos: session not active")
 // the cookie was missing, malformed, or refers to a deleted identity.
 var ErrSessionUnauthorized = errors.New("kratos: session unauthorized")
 
+// ErrIdentityNotFound is returned by [DeleteIdentity] when Kratos's admin
+// API responds with 404 — the identity id either never existed or has
+// already been deleted. Idempotency note: callers can treat this as a
+// success for delete flows where "already gone" is the desired state.
+var ErrIdentityNotFound = errors.New("kratos: identity not found")
+
 // kratosSession matches the relevant subset of the Kratos `/sessions/whoami`
 // response. We intentionally read only what we need so the schema can evolve
 // without churn here.
@@ -119,4 +125,51 @@ func (c *KratosClient) Whoami(ctx context.Context, cookie string) (Session, erro
 		IssuedAt:    ks.IssuedAt,
 		ExpiresAt:   ks.ExpiresAt,
 	}, nil
+}
+
+// AdminURL returns the configured admin API base URL. Exposed so hook
+// handlers and tests can sanity-check the wiring without poking at
+// unexported fields.
+func (c *KratosClient) AdminURL() string { return c.adminURL }
+
+// DeleteIdentity removes a Kratos identity by id via the admin API.
+//
+// Behaviour:
+//   - 204 No Content -> nil error.
+//   - 404 Not Found  -> [ErrIdentityNotFound] (treat as success in flows
+//     where the desired end-state is "identity absent").
+//   - anything else  -> wrapped error.
+//
+// The call deletes the identity and all sessions/credentials Kratos owns
+// for that identity. It does NOT touch Echo's `auth.users` row; callers
+// are responsible for soft-deleting that row in the same transaction
+// boundary.
+func (c *KratosClient) DeleteIdentity(ctx context.Context, identityID string) error {
+	if identityID == "" {
+		return errors.New("kratos: delete identity: empty id")
+	}
+	if c.adminURL == "" {
+		return errors.New("kratos: delete identity: admin URL not configured")
+	}
+
+	u := c.adminURL + "/admin/identities/" + identityID
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, u, nil)
+	if err != nil {
+		return fmt.Errorf("kratos: build delete identity request: %w", err)
+	}
+
+	resp, err := c.http.Do(req)
+	if err != nil {
+		return fmt.Errorf("kratos: delete identity transport: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	switch resp.StatusCode {
+	case http.StatusNoContent, http.StatusOK:
+		return nil
+	case http.StatusNotFound:
+		return ErrIdentityNotFound
+	default:
+		return fmt.Errorf("kratos: delete identity unexpected status %d", resp.StatusCode)
+	}
 }

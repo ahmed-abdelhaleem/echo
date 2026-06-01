@@ -99,7 +99,16 @@ func main() {
 	if cfg.KratosPublicURL != "" {
 		kc := auth.NewKratosClient(cfg.KratosPublicURL, cfg.KratosAdminURL, nil)
 		deps.Auth = auth.New(kc)
-		logger.Info("auth enabled", "kratos_public_url", cfg.KratosPublicURL)
+		deps.KratosHookSecret = cfg.KratosHookSecret
+		hookSecretWired := "no"
+		if cfg.KratosHookSecret != "" {
+			hookSecretWired = "yes"
+		}
+		logger.Info("auth enabled",
+			"kratos_public_url", cfg.KratosPublicURL,
+			"kratos_admin_url", cfg.KratosAdminURL,
+			"hook_secret_wired", hookSecretWired,
+		)
 	} else {
 		logger.Info("auth disabled; KRATOS_PUBLIC_URL not set")
 	}
@@ -138,11 +147,18 @@ func main() {
 		logger.Info("ml dependencies disabled; ML_GRPC_ADDR not set")
 	}
 
+	// Users repo: needed by /whoami, DELETE /me, the Kratos hooks, and
+	// every playthrough handler. Requires Postgres; degrades to nil
+	// without it.
+	if deps.PG != nil {
+		deps.Users = auth.NewPgUsersRepository(deps.PG)
+		logger.Info("users repo enabled")
+	}
+
 	// Playthrough — requires Postgres + Content. Auth is checked at route
 	// registration time so the routes only appear when the full chain is
 	// wired.
 	if deps.PG != nil && deps.Content != nil {
-		deps.Users = auth.NewPgUsersRepository(deps.PG)
 		deps.Playthrough = playthrough.
 			NewService(playthrough.NewPgRepository(deps.PG), deps.Content, scorer).
 			WithPortraitGenerator(portraitGen).
