@@ -409,14 +409,19 @@ class AuthClient {
       '$kratosBaseUrl/self-service/$path/api',
       queryParameters: <String, dynamic>{'return_to': returnTo},
     );
-    if ((flowResponse.statusCode ?? 0) != 200) {
+    final flowStatus = flowResponse.statusCode ?? 0;
+    final flowBody = flowResponse.data ?? const <String, dynamic>{};
+    if (flowStatus == 400) {
+      throw _kratosErrorToException(flowBody);
+    }
+    if (flowStatus != 200) {
       throw DioException(
         requestOptions: flowResponse.requestOptions,
         response: flowResponse,
-        message: 'oidc: failed to init ${flow.name} flow',
+        message: 'oidc: failed to init ${flow.name} flow (status $flowStatus)',
       );
     }
-    final flowId = (flowResponse.data ?? const {})['id'] as String?;
+    final flowId = flowBody['id'] as String?;
     if (flowId == null) {
       throw const AuthException._('oidc: flow missing id');
     }
@@ -593,7 +598,15 @@ AuthException _kratosErrorToException(Map<String, dynamic> body) {
     }
   }
   final errorID = body['error'] as Map<String, dynamic>?;
-  final reason = (errorID?['reason'] as String? ?? '').toLowerCase();
+  final reasonRaw = errorID?['reason'] as String? ?? '';
+  final reason = reasonRaw.toLowerCase();
+  if (reason.contains('return_to') && reason.contains('not allowed')) {
+    return const AuthException(
+      AuthFailureKind.other,
+      message:
+          'OAuth return URL is not allow-listed in Kratos. Restart web on port 8082 and retry.',
+    );
+  }
   if (reason.contains('exists') || reason.contains('duplicate')) {
     return const AuthException(
       AuthFailureKind.invalidCredentials,

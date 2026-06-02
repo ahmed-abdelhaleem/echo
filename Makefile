@@ -421,6 +421,7 @@ endif
 # PLATFORM selects the Flutter device (macos, ios, android, chrome, ...).
 # Default to chrome when full Xcode.app is not active — macOS desktop builds
 # need `xcodebuild` from Xcode, not Command Line Tools alone.
+FLUTTER_WEB_PORT ?= 8082
 XCODE_BUILD_AVAILABLE := $(shell xcodebuild -version >/dev/null 2>&1 && echo yes)
 ifeq ($(PLATFORM),)
   ifeq ($(XCODE_BUILD_AVAILABLE),yes)
@@ -440,9 +441,12 @@ client:
 ifeq ($(FLUTTER_AVAILABLE),yes)
 ifeq ($(PLATFORM),chrome)
 	@test -f apps/client/web/sqlite3.wasm || $(MAKE) client-web-assets
-endif
+	@echo "→ flutter web port $(FLUTTER_WEB_PORT)"
+	@cd apps/client && flutter pub get && flutter run -d chrome --web-port=$(FLUTTER_WEB_PORT)
+else
 	@echo "→ flutter run -d $(PLATFORM)"
 	@cd apps/client && flutter pub get && flutter run -d $(PLATFORM)
+endif
 else
 	@echo "↷ flutter not installed; cannot run client"
 	@exit 1

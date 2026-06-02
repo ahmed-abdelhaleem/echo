@@ -111,6 +111,9 @@ services:
       kratos serve -c /tmp/kratos.yml --dev --watch-courier"
     volumes:
       - ./infra/kratos:/etc/config/kratos:ro
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:4434/admin/health/ready"]
       interval: 10s

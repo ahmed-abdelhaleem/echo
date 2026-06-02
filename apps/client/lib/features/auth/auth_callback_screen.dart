@@ -3,12 +3,23 @@
 
 import 'package:echo_client/features/auth/auth_controller.dart';
 import 'package:echo_client/services/auth_client.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 /// Builds the OAuth return URL for the current Flutter web origin.
 String buildOidcReturnUrl(String type) {
+  // Keep return_to stable for local web dev. Kratos allow-lists this URL.
+  if (kIsWeb && (Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1')) {
+    return Uri(
+      scheme: Uri.base.scheme,
+      host: Uri.base.host,
+      port: 8082,
+      path: '/auth/callback',
+      queryParameters: <String, String>{'type': type},
+    ).toString();
+  }
   final base = Uri.base;
   return Uri(
     scheme: base.scheme,

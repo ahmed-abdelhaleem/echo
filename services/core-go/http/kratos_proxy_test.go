@@ -34,6 +34,30 @@ func TestWrapWithKratosProxy_forwardsToKratos(t *testing.T) {
 	require.Contains(t, string(body), "flow-1")
 }
 
+func TestWrapWithKratosProxy_stripsUpstreamCORSHeaders(t *testing.T) {
+	t.Parallel()
+
+	kratos := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:8082")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`ok`))
+	}))
+	t.Cleanup(kratos.Close)
+
+	h := WrapWithKratosProxy(kratos.URL, http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		t.Fatal("next handler should not run")
+	}))
+
+	req := httptest.NewRequest(http.MethodGet, "/auth/kratos/self-service/login/api", nil)
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.Empty(t, rec.Header().Get("Access-Control-Allow-Origin"))
+	require.Empty(t, rec.Header().Get("Access-Control-Allow-Credentials"))
+}
+
 func TestWrapWithKratosProxy_passesThroughOtherPaths(t *testing.T) {
 	t.Parallel()
 

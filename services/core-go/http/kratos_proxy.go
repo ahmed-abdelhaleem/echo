@@ -29,6 +29,17 @@ func WrapWithKratosProxy(kratosPublicURL string, next http.Handler) http.Handler
 		}
 		req.URL.Path = stripped
 	}
+	proxy.ModifyResponse = func(resp *http.Response) error {
+		// core-go's CORSMiddleware owns Access-Control-* headers. Kratos may
+		// also emit them; strip upstream values to avoid duplicate headers.
+		resp.Header.Del("Access-Control-Allow-Origin")
+		resp.Header.Del("Access-Control-Allow-Credentials")
+		resp.Header.Del("Access-Control-Allow-Methods")
+		resp.Header.Del("Access-Control-Allow-Headers")
+		resp.Header.Del("Access-Control-Expose-Headers")
+		resp.Header.Del("Access-Control-Max-Age")
+		return nil
+	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == kratosProxyPrefix || strings.HasPrefix(r.URL.Path, kratosProxyPrefix+"/") {
