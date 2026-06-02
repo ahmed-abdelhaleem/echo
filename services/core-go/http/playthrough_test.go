@@ -153,6 +153,9 @@ type fakeUsersRepo struct {
 func (f *fakeUsersRepo) GetByKratosID(_ context.Context, _ uuid.UUID) (auth.User, error) {
 	return f.user, nil
 }
+func (f *fakeUsersRepo) GetByID(_ context.Context, _ uuid.UUID) (auth.User, error) {
+	return f.user, nil
+}
 func (f *fakeUsersRepo) EnsureFromSession(_ context.Context, sess auth.Session, _ time.Time) (auth.User, error) {
 	f.ensureCalls++
 	f.lastEnsuredSes = sess

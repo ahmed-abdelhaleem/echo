@@ -15,6 +15,7 @@ import (
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/auth"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/content"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/playthrough"
+	"github.com/ahmed-abdelhaleem/echo/services/core-go/sharing"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -30,6 +31,7 @@ type Dependencies struct {
 	Auth        *auth.Service
 	Content     *content.Service
 	Playthrough *playthrough.Service
+	Sharing     *sharing.Service
 	Users       auth.UsersRepository
 
 	// KratosHookSecret is the shared secret that Kratos must include in
@@ -38,6 +40,16 @@ type Dependencies struct {
 	// `/auth/hooks/after-registration`). Empty in tests; required in
 	// production.
 	KratosHookSecret string
+
+	// ShareBaseURL is the origin of the share-web app (e.g.
+	// "https://share.echo.app"). Used to build the `share_url` returned
+	// to clients. Empty value falls back to a relative path.
+	ShareBaseURL string
+
+	// APIBaseURL is the public origin of this core-go service. Used to
+	// build the absolute portrait URLs embedded in share-web payloads
+	// (og:image / twitter:image). Empty value falls back to relative.
+	APIBaseURL string
 
 	// Now is the time source for handlers that need it (user provisioning
 	// stamps consent timestamps). Defaults to time.Now when nil.
@@ -112,6 +124,34 @@ func NewMux(deps Dependencies) http.Handler {
 		mux.Handle("GET /playthroughs/{id}/trait-vector", mw(getTraitVectorHandler(deps.Playthrough)))
 		mux.Handle("GET /playthroughs/{id}/portrait", mw(getPortraitHandler(deps.Playthrough)))
 		mux.Handle("GET /playthroughs/{id}/reflection", mw(getReflectionHandler(deps.Playthrough)))
+	}
+
+	// Sharing surface (T-CORE-030). Three routes:
+	//   - POST /playthroughs/{id}/share  (auth)   — owner mints a link
+	//   - DELETE /share/{token}          (auth)   — owner kills a link
+	//   - GET  /share/{token}            (public) — share-web payload
+	//   - GET  /share/{token}/portrait   (public) — og:image / preview
+	//
+	// The public routes are deliberately NOT behind auth.Middleware:
+	// share-web is unauthenticated and the entire point of a share link
+	// is that any visitor can resolve it.
+	if deps.Sharing != nil && deps.Playthrough != nil && deps.Users != nil {
+		shareCfg := shareHandlerConfig{
+			Share:        deps.Sharing,
+			Playthrough:  deps.Playthrough,
+			Users:        deps.Users,
+			ShareBaseURL: deps.ShareBaseURL,
+			APIBaseURL:   deps.APIBaseURL,
+			Logger:       deps.Logger,
+			Now:          nowFn,
+		}
+		mux.Handle("GET /share/{token}", publicShareHandler(shareCfg))
+		mux.Handle("GET /share/{token}/portrait", publicSharePortraitHandler(shareCfg))
+		if deps.Auth != nil && deps.Auth.Kratos != nil {
+			mw := auth.Middleware(deps.Auth.Kratos, deps.Logger)
+			mux.Handle("POST /playthroughs/{id}/share", mw(createShareHandler(shareCfg)))
+			mux.Handle("DELETE /share/{token}", mw(revokeShareHandler(shareCfg)))
+		}
 	}
 
 	return mux

@@ -44,6 +44,13 @@ dependencies:
   # OAuth browser redirect (Google sign-in / sign-up).
   url_launcher: ^6.3.1
 
+  # System share sheet on iOS/Android/macOS for the Portrait sharing
+  # flow (T-CLIENT-030). The plugin handles platform-channel plumbing
+  # so we can hand it bytes + a public URL and let the OS render the
+  # native picker. New top-level dep — justification in the PR
+  # description.
+  share_plus: ^10.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

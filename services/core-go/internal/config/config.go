@@ -56,6 +56,18 @@ type Config struct {
 	// ErrScorerUnavailable until the dependency is wired).
 	MLgRPCAddr string
 
+	// ShareBaseURL is the public origin of the apps/share-web app
+	// (e.g. "https://share.echo.app"). Used by the sharing endpoints
+	// to build the `share_url` returned to clients. Empty falls back
+	// to relative paths.
+	ShareBaseURL string
+
+	// APIBaseURL is the public origin of this core-go service (e.g.
+	// "https://api.echo.app"). Used to build absolute portrait URLs
+	// embedded in share-web payloads (og:image / twitter:image).
+	// Empty falls back to relative paths.
+	APIBaseURL string
+
 	// Environment is the deployment environment label (dev|staging|production).
 	Environment string
 
@@ -88,7 +100,9 @@ func Load() (Config, error) {
 		KratosHookSecret: strings.TrimSpace(os.Getenv("KRATOS_HOOK_SECRET")),
 		ContentRoot:      strings.TrimSpace(os.Getenv("CONTENT_ROOT")),
 		MLgRPCAddr:       strings.TrimSpace(os.Getenv("ML_GRPC_ADDR")),
-		Environment: defaultString(os.Getenv("ECHO_ENV"), "dev"),
+		ShareBaseURL:     strings.TrimSpace(os.Getenv("SHARE_BASE_URL")),
+		APIBaseURL:       strings.TrimSpace(os.Getenv("API_BASE_URL")),
+		Environment:      defaultString(os.Getenv("ECHO_ENV"), "dev"),
 	}
 
 	cfg.CORSAllowedOrigins = parseCSV(os.Getenv("CORE_CORS_ALLOWED_ORIGINS"))

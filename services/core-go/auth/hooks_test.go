@@ -48,6 +48,17 @@ func (f *fakeUsers) GetByKratosID(_ context.Context, id uuid.UUID) (auth.User, e
 	return auth.User{}, auth.ErrUserNotFound
 }
 
+func (f *fakeUsers) GetByID(_ context.Context, id uuid.UUID) (auth.User, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for _, u := range f.provisioned {
+		if u.ID == id {
+			return u, nil
+		}
+	}
+	return auth.User{}, auth.ErrUserNotFound
+}
+
 func (f *fakeUsers) EnsureFromSession(_ context.Context, _ auth.Session, _ time.Time) (auth.User, error) {
 	return auth.User{}, nil
 }
