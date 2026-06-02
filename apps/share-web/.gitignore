@@ -1,0 +1,19 @@
+# Next.js
+/.next/
+/out/
+
+# Production builds
+/build
+/dist
+
+# Node
+node_modules/
+.pnpm-store/
+
+# Vitest cache
+.vitest/
+
+# Misc
+*.log
+.env*.local
+next-env.d.ts

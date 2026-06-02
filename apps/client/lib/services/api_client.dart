@@ -148,6 +148,102 @@ class ApiClient {
     }
   }
 
+  /// POST /playthroughs/{id}/share. Returns a [SharePayload] with the
+  /// public share URL + the public portrait endpoint URLs.
+  ///
+  /// Auth required. The server enforces the youth-safe / ownership /
+  /// completeness gates; this client only translates wire status codes
+  /// into typed outcomes so the controller can render the right UX.
+  Future<SharePayload> createShare({required String playthroughId}) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/playthroughs/$playthroughId/share',
+    );
+    final status = response.statusCode ?? 0;
+    if (status == 401) {
+      throw ShareUnauthorised();
+    }
+    if (status == 403) {
+      // Sharing is disabled for youth-safe accounts. The button
+      // shouldn't have been visible — but the server is the source of
+      // truth so we still need to surface this in case the client
+      // state was stale.
+      throw ShareForbidden();
+    }
+    if (status == 404) {
+      throw ShareNotFound();
+    }
+    if (status == 409) {
+      throw SharePlaythroughIncomplete();
+    }
+    if (status != 201) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Unexpected status $status from createShare',
+      );
+    }
+    final body = response.data;
+    if (body == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Empty body from createShare',
+      );
+    }
+    return SharePayload.fromJson(body);
+  }
+
+  /// DELETE /share/{token}. Idempotent — server returns 204 on first
+  /// call and on any subsequent call too.
+  Future<void> revokeShare({required String token}) async {
+    final response = await _dio.delete<void>('/share/$token');
+    final status = response.statusCode ?? 0;
+    if (status == 401) {
+      throw ShareUnauthorised();
+    }
+    if (status == 404) {
+      throw ShareNotFound();
+    }
+    if (status != 204) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Unexpected status $status from revokeShare',
+      );
+    }
+  }
+
+  /// GET on an arbitrary URL the server already vended (the portrait
+  /// PNG / WebP endpoints). Returns raw bytes; the controller then
+  /// hands them to the system share sheet. Implemented here so the
+  /// share controller doesn't have to own a second Dio instance.
+  Future<List<int>> fetchBytes(String url) async {
+    final response = await _dio.get<List<int>>(
+      url,
+      options: Options(
+        responseType: ResponseType.bytes,
+        validateStatus: (s) => s != null && s < 500,
+      ),
+    );
+    final status = response.statusCode ?? 0;
+    if (status != 200) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Unexpected status $status from fetchBytes($url)',
+      );
+    }
+    final data = response.data;
+    if (data == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Empty body from fetchBytes($url)',
+      );
+    }
+    return data;
+  }
+
   Dio get raw => _dio;
 }
 
@@ -202,6 +298,50 @@ enum RecordChoiceOutcome {
 class CreatePlaythroughUnauthorised implements Exception {}
 
 class CreatePlaythroughForbidden implements Exception {}
+
+/// Wire shape of the response to POST /playthroughs/{id}/share. The
+/// server returns the public-facing URL + the two portrait-asset URLs
+/// the share sheet will embed. Kept structurally aligned with
+/// `services/core-go/http/sharing.go::shareCreateResponse`.
+class SharePayload {
+  const SharePayload({
+    required this.token,
+    required this.playthroughId,
+    required this.shareUrl,
+    required this.portraitPngUrl,
+    required this.portraitWebpUrl,
+    required this.createdAt,
+  });
+
+  factory SharePayload.fromJson(Map<String, dynamic> json) {
+    return SharePayload(
+      token: json['token'] as String,
+      playthroughId: json['playthrough_id'] as String,
+      shareUrl: json['share_url'] as String,
+      portraitPngUrl: json['portrait_png_url'] as String,
+      portraitWebpUrl: json['portrait_webp_url'] as String,
+      createdAt: json['created_at'] as String,
+    );
+  }
+
+  final String token;
+  final String playthroughId;
+  final String shareUrl;
+  final String portraitPngUrl;
+  final String portraitWebpUrl;
+  final String createdAt;
+}
+
+/// Marker exceptions for the share flow. The controller catches each
+/// distinct case to render the right surface (auth-expired toast,
+/// youth-safe lockout, server lag).
+class ShareUnauthorised implements Exception {}
+
+class ShareForbidden implements Exception {}
+
+class ShareNotFound implements Exception {}
+
+class SharePlaythroughIncomplete implements Exception {}
 
 /// Override `apiBaseUrlProvider` in tests / per-flavour bootstrap to point
 /// the client at a local or staging gateway. The default is the local

@@ -34,6 +34,7 @@ import (
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/internal/config"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/internal/telemetry"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/playthrough"
+	"github.com/ahmed-abdelhaleem/echo/services/core-go/sharing"
 )
 
 func main() {
@@ -166,6 +167,23 @@ func main() {
 		logger.Info("playthrough enabled")
 	} else {
 		logger.Info("playthrough disabled; postgres or content not available")
+	}
+
+	// Sharing — requires Postgres, Playthrough, and the users repo.
+	// Degrades to nil without any of them, in which case the share
+	// routes are not registered.
+	if deps.PG != nil && deps.Playthrough != nil && deps.Users != nil {
+		deps.Sharing = sharing.New(sharing.Config{
+			Repository:   sharing.NewPgRepository(deps.PG),
+			Playthroughs: deps.Playthrough,
+			Users:        deps.Users,
+		})
+		deps.ShareBaseURL = cfg.ShareBaseURL
+		deps.APIBaseURL = cfg.APIBaseURL
+		logger.Info("sharing enabled",
+			"share_base_url", cfg.ShareBaseURL,
+			"api_base_url", cfg.APIBaseURL,
+		)
 	}
 
 	handler := corehttp.NewMux(deps)

@@ -90,6 +90,8 @@ jobs:
         run: pnpm -r --if-present lint
       - name: Test
         run: pnpm -r --if-present test
+      - name: Build share-web
+        run: pnpm --filter @echo/share-web run build
       - name: Validate content
         run: pnpm --filter @echo/content-validator run validate
 

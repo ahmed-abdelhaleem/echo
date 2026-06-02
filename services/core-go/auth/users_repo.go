@@ -38,6 +38,11 @@ type User struct {
 // an interface so playthrough/http tests can fake it without Postgres.
 type UsersRepository interface {
 	GetByKratosID(ctx context.Context, kratosIdentityID uuid.UUID) (User, error)
+	// GetByID looks up a user by their internal auth.users id (not the
+	// Kratos identity id). Used by domains that have already resolved
+	// the Echo-side user id and need to read fields like AgeBand
+	// without round-tripping through Kratos.
+	GetByID(ctx context.Context, id uuid.UUID) (User, error)
 	EnsureFromSession(ctx context.Context, sess Session, now time.Time) (User, error)
 	// EnsureForKratosIdentity provisions an auth.users row for a Kratos
 	// identity given an already-validated age band. Used by the Kratos
@@ -80,6 +85,28 @@ func (r *PgUsersRepository) GetByKratosID(ctx context.Context, kratosIdentityID 
 	}
 	if err != nil {
 		return User{}, fmt.Errorf("auth: get user: %w", err)
+	}
+	return u, nil
+}
+
+// GetByID looks up an existing user row by its internal auth.users id.
+func (r *PgUsersRepository) GetByID(ctx context.Context, id uuid.UUID) (User, error) {
+	const q = `
+		SELECT id, kratos_identity_id, age_band, tos_version, tos_accepted_at,
+		       privacy_version, privacy_accepted_at, created_at
+		FROM auth.users
+		WHERE id = $1 AND deleted_at IS NULL
+	`
+	var u User
+	err := r.pool.QueryRow(ctx, q, id).Scan(
+		&u.ID, &u.KratosIdentityID, &u.AgeBand, &u.TosVersion, &u.TosAcceptedAt,
+		&u.PrivacyVersion, &u.PrivacyAcceptedAt, &u.CreatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return User{}, ErrUserNotFound
+	}
+	if err != nil {
+		return User{}, fmt.Errorf("auth: get user by id: %w", err)
 	}
 	return u, nil
 }

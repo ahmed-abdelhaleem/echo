@@ -76,6 +76,9 @@ type muxFakeUsers struct {
 func (f *muxFakeUsers) GetByKratosID(_ context.Context, _ uuid.UUID) (auth.User, error) {
 	return f.user, nil
 }
+func (f *muxFakeUsers) GetByID(_ context.Context, _ uuid.UUID) (auth.User, error) {
+	return f.user, nil
+}
 func (f *muxFakeUsers) EnsureFromSession(_ context.Context, _ auth.Session, _ time.Time) (auth.User, error) {
 	if f.ensureErr != nil {
 		return auth.User{}, f.ensureErr
