@@ -99,6 +99,7 @@ services:
       # disable the provider at runtime; password sign-up still works.
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      DEV_DISABLE_API_FLOW_ENFORCEMENT: "true"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     entrypoint: ["sh", "-c"]

@@ -6,13 +6,12 @@ dsn: postgres://echo:echo_dev@postgres:5432/kratos?sslmode=disable
 # API for the application backend. Local dev exposes both via Docker.
 serve:
   public:
-    base_url: http://localhost:4433/
+    base_url: http://localhost:8081/auth/kratos/
     cors:
       enabled: true
       allowed_origins:
-        - http://localhost:8080
-        - http://localhost:8081
         - http://localhost:8082
+        - http://localhost:8081
         - http://localhost:3000
         - http://127.0.0.1:8080
         - http://127.0.0.1:8081
@@ -35,10 +34,10 @@ serve:
 selfservice:
   # Default redirect after a successful flow. The Flutter client picks this up
   # and surfaces the appropriate next-screen; the backend treats it as opaque.
-  default_browser_return_url: http://localhost:8080/auth/return
+  default_browser_return_url: http://localhost:8082/auth/return
   allowed_return_urls:
-    - http://localhost:8080/
-    - http://localhost:8080/auth/callback
+    - http://localhost:8082/
+    - http://localhost:8082/auth/callback
     - http://localhost:8081/
     - http://localhost:8081/auth/callback
     - http://localhost:8082/
@@ -70,30 +69,30 @@ selfservice:
 
   flows:
     error:
-      ui_url: http://localhost:8080/auth/error
+      ui_url: http://localhost:8082/auth/error
     settings:
-      ui_url: http://localhost:8080/auth/settings
+      ui_url: http://localhost:8082/auth/settings
       privileged_session_max_age: 15m
       required_aal: highest_available
     recovery:
       enabled: true
-      ui_url: http://localhost:8080/auth/recovery
+      ui_url: http://localhost:8082/auth/recovery
       use: code
     verification:
       enabled: true
-      ui_url: http://localhost:8080/auth/verification
+      ui_url: http://localhost:8082/auth/verification
       use: code
       after:
-        default_browser_return_url: http://localhost:8080/auth/return
+        default_browser_return_url: http://localhost:8082/auth/return
     logout:
       after:
-        default_browser_return_url: http://localhost:8080/
+        default_browser_return_url: http://localhost:8082/
     login:
-      ui_url: http://localhost:8080/auth/login
+      ui_url: http://localhost:8082/auth/login
       lifespan: 10m
     registration:
       lifespan: 10m
-      ui_url: http://localhost:8080/auth/registration
+      ui_url: http://localhost:8082/auth/registration
       # Age gating (docs/08 §"Age gating and minor protections" + AGENTS.md §10.7).
       # The hard rule (under-13 rejection) is enforced by the Go backend
       # at the before-registration web hook. The after-registration hook
@@ -197,6 +196,6 @@ courier:
 session:
   lifespan: 720h # 30 days — matches the refresh-token policy in docs/05.
   cookie:
-    domain: localhost
+    domain: ""
     persistent: true
     same_site: Lax

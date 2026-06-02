@@ -92,6 +92,13 @@ func BeforeRegistrationHandler(cfg HookConfig) http.HandlerFunc {
 			return
 		}
 
+		if payload.Traits.Birthdate == "" {
+			// Flow initialization or empty input — do not reject with 400,
+			// let it pass to allow the form flow to display to the user.
+			writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+			return
+		}
+
 		decision, err := EvaluateAgeGate(payload.Traits.Birthdate, now())
 		if err != nil {
 			logger.WarnContext(r.Context(), "before-registration: invalid birthdate format", "err", err.Error())
