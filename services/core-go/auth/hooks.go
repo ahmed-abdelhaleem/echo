@@ -188,6 +188,19 @@ func AfterRegistrationHandler(cfg HookConfig) http.HandlerFunc {
 			return
 		}
 
+		// Some Kratos API-flow hook payloads arrive with a nil/zero identity id
+		// despite a successful registration. We can't provision auth.users for
+		// that synthetic id, so we degrade gracefully and let /whoami lazily
+		// provision on the first authenticated request.
+		if identityID == uuid.Nil {
+			logger.WarnContext(r.Context(),
+				"after-registration: received nil identity id; skipping eager provisioning",
+				"band", string(decision.Band),
+			)
+			writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+			return
+		}
+
 		if _, err := cfg.Users.EnsureForKratosIdentity(r.Context(), identityID, decision.Band, now()); err != nil {
 			logger.ErrorContext(r.Context(), "after-registration: provision failed",
 				"identity_id", identityID.String(),

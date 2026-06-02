@@ -367,6 +367,31 @@ func TestAfterHook_InvalidIdentityID(t *testing.T) {
 	}
 }
 
+func TestAfterHook_NilIdentityIDSkipsProvisioning(t *testing.T) {
+	t.Parallel()
+	var deleted []string
+	srv := adminKratos(t, &deleted, http.StatusNoContent)
+
+	users := newFakeUsers()
+	cfg := hookCfgWithKratos(srv.URL, "", users)
+
+	body := `{"identity":{"id":"00000000-0000-0000-0000-000000000000","traits":{"birthdate":"1990-01-15"}}}`
+	req := httptest.NewRequest(http.MethodPost, "/auth/hooks/after-registration",
+		bytes.NewReader([]byte(body)))
+	rec := httptest.NewRecorder()
+	auth.AfterRegistrationHandler(cfg)(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status: got %d, want 200; body=%s", rec.Code, rec.Body.String())
+	}
+	if len(users.ensureCalls) != 0 {
+		t.Fatalf("expected no provisioning for nil identity id; got %d ensure calls", len(users.ensureCalls))
+	}
+	if len(deleted) != 0 {
+		t.Fatalf("expected no admin delete for nil identity id; got %v", deleted)
+	}
+}
+
 func TestAfterHook_SecretRequired(t *testing.T) {
 	t.Parallel()
 	var deleted []string
