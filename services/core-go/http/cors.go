@@ -10,8 +10,8 @@ import (
 // any Origin whose host is localhost or 127.0.0.1 is permitted — this
 // covers Flutter web's random dev-server ports without listing each one.
 type CORSOptions struct {
-	AllowLocalhost  bool
-	AllowedOrigins  []string
+	AllowLocalhost   bool
+	AllowedOrigins   []string
 	AllowCredentials bool
 }
 
