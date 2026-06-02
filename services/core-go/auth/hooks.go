@@ -88,13 +88,41 @@ func BeforeRegistrationHandler(cfg HookConfig) http.HandlerFunc {
 		var payload BeforeRegistrationPayload
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 			logger.WarnContext(r.Context(), "before-registration: bad payload", "err", err.Error())
-			writeHookError(w, http.StatusBadRequest, "invalid payload")
+			writeJSON(w, http.StatusUnprocessableEntity, map[string]any{
+				"messages": []map[string]any{
+					{
+						"instance_ptr": "#/traits/birthdate",
+						"messages": []map[string]any{
+							{
+								"id":   1_000_003,
+								"text": "Invalid payload format.",
+								"type": "error",
+							},
+						},
+					},
+				},
+			})
 			return
 		}
 
 		decision, err := EvaluateAgeGate(payload.Traits.Birthdate, now())
 		if err != nil {
-			writeHookError(w, http.StatusBadRequest, "invalid birthdate")
+			logger.WarnContext(r.Context(), "before-registration: invalid birthdate format", "err", err.Error())
+			// 422 with a validation error shape so Kratos doesn't throw a 500
+			writeJSON(w, http.StatusUnprocessableEntity, map[string]any{
+				"messages": []map[string]any{
+					{
+						"instance_ptr": "#/traits/birthdate",
+						"messages": []map[string]any{
+							{
+								"id":   1_000_002,
+								"text": "Please enter a valid birthdate (yyyy-mm-dd).",
+								"type": "error",
+							},
+						},
+					},
+				},
+			})
 			return
 		}
 		if !decision.Allowed {

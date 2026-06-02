@@ -16,8 +16,8 @@
 //   - whoami(token)                -> WhoamiResponse (age_band, youth_safe)
 //   - deleteAccount(token)         -> void   (admin delete via core-go)
 //
-// We intentionally do *not* implement OAuth / OIDC providers here —
-// that's T-CORE-022, deferred per docs/07.
+// Google OIDC uses Kratos' browser redirect (`redirect_browser_to`).
+// The client opens the URL, then `/auth/callback` completes the flow.
 //
 // Error model: any 4xx is surfaced as a typed [AuthException] so the
 // screen layer can show the right copy without parsing strings. 5xx
@@ -273,6 +273,7 @@ class AuthClient {
           'email': email,
           'display_name': displayName,
           'birthdate': birthdate,
+          'consent': consentTraits(),
         },
       },
     );
@@ -332,6 +333,117 @@ class AuthClient {
       requestOptions: submit.requestOptions,
       response: submit,
       message: 'login: unexpected status $status',
+    );
+  }
+
+  /// Starts Google registration. Returns the URL the browser should open.
+  /// [returnTo] must be listed in Kratos `allowed_return_urls` (see
+  /// infra/kratos/kratos.yml). [birthdate] and [displayName] are sent
+  /// as traits before the redirect so the age gate can run.
+  Future<String> startGoogleSignUp({
+    required String birthdate,
+    required String displayName,
+    required String returnTo,
+  }) {
+    return _startGoogleOidc(
+      flow: _OidcFlow.registration,
+      returnTo: returnTo,
+      traits: <String, dynamic>{
+        'display_name': displayName,
+        'birthdate': birthdate,
+        'consent': consentTraits(),
+      },
+    );
+  }
+
+  /// Starts Google login. Returns the provider URL to open in a browser.
+  Future<String> startGoogleLogin({required String returnTo}) {
+    return _startGoogleOidc(flow: _OidcFlow.login, returnTo: returnTo);
+  }
+
+  /// After the browser returns to `/auth/callback?flow=…`, poll Kratos
+  /// for the completed flow and extract the session token.
+  Future<AuthSession> completeOidcCallback({
+    required String flowId,
+    required bool isRegistration,
+  }) async {
+    final path = isRegistration ? 'registration' : 'login';
+    final response = await _dio.get<Map<String, dynamic>>(
+      '$kratosBaseUrl/self-service/$path/flows',
+      queryParameters: <String, dynamic>{'id': flowId},
+    );
+    final status = response.statusCode ?? 0;
+    final body = response.data ?? const <String, dynamic>{};
+    if (status == 200 && body['session_token'] != null) {
+      return AuthSession.fromKratosResponse(body);
+    }
+    if (status == 200 && body['session'] != null) {
+      // Some Kratos versions nest the token only under session.
+      final token = body['session_token'] as String?;
+      if (token != null) {
+        return AuthSession.fromKratosResponse(
+          <String, dynamic>{'session_token': token, 'session': body['session']},
+        );
+      }
+    }
+    if (status == 410 || status == 404) {
+      throw const AuthException(
+        AuthFailureKind.other,
+        message: 'Sign-in session expired. Please try again.',
+      );
+    }
+    throw DioException(
+      requestOptions: response.requestOptions,
+      response: response,
+      message: 'completeOidcCallback: flow not ready (status $status)',
+    );
+  }
+
+  Future<String> _startGoogleOidc({
+    required _OidcFlow flow,
+    required String returnTo,
+    Map<String, dynamic>? traits,
+  }) async {
+    final path = flow.apiPath;
+    final flowResponse = await _dio.get<Map<String, dynamic>>(
+      '$kratosBaseUrl/self-service/$path/api',
+      queryParameters: <String, dynamic>{'return_to': returnTo},
+    );
+    if ((flowResponse.statusCode ?? 0) != 200) {
+      throw DioException(
+        requestOptions: flowResponse.requestOptions,
+        response: flowResponse,
+        message: 'oidc: failed to init ${flow.name} flow',
+      );
+    }
+    final flowId = (flowResponse.data ?? const {})['id'] as String?;
+    if (flowId == null) {
+      throw const AuthException._('oidc: flow missing id');
+    }
+
+    final payload = <String, dynamic>{
+      'method': 'oidc',
+      'provider': 'google',
+      if (traits != null) 'traits': traits,
+    };
+    final submit = await _dio.post<Map<String, dynamic>>(
+      '$kratosBaseUrl/self-service/$path',
+      queryParameters: <String, dynamic>{'flow': flowId},
+      data: payload,
+    );
+    final status = submit.statusCode ?? 0;
+    final body = submit.data ?? const <String, dynamic>{};
+    final redirect = body['redirect_browser_to'] as String?;
+    if (redirect != null && redirect.isNotEmpty) {
+      return redirect;
+    }
+    if (status == 400) {
+      throw _kratosErrorToException(body);
+    }
+    throw DioException(
+      requestOptions: submit.requestOptions,
+      response: submit,
+      message: 'oidc: missing redirect_browser_to (status $status)',
     );
   }
 
@@ -480,13 +592,41 @@ AuthException _kratosErrorToException(Map<String, dynamic> body) {
       );
     }
   }
+  final errorID = body['error'] as Map<String, dynamic>?;
+  final reason = (errorID?['reason'] as String? ?? '').toLowerCase();
+  if (reason.contains('exists') || reason.contains('duplicate')) {
+    return const AuthException(
+      AuthFailureKind.invalidCredentials,
+      message: 'An account with that email already exists.',
+    );
+  }
   return const AuthException(AuthFailureKind.other);
 }
 
-/// In dev the Kratos public listener is on :4433 and the core-go
-/// gateway is on :8080. Override per-flavour at boot time.
+/// M1 placeholder consent record — mirrors services/core-go/auth/users_repo.
+Map<String, dynamic> consentTraits() {
+  final now = DateTime.now().toUtc().toIso8601String();
+  return <String, dynamic>{
+    'tos_version': 'v1.0',
+    'tos_accepted_at': now,
+    'privacy_version': 'v1.0',
+    'privacy_accepted_at': now,
+  };
+}
+
+enum _OidcFlow {
+  registration('registration'),
+  login('login');
+
+  const _OidcFlow(this.apiPath);
+  final String apiPath;
+}
+
+/// Kratos is proxied through core-go at `/auth/kratos` so Flutter web
+/// shares one origin with the API (avoids a second CORS surface).
 final Provider<String> kratosBaseUrlProvider = Provider<String>((Ref ref) {
-  return 'http://localhost:4433';
+  final core = ref.watch(apiBaseUrlProvider);
+  return '$core/auth/kratos';
 });
 
 final Provider<AuthClient> authClientProvider = Provider<AuthClient>((Ref ref) {

@@ -58,6 +58,20 @@ type Config struct {
 
 	// Environment is the deployment environment label (dev|staging|production).
 	Environment string
+
+	// CORSAllowLocalhost permits browser requests from http://localhost:*
+	// and http://127.0.0.1:* origins. Enabled by default in dev for Flutter
+	// web; disable in production unless explicitly needed.
+	CORSAllowLocalhost bool
+
+	// CORSAllowedOrigins is an explicit allow-list (comma-separated in env).
+	// Checked after the localhost rule when CORSAllowLocalhost is true.
+	CORSAllowedOrigins []string
+
+	// EnableKratosProxy enables /auth/kratos reverse proxy endpoints that are
+	// primarily useful for local Flutter web (single-origin auth calls).
+	// Defaults to true in dev and false otherwise.
+	EnableKratosProxy bool
 }
 
 // Load reads the configuration from the environment, applying defaults.
@@ -74,8 +88,12 @@ func Load() (Config, error) {
 		KratosHookSecret: strings.TrimSpace(os.Getenv("KRATOS_HOOK_SECRET")),
 		ContentRoot:      strings.TrimSpace(os.Getenv("CONTENT_ROOT")),
 		MLgRPCAddr:       strings.TrimSpace(os.Getenv("ML_GRPC_ADDR")),
-		Environment:      defaultString(os.Getenv("ECHO_ENV"), "dev"),
+		Environment: defaultString(os.Getenv("ECHO_ENV"), "dev"),
 	}
+
+	cfg.CORSAllowedOrigins = parseCSV(os.Getenv("CORE_CORS_ALLOWED_ORIGINS"))
+	cfg.CORSAllowLocalhost = corsAllowLocalhost(cfg.Environment, os.Getenv("CORE_CORS_ALLOW_LOCALHOST"))
+	cfg.EnableKratosProxy = boolWithDevDefault(cfg.Environment, os.Getenv("CORE_ENABLE_KRATOS_PROXY"))
 
 	if cfg.HTTPAddr == "" {
 		return cfg, errors.New("CORE_HTTP_ADDR cannot be empty")
@@ -89,4 +107,46 @@ func defaultString(v, fallback string) string {
 		return fallback
 	}
 	return v
+}
+
+func parseCSV(v string) []string {
+	v = strings.TrimSpace(v)
+	if v == "" {
+		return nil
+	}
+	parts := strings.Split(v, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
+// corsAllowLocalhost resolves CORE_CORS_ALLOW_LOCALHOST. When unset, dev
+// enables localhost CORS; staging/production default to off.
+func corsAllowLocalhost(env, override string) bool {
+	override = strings.TrimSpace(strings.ToLower(override))
+	switch override {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	}
+	return strings.EqualFold(env, "dev")
+}
+
+// boolWithDevDefault resolves env overrides where the default is true in dev
+// and false in non-dev environments.
+func boolWithDevDefault(env, override string) bool {
+	override = strings.TrimSpace(strings.ToLower(override))
+	switch override {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	}
+	return strings.EqualFold(env, "dev")
 }

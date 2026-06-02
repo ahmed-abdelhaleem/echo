@@ -14,6 +14,7 @@
 // ChangeNotifier so GoRouter can listen.
 
 import 'package:echo_client/features/auth/auth_controller.dart';
+import 'package:echo_client/features/auth/auth_callback_screen.dart';
 import 'package:echo_client/features/auth/login_screen.dart';
 import 'package:echo_client/features/auth/password_recovery_screen.dart';
 import 'package:echo_client/features/auth/settings_screen.dart';
@@ -35,6 +36,7 @@ const Set<String> _anonymousOnlyPaths = <String>{
   '/login',
   '/signup',
   '/recover',
+  '/auth/callback',
 };
 
 final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
@@ -89,6 +91,11 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/auth/callback',
+        name: 'authCallback',
+        builder: (context, state) => const AuthCallbackScreen(),
       ),
     ],
   );

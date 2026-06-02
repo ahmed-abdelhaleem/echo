@@ -1,7 +1,9 @@
 // LoginScreen — email + password. Routes to home on success, to
 // /recover for password recovery, and to /signup for new accounts.
 
+import 'package:echo_client/features/auth/auth_callback_screen.dart';
 import 'package:echo_client/features/auth/auth_controller.dart';
+import 'package:echo_client/features/auth/google_auth_button.dart';
 import 'package:echo_client/services/auth_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -54,6 +56,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             _topError = 'Sign-in failed. Please try again.';
         }
       });
+    } catch (_) {
+      if (!mounted) return;
+      setState(
+        () => _topError = 'Echo is having a moment. Please try again.',
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _onGoogleLogin() async {
+    setState(() => _topError = null);
+    setState(() => _busy = true);
+    try {
+      await ref.read(authControllerProvider.notifier).loginWithGoogle(
+            returnTo: buildOidcReturnUrl('login'),
+          );
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      setState(() => _topError = e.message ?? 'Google sign-in failed.');
     } catch (_) {
       if (!mounted) return;
       setState(
@@ -123,10 +145,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       },
                     ),
                     const SizedBox(height: 24),
+                    GoogleAuthButton(
+                      busy: _busy,
+                      onPressed: _onGoogleLogin,
+                    ),
+                    const SizedBox(height: 12),
                     FilledButton(
                       key: const Key('login.submit'),
                       onPressed: _busy ? null : _onSubmit,
-                      child: Text(_busy ? 'Signing in…' : 'Sign in'),
+                      child: Text(_busy ? 'Signing in…' : 'Sign in with email'),
                     ),
                     const SizedBox(height: 8),
                     TextButton(

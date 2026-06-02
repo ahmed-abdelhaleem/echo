@@ -92,7 +92,23 @@ services:
       # the registration web hooks served by core-go. Local-dev only —
       # production wires a real secret from the secret store.
       KRATOS_HOOK_SECRET: echo_dev_hook_secret_change_me_in_prod
-    command: ["serve", "-c", "/etc/config/kratos/kratos.yml", "--dev", "--watch-courier"]
+      # core-go runs on the host (`make dev-core`), not in this compose file.
+      # host.docker.internal reaches the host listener from inside Kratos.
+      CORE_HOOK_BASE_URL: http://host.docker.internal:8081
+      # Google OIDC — set in repo-root .env (see .env.example). Empty values
+      # disable the provider at runtime; password sign-up still works.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    entrypoint: ["sh", "-c"]
+    command: >
+      "sed -e 's|$${GOOGLE_CLIENT_ID}|'\"$$GOOGLE_CLIENT_ID\"'|g'
+      -e 's|$${GOOGLE_CLIENT_SECRET}|'\"$$GOOGLE_CLIENT_SECRET\"'|g'
+      -e 's|$${CORE_HOOK_BASE_URL}|'\"$$CORE_HOOK_BASE_URL\"'|g'
+      -e 's|$${KRATOS_HOOK_SECRET}|'\"$$KRATOS_HOOK_SECRET\"'|g'
+      /etc/config/kratos/kratos.yml > /tmp/kratos.yml &&
+      kratos serve -c /tmp/kratos.yml --dev --watch-courier"
     volumes:
       - ./infra/kratos:/etc/config/kratos:ro
     healthcheck:

@@ -16,7 +16,9 @@
 // rather than as a top-level banner where possible — that's what the
 // AuthException.field plumbing is for.
 
+import 'package:echo_client/features/auth/auth_callback_screen.dart';
 import 'package:echo_client/features/auth/auth_controller.dart';
+import 'package:echo_client/features/auth/google_auth_button.dart';
 import 'package:echo_client/services/auth_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -127,6 +129,39 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     }
   }
 
+  Future<void> _onGoogleSignUp() async {
+    setState(() => _topError = null);
+    final displayName = _displayNameCtrl.text.trim();
+    final birthdate = _birthdateCtrl.text.trim();
+    if (displayName.isEmpty) {
+      setState(() => _topError = 'Enter a display name before continuing with Google.');
+      return;
+    }
+    if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(birthdate)) {
+      setState(() => _birthdateError = 'Use YYYY-MM-DD.');
+      return;
+    }
+    if (_birthdateError != null) return;
+    setState(() => _busy = true);
+    try {
+      await ref.read(authControllerProvider.notifier).signUpWithGoogle(
+            birthdate: birthdate,
+            displayName: displayName,
+            returnTo: buildOidcReturnUrl('registration'),
+          );
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      setState(() => _topError = e.message ?? 'Google sign-up failed.');
+    } catch (_) {
+      if (!mounted) return;
+      setState(
+        () => _topError = 'Echo is having a moment. Please try again.',
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -189,12 +224,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       obscureText: true,
                       decoration: InputDecoration(
                         labelText: 'Password',
-                        helperText: 'At least 8 characters.',
+                        helperText: 'At least 10 characters.',
                         errorText: _passwordError,
                       ),
                       validator: (v) {
-                        if ((v ?? '').length < 8) {
-                          return 'Use at least 8 characters.';
+                        if ((v ?? '').length < 10) {
+                          return 'Use at least 10 characters.';
                         }
                         return null;
                       },
@@ -234,10 +269,15 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       onTapOutside: (_) => _onBirthdateBlur(),
                     ),
                     const SizedBox(height: 24),
+                    GoogleAuthButton(
+                      busy: _busy,
+                      onPressed: _onGoogleSignUp,
+                    ),
+                    const SizedBox(height: 12),
                     FilledButton(
                       key: const Key('signup.submit'),
                       onPressed: _busy ? null : _onSubmit,
-                      child: Text(_busy ? 'Creating…' : 'Create account'),
+                      child: Text(_busy ? 'Creating…' : 'Create account with email'),
                     ),
                     const SizedBox(height: 12),
                     TextButton(

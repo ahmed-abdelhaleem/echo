@@ -19,6 +19,8 @@ func TestLoadDefaults(t *testing.T) {
 	require.Equal(t, ":8080", cfg.HTTPAddr)
 	require.Equal(t, ":9090", cfg.GRPCAddr)
 	require.Equal(t, "dev", cfg.Environment)
+	require.True(t, cfg.CORSAllowLocalhost)
+	require.True(t, cfg.EnableKratosProxy)
 	require.Empty(t, cfg.DatabaseURL)
 	require.Empty(t, cfg.RedisURL)
 }
@@ -35,4 +37,6 @@ func TestLoadOverrides(t *testing.T) {
 	require.Equal(t, "postgres://localhost/echo", cfg.DatabaseURL)
 	require.Equal(t, "redis://localhost:6379", cfg.RedisURL)
 	require.Equal(t, "production", cfg.Environment)
+	require.False(t, cfg.CORSAllowLocalhost)
+	require.False(t, cfg.EnableKratosProxy)
 }

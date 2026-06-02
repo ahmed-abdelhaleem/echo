@@ -11,7 +11,11 @@ serve:
       enabled: true
       allowed_origins:
         - http://localhost:8080
+        - http://localhost:8081
+        - http://localhost:8082
         - http://localhost:3000
+        - http://127.0.0.1:8080
+        - http://127.0.0.1:8081
       allowed_methods:
         - POST
         - GET
@@ -34,7 +38,14 @@ selfservice:
   default_browser_return_url: http://localhost:8080/auth/return
   allowed_return_urls:
     - http://localhost:8080/
+    - http://localhost:8080/auth/callback
+    - http://localhost:8081/
+    - http://localhost:8081/auth/callback
+    - http://localhost:8082/
+    - http://localhost:8082/auth/callback
     - http://localhost:3000/
+    - http://localhost:3000/auth/callback
+    - http://127.0.0.1:8080/auth/callback
 
   methods:
     password:
@@ -43,8 +54,19 @@ selfservice:
         haveibeenpwned_enabled: true
         min_password_length: 10
         identifier_similarity_check_enabled: true
-    # OIDC (Apple, Google) lands in T-CORE-022; for M0 we keep only password
-    # so the local stack stands up without external secrets.
+    oidc:
+      enabled: true
+      config:
+        providers:
+          - id: google
+            provider: google
+            client_id: ${GOOGLE_CLIENT_ID}
+            client_secret: ${GOOGLE_CLIENT_SECRET}
+            mapper_url: file:///etc/config/kratos/oidc.google.mapper.jsonnet
+            scope:
+              - openid
+              - email
+              - profile
 
   flows:
     error:
@@ -80,7 +102,9 @@ selfservice:
         hooks:
           - hook: web_hook
             config:
-              url: http://core-go:8080/auth/hooks/before-registration
+              # core-go runs on the host in local dev; docker-compose injects
+              # CORE_HOOK_BASE_URL accordingly.
+              url: ${CORE_HOOK_BASE_URL}/auth/hooks/before-registration
               method: POST
               body: file:///etc/config/kratos/hooks/before-registration.jsonnet
               response:
@@ -98,7 +122,25 @@ selfservice:
           hooks:
             - hook: web_hook
               config:
-                url: http://core-go:8080/auth/hooks/after-registration
+                url: ${CORE_HOOK_BASE_URL}/auth/hooks/after-registration
+                method: POST
+                body: file:///etc/config/kratos/hooks/after-registration.jsonnet
+                response:
+                  ignore: false
+                  parse: true
+                auth:
+                  type: api_key
+                  config:
+                    name: X-Echo-Hook-Secret
+                    value: ${KRATOS_HOOK_SECRET}
+                    in: header
+                can_interrupt: true
+            - hook: session
+        oidc:
+          hooks:
+            - hook: web_hook
+              config:
+                url: ${CORE_HOOK_BASE_URL}/auth/hooks/after-registration
                 method: POST
                 body: file:///etc/config/kratos/hooks/after-registration.jsonnet
                 response:

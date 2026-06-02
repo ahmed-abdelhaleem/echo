@@ -13,6 +13,7 @@
 
 import 'package:echo_client/services/auth_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Sum type for the current auth state. Sealed to force exhaustive
 /// switches at the screen layer.
@@ -98,6 +99,50 @@ class AuthController extends StateNotifier<AuthState> {
   /// is registered (privacy: don't leak account existence).
   Future<void> recoverPassword(String email) {
     return _client.recoverPassword(email);
+  }
+
+  /// Opens Google sign-up in the system browser (web: same tab).
+  Future<void> signUpWithGoogle({
+    required String birthdate,
+    required String displayName,
+    required String returnTo,
+  }) async {
+    final url = await _client.startGoogleSignUp(
+      birthdate: birthdate,
+      displayName: displayName,
+      returnTo: returnTo,
+    );
+    await _launchOidcUrl(url);
+  }
+
+  /// Opens Google sign-in in the system browser.
+  Future<void> loginWithGoogle({required String returnTo}) async {
+    final url = await _client.startGoogleLogin(returnTo: returnTo);
+    await _launchOidcUrl(url);
+  }
+
+  /// Finishes an OIDC round-trip after `/auth/callback`.
+  Future<void> completeOidc({
+    required String flowId,
+    required bool isRegistration,
+  }) async {
+    final session = await _client.completeOidcCallback(
+      flowId: flowId,
+      isRegistration: isRegistration,
+    );
+    state = AuthStateSignedIn(session: session);
+    await _refreshWhoami();
+  }
+
+  Future<void> _launchOidcUrl(String url) async {
+    final uri = Uri.parse(url);
+    final ok = await launchUrl(uri, webOnlyWindowName: '_self');
+    if (!ok) {
+      throw const AuthException(
+        AuthFailureKind.other,
+        message: 'Could not open Google sign-in',
+      );
+    }
   }
 
   /// Drops the in-memory token. We do NOT call Kratos logout here —

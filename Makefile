@@ -25,10 +25,19 @@ PNPM_AVAILABLE    := $(shell command -v pnpm    >/dev/null 2>&1 && echo yes)
 FLUTTER_AVAILABLE := $(shell command -v flutter >/dev/null 2>&1 && echo yes)
 DOCKER_COMPOSE    := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose")
 
-# Pinned linter binaries — these live under $GOPATH/bin once installed.
+# Pinned linter binaries — `go install` respects GOBIN (mise sets it) with a
+# fallback to $GOPATH/bin for plain Go installs.
 GOPATH := $(shell go env GOPATH 2>/dev/null || echo $$HOME/go)
-GOLANGCI_LINT := $(GOPATH)/bin/golangci-lint
-GOOSE := $(GOPATH)/bin/goose
+GOBIN := $(shell go env GOBIN 2>/dev/null)
+GO_TOOL_BIN := $(if $(GOBIN),$(GOBIN),$(GOPATH)/bin)
+GOLANGCI_LINT := $(GO_TOOL_BIN)/golangci-lint
+GOOSE := $(GO_TOOL_BIN)/goose
+
+# Optional repo-root .env for local dev (see .env.example).
+ifneq ($(wildcard .env),)
+include .env
+export
+endif
 
 # ---------------------------------------------------------------------------
 # Help
@@ -44,7 +53,12 @@ help:
 	@echo "  make compose-down     docker compose down"
 	@echo ""
 	@echo "Develop:"
-	@echo "  make dev              Run core-go + ml-py in watch mode"
+	@echo "  make dev              Print how to run core-go + ml-py locally"
+	@echo "  make dev-core         Run core-go (loads .env when present)"
+	@echo "  make dev-ml           Run ml-py HTTP (uvicorn --reload)"
+	@echo "  make dev-ml-grpc      Run ml-py gRPC on :50051"
+	@echo "  make client           Run Flutter client (auto: chrome without Xcode)"
+	@echo "  make client-web-assets Fetch Drift web/sqlite3.wasm + drift_worker.js"
 	@echo "  make migrate          Apply database migrations"
 	@echo "  make seed             Seed sample content into the database"
 	@echo ""
@@ -366,7 +380,70 @@ bootstrap-proto:
 
 .PHONY: dev
 dev:
-	@echo "→ dev: starts core-go + ml-py in watch mode."
-	@echo "  Run in separate terminals:"
-	@echo "    (cd services/core-go && go run ./cmd/core)"
-	@echo "    (cd services/ml-py   && uv run uvicorn app.main:app --reload)"
+	@echo "→ dev: run infrastructure first, then app processes in separate terminals:"
+	@echo "    make compose-up && make migrate"
+	@echo "    cp -n .env.example .env   # once per machine"
+	@echo "    make dev-core             # terminal 1 — core-go on :8080"
+	@echo "    make dev-ml-grpc          # terminal 2 — ml-py gRPC on :50051 (optional)"
+	@echo "    make client               # terminal 3 — Flutter client"
+
+.PHONY: dev-core
+dev-core:
+ifeq ($(GO_AVAILABLE),yes)
+	@test -f .env || (echo "→ copy .env.example to .env and adjust paths if needed" && exit 1)
+	@echo "→ dev-core (HTTP $${CORE_HTTP_ADDR:-:8080})"
+	@cd services/core-go && go run ./cmd/core
+else
+	@echo "↷ go not installed; cannot run dev-core"
+	@exit 1
+endif
+
+.PHONY: dev-ml
+dev-ml:
+ifeq ($(UV_AVAILABLE),yes)
+	@echo "→ dev-ml (HTTP uvicorn --reload)"
+	@cd services/ml-py && uv run uvicorn app.main:app --reload
+else
+	@echo "↷ uv not installed; cannot run dev-ml"
+	@exit 1
+endif
+
+.PHONY: dev-ml-grpc
+dev-ml-grpc:
+ifeq ($(UV_AVAILABLE),yes)
+	@echo "→ dev-ml-grpc (gRPC :50051)"
+	@cd services/ml-py && uv run python -m app.grpc_server
+else
+	@echo "↷ uv not installed; cannot run dev-ml-grpc"
+	@exit 1
+endif
+
+# PLATFORM selects the Flutter device (macos, ios, android, chrome, ...).
+# Default to chrome when full Xcode.app is not active — macOS desktop builds
+# need `xcodebuild` from Xcode, not Command Line Tools alone.
+XCODE_BUILD_AVAILABLE := $(shell xcodebuild -version >/dev/null 2>&1 && echo yes)
+ifeq ($(PLATFORM),)
+  ifeq ($(XCODE_BUILD_AVAILABLE),yes)
+    PLATFORM := macos
+  else
+    PLATFORM := chrome
+  endif
+endif
+
+.PHONY: client-web-assets
+client-web-assets:
+	@chmod +x apps/client/tool/fetch_drift_web_assets.sh
+	@apps/client/tool/fetch_drift_web_assets.sh
+
+.PHONY: client
+client:
+ifeq ($(FLUTTER_AVAILABLE),yes)
+ifeq ($(PLATFORM),chrome)
+	@test -f apps/client/web/sqlite3.wasm || $(MAKE) client-web-assets
+endif
+	@echo "→ flutter run -d $(PLATFORM)"
+	@cd apps/client && flutter pub get && flutter run -d $(PLATFORM)
+else
+	@echo "↷ flutter not installed; cannot run client"
+	@exit 1
+endif

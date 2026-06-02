@@ -27,13 +27,22 @@ Flutter version is pinned at `.tool-versions` and matched in `pubspec.yaml`'s `e
 
 ### Web target — one-time setup
 
-`drift_flutter` (used by the local Drift cache in `lib/data/local/database.dart`) requires the sqlite3 wasm bundle and the dedicated drift worker to be placed under `web/` before the app can boot in a browser. Run this once per checkout:
+`drift_flutter` (used by the local Drift cache in `lib/data/local/database.dart`) requires the sqlite3 wasm bundle and the dedicated drift worker under `web/` before the app can boot in a browser. From the repo root, run once per checkout:
 
 ```bash
-dart run drift_dev setup_web
+make client-web-assets
 ```
 
-This drops `web/sqlite3.wasm` and `web/drift_worker.js` next to `web/index.html`. The Drift constructor in `database.dart` references those exact filenames, so no further config is needed. The two artifacts are large (~1 MB) and version-tied to the locked `drift` / `sqlite3` versions; they are intentionally **not** committed to the repo and are gitignored.
+This drops `web/sqlite3.wasm` and `web/drift_worker.js` next to `web/index.html`. The two artifacts are large (~1 MB) and version-tied to the locked `drift` / `sqlite3` versions; they are intentionally **not** committed and are gitignored.
+
+### macOS desktop without Xcode.app
+
+`make client` defaults to **Chrome** when only Command Line Tools are installed (no `xcodebuild`). For the native macOS app, install [Xcode](https://apps.apple.com/app/xcode/id497799835) from the App Store, then:
+
+```bash
+sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+PLATFORM=macos make client
+```
 
 Skip this step for non-web targets — `drift_flutter` falls back to a native `path_provider`-backed `NativeDatabase` automatically.
 

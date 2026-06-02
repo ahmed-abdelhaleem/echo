@@ -23,7 +23,8 @@ You need the versions pinned in [`.tool-versions`](./.tool-versions). The easies
 ```bash
 mise install      # installs Go, Python, Node at pinned versions
 make bootstrap    # installs per-language deps (Go modules, uv venv, pnpm)
-docker compose up -d   # Postgres 16 + Redis 7 + NATS 2.10
+cp -n .env.example .env   # local env for core-go (gitignored)
+docker compose up -d   # Postgres 16 + Redis 7 + NATS 2.10 + Kratos
 make migrate      # runs Postgres migrations
 make test         # run all tests
 ```
@@ -31,7 +32,9 @@ make test         # run all tests
 Once that is green you can run:
 
 ```bash
-make dev          # core-go + ml-py in watch mode
+make dev          # prints the three-terminal local workflow
+make dev-core     # terminal 1 — core-go on :8081 (see .env.example)
+make client       # terminal 2 — Flutter (PLATFORM=macos|ios|chrome|...)
 ```
 
 For full setup details see [`docs/07_AI_Agent_Implementation_Guide.md`](./docs/07_AI_Agent_Implementation_Guide.md) §"Setup — first run from clean machine".

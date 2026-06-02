@@ -168,9 +168,26 @@ func main() {
 		logger.Info("playthrough disabled; postgres or content not available")
 	}
 
+	handler := corehttp.NewMux(deps)
+	if cfg.KratosPublicURL != "" && cfg.EnableKratosProxy {
+		handler = corehttp.WrapWithKratosProxy(cfg.KratosPublicURL, handler)
+		logger.Info("kratos proxy enabled", "prefix", "/auth/kratos")
+	}
+	if cfg.CORSAllowLocalhost || len(cfg.CORSAllowedOrigins) > 0 {
+		handler = corehttp.CORSMiddleware(corehttp.CORSOptions{
+			AllowLocalhost:   cfg.CORSAllowLocalhost,
+			AllowedOrigins:   cfg.CORSAllowedOrigins,
+			AllowCredentials: true,
+		})(handler)
+		logger.Info("cors enabled",
+			"allow_localhost", cfg.CORSAllowLocalhost,
+			"allowed_origins", len(cfg.CORSAllowedOrigins),
+		)
+	}
+
 	srv := &http.Server{
 		Addr:              cfg.HTTPAddr,
-		Handler:           corehttp.NewMux(deps),
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

@@ -41,6 +41,9 @@ dependencies:
   # Stable id generation for local-only rows (eg local playthroughs).
   uuid: ^4.5.1
 
+  # OAuth browser redirect (Google sign-in / sign-up).
+  url_launcher: ^6.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

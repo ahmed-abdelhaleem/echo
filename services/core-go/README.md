@@ -46,3 +46,6 @@ Env vars consumed:
 | `REDIS_URL` | unset | Redis URL; absent → `/readyz` returns 503 |
 | `OTLP_ENDPOINT` | unset | OpenTelemetry collector |
 | `ECHO_ENV` | `dev` | Environment label |
+| `CORE_CORS_ALLOW_LOCALHOST` | `true` in dev | Allow Flutter web (`http://localhost:*`) |
+| `CORE_CORS_ALLOWED_ORIGINS` | unset | Extra comma-separated origins |
+| `CORE_ENABLE_KRATOS_PROXY` | `true` in dev | Enable `/auth/kratos/*` reverse proxy |

@@ -207,7 +207,9 @@ class CreatePlaythroughForbidden implements Exception {}
 /// the client at a local or staging gateway. The default is the local
 /// `services/core-go` listener defined in the repo's docker-compose.
 final Provider<String> apiBaseUrlProvider = Provider<String>((Ref ref) {
-  return 'http://localhost:8080';
+  // Default matches `.env.example` `CORE_HTTP_ADDR` (:8081). Port 8080 is
+  // commonly occupied by local nginx; override via ProviderScope in tests.
+  return 'http://localhost:8081';
 });
 
 final Provider<ApiClient> apiClientProvider = Provider<ApiClient>((Ref ref) {
