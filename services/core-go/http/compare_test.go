@@ -82,6 +82,26 @@ func TestCompareFlow_ShareEnable_TokenGating_AndRevokeInvalidation(t *testing.T)
 	require.Equal(t, http.StatusOK, shareRead.Code, shareRead.Body.String())
 	var shareBody map[string]any
 	require.NoError(t, json.Unmarshal(shareRead.Body.Bytes(), &shareBody))
+	require.Len(t, shareBody, 5, "public compare payload shape should stay minimal")
+	_, hasSeasonID := shareBody["season_id"]
+	_, hasStatus := shareBody["status"]
+	_, hasDivergence := shareBody["divergence"]
+	_, hasInviterPNG := shareBody["inviter_png_url"]
+	_, hasInviteePNG := shareBody["invitee_png_url"]
+	require.True(t, hasSeasonID)
+	require.True(t, hasStatus)
+	require.True(t, hasDivergence)
+	require.True(t, hasInviterPNG)
+	require.True(t, hasInviteePNG)
+	divergence, ok := shareBody["divergence"].(map[string]any)
+	require.True(t, ok)
+	require.Len(t, divergence, 3, "divergence payload must only expose one vignette + two choices")
+	_, hasVignetteID := divergence["vignette_id"]
+	_, hasInviterChoice := divergence["inviter_choice"]
+	_, hasInviteeChoice := divergence["invitee_choice"]
+	require.True(t, hasVignetteID)
+	require.True(t, hasInviterChoice)
+	require.True(t, hasInviteeChoice)
 	_, hasComparison := shareBody["comparison"]
 	_, hasInviterTraits := shareBody["inviter_traits"]
 	_, hasInviteeTraits := shareBody["invitee_traits"]
@@ -137,6 +157,59 @@ func TestComparePublicRead_ExpiredShareToken_ReturnsGone(t *testing.T) {
 
 	expiredRead := doJSON(t, mux, http.MethodGet, "/compare/"+shareResp.ShareToken, "", nil)
 	require.Equal(t, http.StatusGone, expiredRead.Code, expiredRead.Body.String())
+}
+
+func TestCompareShareEnable_RequiresAcceptedComparison(t *testing.T) {
+	users := &fakeUsersRepo{user: auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}}
+	mux, cookie, _ := newPlaythroughSuite(t, users)
+
+	playthroughID := createCompletedPlaythrough(t, mux, cookie, "choice-1")
+	createInviteRec := doJSON(t, mux, http.MethodPost, fmt.Sprintf("/playthroughs/%s/compare", playthroughID.String()), cookie, nil)
+	require.Equal(t, http.StatusCreated, createInviteRec.Code, createInviteRec.Body.String())
+
+	var inviteResp compareInviteResponse
+	require.NoError(t, json.Unmarshal(createInviteRec.Body.Bytes(), &inviteResp))
+
+	shareEnableRec := doJSON(t, mux, http.MethodPost, "/compare/"+inviteResp.Token+"/share-enable", cookie, nil)
+	require.Equal(t, http.StatusConflict, shareEnableRec.Code, shareEnableRec.Body.String())
+}
+
+func TestCompareRevoke_InviteeCanRevoke(t *testing.T) {
+	users := &fakeUsersRepo{user: auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}}
+	mux, cookie, _ := newPlaythroughSuite(t, users)
+
+	inviterID := users.user.ID
+	inviterPlaythroughID := createCompletedPlaythrough(t, mux, cookie, "choice-1")
+
+	users.user = auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}
+	inviteeID := users.user.ID
+	inviteePlaythroughID := createCompletedPlaythrough(t, mux, cookie, "choice-2")
+
+	users.user = auth.User{ID: inviterID, AgeBand: auth.AgeBandAdult}
+	createInviteRec := doJSON(t, mux, http.MethodPost, fmt.Sprintf("/playthroughs/%s/compare", inviterPlaythroughID.String()), cookie, nil)
+	require.Equal(t, http.StatusCreated, createInviteRec.Code, createInviteRec.Body.String())
+
+	var inviteResp compareInviteResponse
+	require.NoError(t, json.Unmarshal(createInviteRec.Body.Bytes(), &inviteResp))
+
+	users.user = auth.User{ID: inviteeID, AgeBand: auth.AgeBandAdult}
+	acceptRec := doJSON(t, mux, http.MethodPost, "/compare/accept", cookie, map[string]any{
+		"token":          inviteResp.Token,
+		"playthrough_id": inviteePlaythroughID.String(),
+	})
+	require.Equal(t, http.StatusOK, acceptRec.Code, acceptRec.Body.String())
+
+	shareEnableRec := doJSON(t, mux, http.MethodPost, "/compare/"+inviteResp.Token+"/share-enable", cookie, nil)
+	require.Equal(t, http.StatusOK, shareEnableRec.Code, shareEnableRec.Body.String())
+
+	var shareResp shareEnableResponse
+	require.NoError(t, json.Unmarshal(shareEnableRec.Body.Bytes(), &shareResp))
+
+	revokeRec := doJSON(t, mux, http.MethodDelete, "/compare/"+inviteResp.Token, cookie, nil)
+	require.Equal(t, http.StatusNoContent, revokeRec.Code, revokeRec.Body.String())
+
+	readAfterRevoke := doJSON(t, mux, http.MethodGet, "/compare/"+shareResp.ShareToken, "", nil)
+	require.Equal(t, http.StatusNotFound, readAfterRevoke.Code)
 }
 
 func TestCompareCreateInvite_YouthWithoutGuardianConsent_Forbidden(t *testing.T) {
