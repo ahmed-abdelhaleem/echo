@@ -19,6 +19,7 @@ import 'package:echo_client/features/auth/login_screen.dart';
 import 'package:echo_client/features/auth/password_recovery_screen.dart';
 import 'package:echo_client/features/auth/settings_screen.dart';
 import 'package:echo_client/features/auth/sign_up_screen.dart';
+import 'package:echo_client/features/compare/compare_screen.dart';
 import 'package:echo_client/features/home/home_screen.dart';
 import 'package:echo_client/features/vignette/vignette_screen.dart';
 import 'package:flutter/foundation.dart';
@@ -50,7 +51,7 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
       final auth = ref.read(authControllerProvider);
       final signedIn = auth is AuthStateSignedIn;
       final loc = state.matchedLocation;
-      if (!signedIn && _authRequiredPaths.contains(loc)) {
+      if (!signedIn && _isAuthRequiredPath(loc)) {
         return '/login';
       }
       if (signedIn && _anonymousOnlyPaths.contains(loc)) {
@@ -63,6 +64,22 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         path: '/',
         name: 'home',
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path: '/compare/accept/:token',
+        name: 'compareAccept',
+        builder: (context, state) {
+          final token = state.pathParameters['token'] ?? '';
+          return CompareAcceptScreen(token: token);
+        },
+      ),
+      GoRoute(
+        path: '/compare/:token',
+        name: 'compare',
+        builder: (context, state) {
+          final token = state.pathParameters['token'] ?? '';
+          return CompareScreen(token: token);
+        },
       ),
       GoRoute(
         path: '/season/:id',
@@ -100,6 +117,13 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
     ],
   );
 });
+
+bool _isAuthRequiredPath(String loc) {
+  if (_authRequiredPaths.contains(loc)) {
+    return true;
+  }
+  return loc.startsWith('/compare/accept/');
+}
 
 /// Bridges [authControllerProvider] to a [Listenable] so GoRouter's
 /// refresh hook fires whenever the user signs in / out / deletes.

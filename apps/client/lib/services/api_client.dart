@@ -244,6 +244,114 @@ class ApiClient {
     return data;
   }
 
+  /// POST /compare/accept. Binds the caller's completed playthrough to
+  /// an invite token minted by another user.
+  Future<void> acceptComparisonInvite({
+    required String token,
+    required String playthroughId,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/compare/accept',
+      data: <String, dynamic>{
+        'token': token,
+        'playthrough_id': playthroughId,
+      },
+    );
+    final status = response.statusCode ?? 0;
+    if (status == 401) {
+      throw CompareUnauthorised();
+    }
+    if (status == 403) {
+      throw CompareForbidden();
+    }
+    if (status == 404) {
+      throw CompareNotFound();
+    }
+    if (status == 409) {
+      throw CompareConflict();
+    }
+    if (status == 410) {
+      throw CompareExpired();
+    }
+    if (status != 200) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Unexpected status $status from acceptComparisonInvite',
+      );
+    }
+  }
+
+  /// GET /compare/{token}. Public payload used by client + share-web.
+  Future<ComparisonPublicPayload> getComparisonPublic({
+    required String token,
+  }) async {
+    final response = await _dio.get<Map<String, dynamic>>('/compare/$token');
+    final status = response.statusCode ?? 0;
+    if (status == 404) {
+      throw CompareNotFound();
+    }
+    if (status == 409) {
+      throw CompareConflict();
+    }
+    if (status == 410) {
+      throw CompareExpired();
+    }
+    if (status != 200) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Unexpected status $status from getComparisonPublic',
+      );
+    }
+    final body = response.data;
+    if (body == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Empty body from getComparisonPublic',
+      );
+    }
+    return ComparisonPublicPayload.fromJson(body);
+  }
+
+  /// POST /compare/{token}/share-enable. Requires auth and ownership.
+  Future<ComparisonSharePayload> enableComparisonShare({
+    required String token,
+  }) async {
+    final response =
+        await _dio.post<Map<String, dynamic>>('/compare/$token/share-enable');
+    final status = response.statusCode ?? 0;
+    if (status == 401) {
+      throw CompareUnauthorised();
+    }
+    if (status == 403) {
+      throw CompareForbidden();
+    }
+    if (status == 404) {
+      throw CompareNotFound();
+    }
+    if (status == 409) {
+      throw CompareConflict();
+    }
+    if (status != 200) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Unexpected status $status from enableComparisonShare',
+      );
+    }
+    final body = response.data;
+    if (body == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Empty body from enableComparisonShare',
+      );
+    }
+    return ComparisonSharePayload.fromJson(body);
+  }
+
   /// POST /playthroughs/{id}/finalize. Returns the trait vector as a map.
   Future<Map<String, dynamic>> finalizePlaythrough({
     required String playthroughId,
@@ -427,6 +535,69 @@ class ShareForbidden implements Exception {}
 class ShareNotFound implements Exception {}
 
 class SharePlaythroughIncomplete implements Exception {}
+
+class ComparisonPublicPayload {
+  const ComparisonPublicPayload({
+    required this.seasonId,
+    required this.status,
+    required this.vignetteId,
+    required this.inviterChoice,
+    required this.inviteeChoice,
+    required this.inviterPngUrl,
+    required this.inviteePngUrl,
+  });
+
+  factory ComparisonPublicPayload.fromJson(Map<String, dynamic> json) {
+    final divergence = json['divergence'];
+    if (divergence is! Map<String, dynamic>) {
+      throw const FormatException('missing divergence in comparison payload');
+    }
+    return ComparisonPublicPayload(
+      seasonId: json['season_id'] as String,
+      status: json['status'] as String,
+      vignetteId: divergence['vignette_id'] as String,
+      inviterChoice: divergence['inviter_choice'] as String,
+      inviteeChoice: divergence['invitee_choice'] as String,
+      inviterPngUrl: json['inviter_png_url'] as String,
+      inviteePngUrl: json['invitee_png_url'] as String,
+    );
+  }
+
+  final String seasonId;
+  final String status;
+  final String vignetteId;
+  final String inviterChoice;
+  final String inviteeChoice;
+  final String inviterPngUrl;
+  final String inviteePngUrl;
+}
+
+class ComparisonSharePayload {
+  const ComparisonSharePayload({
+    required this.shareToken,
+    required this.shareUrl,
+  });
+
+  factory ComparisonSharePayload.fromJson(Map<String, dynamic> json) {
+    return ComparisonSharePayload(
+      shareToken: json['share_token'] as String,
+      shareUrl: json['share_url'] as String,
+    );
+  }
+
+  final String shareToken;
+  final String shareUrl;
+}
+
+class CompareUnauthorised implements Exception {}
+
+class CompareForbidden implements Exception {}
+
+class CompareNotFound implements Exception {}
+
+class CompareConflict implements Exception {}
+
+class CompareExpired implements Exception {}
 
 /// Override `apiBaseUrlProvider` in tests / per-flavour bootstrap to point
 /// the client at a local or staging gateway. The default is the local

@@ -1,6 +1,12 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { apiBaseURL, fetchShare, type SharePayload } from "./api";
+import {
+  apiBaseURL,
+  fetchCompare,
+  fetchShare,
+  type ComparePayload,
+  type SharePayload,
+} from "./api";
 
 const VALID_PAYLOAD: SharePayload = {
   token: "tok-aaa",
@@ -10,6 +16,18 @@ const VALID_PAYLOAD: SharePayload = {
   portrait_webp_url: "https://api.echo.test/share/tok-aaa/portrait?format=webp",
   reflection: { text: "You hesitate, then choose anyway.", template_id: "x" },
   created_at: "2026-05-21T12:00:00Z",
+};
+
+const VALID_COMPARE_PAYLOAD: ComparePayload = {
+  season_id: "season-001",
+  status: "accepted",
+  divergence: {
+    vignette_id: "vignette-003",
+    inviter_choice: "choice-a",
+    invitee_choice: "choice-b",
+  },
+  inviter_png_url: "https://api.echo.test/compare/tok-aaa/portrait?side=inviter",
+  invitee_png_url: "https://api.echo.test/compare/tok-aaa/portrait?side=invitee",
 };
 
 describe("apiBaseURL", () => {
@@ -108,3 +126,31 @@ describe("fetchShare", () => {
     }
   });
 });
+
+describe("fetchCompare", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.echo.test";
+  });
+
+  it("returns ok payload on 200", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(JSON.stringify(VALID_COMPARE_PAYLOAD), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      ),
+    );
+    const out = await fetchCompare("tok-aaa");
+    expect(out).toEqual({ kind: "ok", payload: VALID_COMPARE_PAYLOAD });
+  });
+
+  it("returns revoked on 410", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("", { status: 410 })));
+    const out = await fetchCompare("expired");
+    expect(out).toEqual({ kind: "revoked" });
+  });
+});
+
