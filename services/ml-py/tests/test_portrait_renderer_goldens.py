@@ -27,11 +27,13 @@ The 10 vectors cover:
 
 from __future__ import annotations
 
+import io
 import os
 from pathlib import Path
 from typing import NamedTuple
 
 import pytest
+from PIL import Image
 
 from app.services import portrait_renderer
 
@@ -144,10 +146,22 @@ def test_portrait_golden(vector: GoldenVector) -> None:
         f"missing golden {path}; rerun with REGENERATE_PORTRAIT_GOLDENS=1 to refresh"
     )
     expected = path.read_bytes()
-    assert actual == expected, (
+
+    # Compare decoded pixels instead of raw PNG bytes. Pillow/libpng may
+    # produce different compressed streams across platforms and patch
+    # versions while the visual output is identical.
+    actual_img = Image.open(io.BytesIO(actual)).convert("RGBA")
+    expected_img = Image.open(io.BytesIO(expected)).convert("RGBA")
+    assert actual_img.size == expected_img.size, (
+        f"portrait golden size drift on {vector.name}: "
+        f"expected {expected_img.size}, got {actual_img.size}."
+    )
+    actual_pixels = actual_img.tobytes()
+    expected_pixels = expected_img.tobytes()
+    assert actual_pixels == expected_pixels, (
         f"portrait golden drift on {vector.name}: "
-        f"expected {len(expected)} bytes (sha-prefix={expected[:16].hex()}), "
-        f"got {len(actual)} bytes (sha-prefix={actual[:16].hex()}). "
+        f"expected {len(expected)} png bytes / {len(expected_pixels)} pixel bytes, "
+        f"got {len(actual)} png bytes / {len(actual_pixels)} pixel bytes. "
         "If this is intentional, bump portrait_renderer.RENDERER_VERSION_M2 "
         "and rerun with REGENERATE_PORTRAIT_GOLDENS=1."
     )
