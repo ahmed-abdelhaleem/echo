@@ -49,12 +49,13 @@ help:
 	@echo ""
 	@echo "Setup:"
 	@echo "  make bootstrap        Install per-language dependencies"
-	@echo "  make compose-up       docker compose up -d (Postgres, Redis, NATS)"
+	@echo "  make compose-up       docker compose up -d (Postgres, Redis, NATS, Kratos)"
+	@echo "  make compose-up-infra docker compose up -d --wait postgres redis (healthcheck-gated)"
 	@echo "  make compose-down     docker compose down"
 	@echo ""
 	@echo "Develop:"
 	@echo "  make dev              Print how to run core-go + ml-py locally"
-	@echo "  make dev-core         Run core-go (loads .env when present)"
+	@echo "  make dev-core         Ensure postgres+redis are up, then run core-go"
 	@echo "  make dev-ml           Run ml-py HTTP (uvicorn --reload)"
 	@echo "  make dev-ml-grpc      Run ml-py gRPC on :50051"
 	@echo "  make client           Run Flutter client (auto: chrome without Xcode)"
@@ -132,6 +133,13 @@ endif
 .PHONY: compose-up
 compose-up:
 	@$(DOCKER_COMPOSE) up -d
+
+# Bring up only the two services core-go needs (postgres + redis).
+# Uses `--wait` so the target blocks until both healthchecks pass.
+.PHONY: compose-up-infra
+compose-up-infra:
+	@echo "→ starting postgres and redis (waiting for healthy)…"
+	@$(DOCKER_COMPOSE) up -d --wait postgres redis
 
 .PHONY: compose-down
 compose-down:
@@ -380,18 +388,19 @@ bootstrap-proto:
 
 .PHONY: dev
 dev:
-	@echo "→ dev: run infrastructure first, then app processes in separate terminals:"
-	@echo "    make compose-up && make migrate"
+	@echo "→ dev: postgres+redis start automatically with dev-core."
+	@echo "  For the full stack (NATS, Kratos, MailHog) run: make compose-up"
 	@echo "    cp -n .env.example .env   # once per machine"
-	@echo "    make dev-core             # terminal 1 — core-go on :8080"
+	@echo "    make migrate              # first time or after schema changes"
+	@echo "    make dev-core             # terminal 1 — core-go on :8081 (starts postgres+redis)"
 	@echo "    make dev-ml-grpc          # terminal 2 — ml-py gRPC on :50051 (optional)"
 	@echo "    make client               # terminal 3 — Flutter client"
 
 .PHONY: dev-core
-dev-core:
+dev-core: compose-up-infra
 ifeq ($(GO_AVAILABLE),yes)
 	@test -f .env || (echo "→ copy .env.example to .env and adjust paths if needed" && exit 1)
-	@echo "→ dev-core (HTTP $${CORE_HTTP_ADDR:-:8080})"
+	@echo "→ dev-core (HTTP $${CORE_HTTP_ADDR:-:8081})"
 	@cd services/core-go && go run ./cmd/core
 else
 	@echo "↷ go not installed; cannot run dev-core"

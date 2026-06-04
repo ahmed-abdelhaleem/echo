@@ -233,7 +233,11 @@ func TestCreateShare_AdultHappyPath(t *testing.T) {
 	var body shareCreateResponse
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &body))
 	require.Equal(t, "tok-happy", body.Token)
+	require.Equal(t, s.pid.String(), body.PlaythroughID)
 	require.Equal(t, "https://share.echo.test/share/tok-happy", body.ShareURL)
+	require.Equal(t, "https://api.echo.test/share/tok-happy/portrait", body.PortraitPNGURL)
+	require.Equal(t, "https://api.echo.test/share/tok-happy/portrait?format=webp", body.PortraitWebPURL)
+	require.NotEmpty(t, body.CreatedAt)
 	require.Contains(t, s.shareRepo.links, "tok-happy")
 }
 

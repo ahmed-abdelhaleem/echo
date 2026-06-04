@@ -14,12 +14,16 @@ import (
 )
 
 // shareCreateResponse is the JSON body returned by POST
-// /playthroughs/{id}/share. share_url is built from the configured
-// share base URL plus the freshly-issued token.
+// /playthroughs/{id}/share. Includes all fields the Flutter client's
+// SharePayload.fromJson requires so the share sheet can present the
+// portrait image without a second round trip.
 type shareCreateResponse struct {
-	Token     string `json:"token"`
-	ShareURL  string `json:"share_url"`
-	CreatedAt string `json:"created_at"`
+	Token           string `json:"token"`
+	PlaythroughID   string `json:"playthrough_id"`
+	ShareURL        string `json:"share_url"`
+	PortraitPNGURL  string `json:"portrait_png_url"`
+	PortraitWebPURL string `json:"portrait_webp_url"`
+	CreatedAt       string `json:"created_at"`
 }
 
 // sharePayload is the JSON contract apps/share-web consumes. It
@@ -111,9 +115,12 @@ func createShareHandler(cfg shareHandlerConfig) http.HandlerFunc {
 		}
 
 		writeJSON(w, http.StatusCreated, shareCreateResponse{
-			Token:     link.Token,
-			ShareURL:  shareURL(cfg.ShareBaseURL, link.Token),
-			CreatedAt: link.CreatedAt.UTC().Format(time.RFC3339),
+			Token:           link.Token,
+			PlaythroughID:   link.PlaythroughID.String(),
+			ShareURL:        shareURL(cfg.ShareBaseURL, link.Token),
+			PortraitPNGURL:  portraitURLForToken(cfg.APIBaseURL, link.Token, false),
+			PortraitWebPURL: portraitURLForToken(cfg.APIBaseURL, link.Token, true),
+			CreatedAt:       link.CreatedAt.UTC().Format(time.RFC3339),
 		})
 	}
 }

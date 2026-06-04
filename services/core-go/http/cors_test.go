@@ -55,6 +55,7 @@ func TestCORSMiddleware_optionsPreflight(t *testing.T) {
 
 	require.Equal(t, http.StatusNoContent, rec.Code)
 	require.Equal(t, "http://localhost:50087", rec.Header().Get("Access-Control-Allow-Origin"))
+	require.Contains(t, rec.Header().Get("Access-Control-Allow-Headers"), "X-Session-Token")
 }
 
 func TestCORSMiddleware_noOriginPassesThrough(t *testing.T) {
