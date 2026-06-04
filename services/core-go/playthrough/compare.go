@@ -22,6 +22,7 @@ var (
 	ErrSeasonMismatch         = errors.New("playthrough: playthroughs must belong to the same season")
 	ErrNoDivergence           = errors.New("playthrough: playthroughs have no divergence moments")
 	ErrComparisonNotAccepted  = errors.New("playthrough: comparison is not accepted")
+	ErrComparisonTokenExpired = errors.New("playthrough: comparison token expired")
 )
 
 const (
@@ -94,7 +95,7 @@ func (s *Service) AcceptComparisonInvite(ctx context.Context, userID uuid.UUID, 
 	}
 
 	tokenHash := hashComparisonToken(token)
-	comp, err := s.repo.GetComparisonByToken(ctx, tokenHash, ComparisonTokenTypeInvite, time.Now().UTC())
+	comp, err := s.getComparisonByToken(ctx, tokenHash, ComparisonTokenTypeInvite)
 	if err != nil {
 		return Comparison{}, err
 	}
@@ -132,6 +133,11 @@ func (s *Service) AcceptComparisonInvite(ctx context.Context, userID uuid.UUID, 
 		return Comparison{}, errors.New("playthrough: cannot compare with your own playthrough")
 	}
 
+	canonicalOrder, err := s.canonicalVignetteOrder(ctx, comp.SeasonID)
+	if err != nil {
+		return Comparison{}, err
+	}
+
 	inviterChoices, err := s.repo.ListChoices(ctx, comp.InviterPlaythroughID)
 	if err != nil {
 		return Comparison{}, err
@@ -140,7 +146,7 @@ func (s *Service) AcceptComparisonInvite(ctx context.Context, userID uuid.UUID, 
 	if err != nil {
 		return Comparison{}, err
 	}
-	divergence, err := findDivergenceMoment(inviterChoices, inviteeChoices)
+	divergence, err := findDivergenceMoment(canonicalOrder, inviterChoices, inviteeChoices)
 	if err != nil {
 		return Comparison{}, err
 	}
@@ -166,7 +172,7 @@ type ComparisonResult struct {
 // GetComparisonResult aggregates portraits and computes divergence.
 func (s *Service) GetComparisonResult(ctx context.Context, token string) (ComparisonResult, error) {
 	tokenHash := hashComparisonToken(token)
-	comp, err := s.repo.GetComparisonByToken(ctx, tokenHash, ComparisonTokenTypeShare, time.Now().UTC())
+	comp, err := s.getComparisonByToken(ctx, tokenHash, ComparisonTokenTypeShare)
 	if err != nil {
 		return ComparisonResult{}, err
 	}
@@ -188,6 +194,11 @@ func (s *Service) GetComparisonResult(ctx context.Context, token string) (Compar
 		return ComparisonResult{}, err
 	}
 
+	canonicalOrder, err := s.canonicalVignetteOrder(ctx, comp.SeasonID)
+	if err != nil {
+		return ComparisonResult{}, err
+	}
+
 	inviterChoices, err := s.repo.ListChoices(ctx, comp.InviterPlaythroughID)
 	if err != nil {
 		return ComparisonResult{}, err
@@ -198,7 +209,7 @@ func (s *Service) GetComparisonResult(ctx context.Context, token string) (Compar
 		return ComparisonResult{}, err
 	}
 
-	divergence, err := findDivergenceMoment(inviterChoices, inviteeChoices)
+	divergence, err := findDivergenceMoment(canonicalOrder, inviterChoices, inviteeChoices)
 	if err != nil {
 		return ComparisonResult{}, err
 	}
@@ -299,23 +310,63 @@ func hashComparisonToken(token string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func findDivergenceMoment(choicesA, choicesB []ChoiceEvent) (ComparisonDivergence, error) {
+func findDivergenceMoment(canonicalOrder []string, choicesA, choicesB []ChoiceEvent) (ComparisonDivergence, error) {
+	mapA := make(map[string]string)
+	for _, c := range choicesA {
+		mapA[c.VignetteID] = c.ChoiceID
+	}
+
 	mapB := make(map[string]string)
 	for _, c := range choicesB {
 		mapB[c.VignetteID] = c.ChoiceID
 	}
 
-	for _, cA := range choicesA {
-		if cBVal, ok := mapB[cA.VignetteID]; ok {
-			if cA.ChoiceID != cBVal {
+	for _, vignetteID := range canonicalOrder {
+		choiceA, okA := mapA[vignetteID]
+		choiceB, okB := mapB[vignetteID]
+		if okA && okB && choiceA != choiceB {
 				return ComparisonDivergence{
-					VignetteID:    cA.VignetteID,
-					InviterChoice: cA.ChoiceID,
-					InviteeChoice: cBVal,
+					VignetteID:    vignetteID,
+					InviterChoice: choiceA,
+					InviteeChoice: choiceB,
 				}, nil
-			}
 		}
 	}
 
 	return ComparisonDivergence{}, ErrNoDivergence
 }
+
+func (s *Service) canonicalVignetteOrder(ctx context.Context, seasonID string) ([]string, error) {
+	season, err := s.content.GetSeason(ctx, seasonID)
+	if err != nil {
+		return nil, err
+	}
+	ordered := make([]string, 0)
+	for _, act := range season.Acts {
+		for _, vignette := range act.Vignettes {
+			ordered = append(ordered, vignette.ID)
+		}
+	}
+	return ordered, nil
+}
+
+func (s *Service) getComparisonByToken(ctx context.Context, tokenHash string, tokenType ComparisonTokenType) (Comparison, error) {
+	now := time.Now().UTC()
+	comp, err := s.repo.GetComparisonByToken(ctx, tokenHash, tokenType, now)
+	if err == nil {
+		return comp, nil
+	}
+	if !errors.Is(err, ErrComparisonNotFound) {
+		return Comparison{}, err
+	}
+
+	compAnyState, errAnyState := s.repo.GetComparisonByTokenAnyState(ctx, tokenHash, tokenType)
+	if errAnyState != nil {
+		return Comparison{}, err
+	}
+	if compAnyState.ExpiresAt != nil && !compAnyState.ExpiresAt.After(now) {
+		return Comparison{}, ErrComparisonTokenExpired
+	}
+	return Comparison{}, err
+}
+

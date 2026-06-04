@@ -113,6 +113,12 @@ func acceptCompareHandler(cfg compareHandlerConfig) http.HandlerFunc {
 
 		comp, err := cfg.Playthrough.AcceptComparisonInvite(r.Context(), user.ID, body.Token, body.PlaythroughID)
 		switch {
+		case errors.Is(err, playthrough.ErrComparisonNotFound):
+			writeJSONError(w, http.StatusNotFound, "comparison not found")
+			return
+		case errors.Is(err, playthrough.ErrComparisonTokenExpired):
+			writeJSONError(w, http.StatusGone, "comparison invite expired")
+			return
 		case errors.Is(err, playthrough.ErrYouthSafeDenied):
 			writeJSONError(w, http.StatusForbidden, "comparisons disabled for youth-safe accounts")
 			return
@@ -156,6 +162,12 @@ func getCompareHandler(cfg compareHandlerConfig) http.HandlerFunc {
 
 		res, err := cfg.Playthrough.GetComparisonResult(r.Context(), token)
 		switch {
+		case errors.Is(err, playthrough.ErrComparisonNotFound):
+			writeJSONError(w, http.StatusNotFound, "comparison not found")
+			return
+		case errors.Is(err, playthrough.ErrComparisonTokenExpired):
+			writeJSONError(w, http.StatusGone, "comparison link expired")
+			return
 		case errors.Is(err, playthrough.ErrNotFound):
 			writeJSONError(w, http.StatusNotFound, "comparison not found")
 			return
@@ -199,6 +211,14 @@ func publicComparePortraitHandler(cfg compareHandlerConfig) http.HandlerFunc {
 
 		comp, err := cfg.Playthrough.GetComparisonResult(r.Context(), token)
 		if err != nil {
+			if errors.Is(err, playthrough.ErrComparisonNotFound) {
+				writeJSONError(w, http.StatusNotFound, "comparison not found")
+				return
+			}
+			if errors.Is(err, playthrough.ErrComparisonTokenExpired) {
+				writeJSONError(w, http.StatusGone, "comparison link expired")
+				return
+			}
 			if errors.Is(err, playthrough.ErrNotFound) {
 				writeJSONError(w, http.StatusNotFound, "comparison not found")
 				return

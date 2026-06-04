@@ -44,7 +44,16 @@ type fakeRepo struct {
 	playthroughs map[uuid.UUID]playthrough.Playthrough
 	choices      map[string]playthrough.ChoiceEvent
 	vectors      map[uuid.UUID]playthrough.StoredTraitVector
-	comparisons  map[string]playthrough.Comparison
+	comparisons  map[uuid.UUID]playthrough.Comparison
+	compTokens   map[string]fakeComparisonToken
+}
+
+type fakeComparisonToken struct {
+	ComparisonID uuid.UUID
+	TokenType    playthrough.ComparisonTokenType
+	TokenHash    string
+	ExpiresAt    time.Time
+	RevokedAt    *time.Time
 }
 
 func newFakeRepo() *fakeRepo {
@@ -52,7 +61,8 @@ func newFakeRepo() *fakeRepo {
 		playthroughs: map[uuid.UUID]playthrough.Playthrough{},
 		choices:      map[string]playthrough.ChoiceEvent{},
 		vectors:      map[uuid.UUID]playthrough.StoredTraitVector{},
-		comparisons:  map[string]playthrough.Comparison{},
+		comparisons:  map[uuid.UUID]playthrough.Comparison{},
+		compTokens:   map[string]fakeComparisonToken{},
 	}
 }
 func key(p uuid.UUID, v string) string { return p.String() + "|" + v }
@@ -138,37 +148,73 @@ func (r *fakeRepo) CreateComparison(_ context.Context, token string, inviterPlay
 		Status:               playthrough.ComparisonStatusPending,
 		CreatedAt:            time.Now(),
 	}
-	r.comparisons[token] = c
+	r.comparisons[c.ID] = c
 	return c, nil
 }
 
-func (r *fakeRepo) CreateComparisonToken(_ context.Context, _ uuid.UUID, _ playthrough.ComparisonTokenType, _ string, _ uuid.UUID, _ time.Time) error {
+func (r *fakeRepo) tokenKey(hash string, tokenType playthrough.ComparisonTokenType) string {
+	return hash + "|" + string(tokenType)
+}
+
+func (r *fakeRepo) CreateComparisonToken(_ context.Context, comparisonID uuid.UUID, tokenType playthrough.ComparisonTokenType, tokenHash string, _ uuid.UUID, expiresAt time.Time) error {
+	r.compTokens[r.tokenKey(tokenHash, tokenType)] = fakeComparisonToken{
+		ComparisonID: comparisonID,
+		TokenType:    tokenType,
+		TokenHash:    tokenHash,
+		ExpiresAt:    expiresAt,
+	}
 	return nil
 }
 
-func (r *fakeRepo) GetComparisonByToken(_ context.Context, token string, _ playthrough.ComparisonTokenType, _ time.Time) (playthrough.Comparison, error) {
-	c, ok := r.comparisons[token]
+func (r *fakeRepo) GetComparisonByToken(_ context.Context, token string, tokenType playthrough.ComparisonTokenType, now time.Time) (playthrough.Comparison, error) {
+	tk, ok := r.compTokens[r.tokenKey(token, tokenType)]
 	if !ok {
 		return playthrough.Comparison{}, playthrough.ErrComparisonNotFound
 	}
+	if tk.RevokedAt != nil || !tk.ExpiresAt.After(now) {
+		return playthrough.Comparison{}, playthrough.ErrComparisonNotFound
+	}
+	c, ok := r.comparisons[tk.ComparisonID]
+	if !ok {
+		return playthrough.Comparison{}, playthrough.ErrComparisonNotFound
+	}
+	if c.Status == playthrough.ComparisonStatusRevoked {
+		return playthrough.Comparison{}, playthrough.ErrComparisonNotFound
+	}
+	c.ExpiresAt = &tk.ExpiresAt
+	return c, nil
+}
+
+func (r *fakeRepo) GetComparisonByTokenAnyState(_ context.Context, token string, tokenType playthrough.ComparisonTokenType) (playthrough.Comparison, error) {
+	tk, ok := r.compTokens[r.tokenKey(token, tokenType)]
+	if !ok {
+		return playthrough.Comparison{}, playthrough.ErrComparisonNotFound
+	}
+	c, ok := r.comparisons[tk.ComparisonID]
+	if !ok {
+		return playthrough.Comparison{}, playthrough.ErrComparisonNotFound
+	}
+	c.ExpiresAt = &tk.ExpiresAt
 	return c, nil
 }
 
 func (r *fakeRepo) GetComparisonByAnyToken(_ context.Context, token string) (playthrough.Comparison, error) {
-	return r.GetComparisonByToken(context.Background(), token, playthrough.ComparisonTokenTypeInvite, time.Now())
+	for _, tk := range r.compTokens {
+		if tk.TokenHash != token {
+			continue
+		}
+		c, ok := r.comparisons[tk.ComparisonID]
+		if !ok {
+			return playthrough.Comparison{}, playthrough.ErrComparisonNotFound
+		}
+		c.ExpiresAt = &tk.ExpiresAt
+		return c, nil
+	}
+	return playthrough.Comparison{}, playthrough.ErrComparisonNotFound
 }
 
 func (r *fakeRepo) AcceptComparison(_ context.Context, comparisonID uuid.UUID, inviteePlaythroughID uuid.UUID, divergenceVignetteID string) (playthrough.Comparison, error) {
-	var c playthrough.Comparison
-	var ok bool
-	for k, candidate := range r.comparisons {
-		if candidate.ID == comparisonID {
-			c = candidate
-			ok = true
-			delete(r.comparisons, k)
-			break
-		}
-	}
+	c, ok := r.comparisons[comparisonID]
 	if !ok {
 		return playthrough.Comparison{}, playthrough.ErrComparisonNotFound
 	}
@@ -177,47 +223,40 @@ func (r *fakeRepo) AcceptComparison(_ context.Context, comparisonID uuid.UUID, i
 	c.AcceptedAt = &now
 	c.DivergenceVignetteID = &divergenceVignetteID
 	c.Status = playthrough.ComparisonStatusAccepted
-	r.comparisons[c.Token] = c
+	r.comparisons[c.ID] = c
 	return c, nil
 }
 
 func (r *fakeRepo) EnableComparisonShare(_ context.Context, comparisonID uuid.UUID, enabledAt time.Time) error {
-	for k, candidate := range r.comparisons {
-		if candidate.ID != comparisonID {
-			continue
-		}
-		candidate.ShareEnabled = true
-		candidate.ShareEnabledAt = &enabledAt
-		r.comparisons[k] = candidate
-		return nil
+	c, ok := r.comparisons[comparisonID]
+	if !ok {
+		return playthrough.ErrComparisonNotFound
 	}
-	return playthrough.ErrComparisonNotFound
-}
-
-func (r *fakeRepo) RevokeComparison(_ context.Context, comparisonID uuid.UUID, revokedAt time.Time) error {
-	for k, candidate := range r.comparisons {
-		if candidate.ID != comparisonID {
-			continue
-		}
-		candidate.Status = playthrough.ComparisonStatusRevoked
-		candidate.RevokedAt = &revokedAt
-		r.comparisons[k] = candidate
-		return nil
-	}
-	return playthrough.ErrComparisonNotFound
-}
-
-func (r *fakeRepo) RevokeComparisonTokens(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	c.ShareEnabled = true
+	c.ShareEnabledAt = &enabledAt
+	r.comparisons[c.ID] = c
 	return nil
 }
 
-func (r *fakeRepo) RevokeComparisonByToken(_ context.Context, token string) error {
-	c, ok := r.comparisons[token]
+func (r *fakeRepo) RevokeComparison(_ context.Context, comparisonID uuid.UUID, revokedAt time.Time) error {
+	c, ok := r.comparisons[comparisonID]
 	if !ok {
 		return playthrough.ErrComparisonNotFound
 	}
 	c.Status = playthrough.ComparisonStatusRevoked
-	r.comparisons[token] = c
+	c.RevokedAt = &revokedAt
+	r.comparisons[c.ID] = c
+	return nil
+}
+
+func (r *fakeRepo) RevokeComparisonTokens(_ context.Context, comparisonID uuid.UUID, revokedAt time.Time) error {
+	for k, tk := range r.compTokens {
+		if tk.ComparisonID != comparisonID || tk.RevokedAt != nil {
+			continue
+		}
+		tk.RevokedAt = &revokedAt
+		r.compTokens[k] = tk
+	}
 	return nil
 }
 

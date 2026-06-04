@@ -46,6 +46,7 @@ type Repository interface {
 	CreateComparison(ctx context.Context, token string, inviterPlaythroughID uuid.UUID, seasonID string) (Comparison, error)
 	CreateComparisonToken(ctx context.Context, comparisonID uuid.UUID, tokenType ComparisonTokenType, tokenHash string, createdByUserID uuid.UUID, expiresAt time.Time) error
 	GetComparisonByToken(ctx context.Context, tokenHash string, tokenType ComparisonTokenType, now time.Time) (Comparison, error)
+	GetComparisonByTokenAnyState(ctx context.Context, tokenHash string, tokenType ComparisonTokenType) (Comparison, error)
 	GetComparisonByAnyToken(ctx context.Context, tokenHash string) (Comparison, error)
 	AcceptComparison(ctx context.Context, comparisonID uuid.UUID, inviteePlaythroughID uuid.UUID, divergenceVignetteID string) (Comparison, error)
 	EnableComparisonShare(ctx context.Context, comparisonID uuid.UUID, enabledAt time.Time) error
@@ -315,7 +316,7 @@ func (r *PgRepository) CreateComparisonToken(
 func (r *PgRepository) GetComparisonByToken(ctx context.Context, tokenHash string, tokenType ComparisonTokenType, now time.Time) (Comparison, error) {
 	const q = `
 		SELECT c.id, c.token, c.inviter_playthrough_id, c.invitee_playthrough_id, c.season_id, c.status,
-		       c.created_at, c.accepted_at, c.revoked_at, c.expires_at, c.share_enabled, c.share_enabled_at,
+		       c.created_at, c.accepted_at, c.revoked_at, ct.expires_at, c.share_enabled, c.share_enabled_at,
 		       c.divergence_vignette_id
 		FROM playthrough.comparison_tokens ct
 		JOIN playthrough.comparisons c ON c.id = ct.comparison_id
@@ -340,10 +341,36 @@ func (r *PgRepository) GetComparisonByToken(ctx context.Context, tokenHash strin
 	return c, nil
 }
 
+func (r *PgRepository) GetComparisonByTokenAnyState(ctx context.Context, tokenHash string, tokenType ComparisonTokenType) (Comparison, error) {
+	const q = `
+		SELECT c.id, c.token, c.inviter_playthrough_id, c.invitee_playthrough_id, c.season_id, c.status,
+		       c.created_at, c.accepted_at, c.revoked_at, ct.expires_at, c.share_enabled, c.share_enabled_at,
+		       c.divergence_vignette_id
+		FROM playthrough.comparison_tokens ct
+		JOIN playthrough.comparisons c ON c.id = ct.comparison_id
+		WHERE ct.token_hash = $1
+		  AND ct.token_type = $2
+		LIMIT 1
+	`
+	var c Comparison
+	err := r.pool.QueryRow(ctx, q, tokenHash, tokenType).Scan(
+		&c.ID, &c.Token, &c.InviterPlaythroughID, &c.InviteePlaythroughID,
+		&c.SeasonID, &c.Status, &c.CreatedAt, &c.AcceptedAt,
+		&c.RevokedAt, &c.ExpiresAt, &c.ShareEnabled, &c.ShareEnabledAt, &c.DivergenceVignetteID,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Comparison{}, ErrComparisonNotFound
+	}
+	if err != nil {
+		return Comparison{}, fmt.Errorf("playthrough: get comparison token any state: %w", err)
+	}
+	return c, nil
+}
+
 func (r *PgRepository) GetComparisonByAnyToken(ctx context.Context, tokenHash string) (Comparison, error) {
 	const q = `
 		SELECT c.id, c.token, c.inviter_playthrough_id, c.invitee_playthrough_id, c.season_id, c.status,
-		       c.created_at, c.accepted_at, c.revoked_at, c.expires_at, c.share_enabled, c.share_enabled_at,
+		       c.created_at, c.accepted_at, c.revoked_at, ct.expires_at, c.share_enabled, c.share_enabled_at,
 		       c.divergence_vignette_id
 		FROM playthrough.comparison_tokens ct
 		JOIN playthrough.comparisons c ON c.id = ct.comparison_id

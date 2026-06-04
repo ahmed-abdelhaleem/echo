@@ -187,6 +187,10 @@ func (r *fakeRepo) GetComparisonByToken(_ context.Context, token string, _ playt
 	return c, nil
 }
 
+func (r *fakeRepo) GetComparisonByTokenAnyState(_ context.Context, token string, _ playthrough.ComparisonTokenType) (playthrough.Comparison, error) {
+	return r.GetComparisonByToken(context.Background(), token, playthrough.ComparisonTokenTypeInvite, time.Now())
+}
+
 func (r *fakeRepo) GetComparisonByAnyToken(_ context.Context, token string) (playthrough.Comparison, error) {
 	return r.GetComparisonByToken(context.Background(), token, playthrough.ComparisonTokenTypeInvite, time.Now())
 }
