@@ -14,6 +14,10 @@ import (
 // `kratos.yml`, update this constant.
 const KratosCookieName = "ory_kratos_session"
 
+// KratosSessionTokenHeader is the header Kratos accepts for native/API
+// session auth (non-browser clients).
+const KratosSessionTokenHeader = "X-Session-Token"
+
 // KratosClient wraps the bits of the Kratos API the Go backend needs.
 //
 // Two URLs are configured separately because Kratos exposes two listeners:
@@ -92,6 +96,27 @@ func (c *KratosClient) Whoami(ctx context.Context, cookie string) (Session, erro
 	// Pass the cookie through verbatim. Kratos's API expects it in the
 	// `Cookie` header (it does not accept a bearer token for browser sessions).
 	req.Header.Set("Cookie", KratosCookieName+"="+cookie)
+
+	return c.doWhoami(req)
+}
+
+// WhoamiWithSessionToken validates a native/API session token (Kratos
+// `session_token`) and returns a domain [Session]. This is the auth path
+// used by Flutter/mobile flows that don't rely on browser cookies.
+func (c *KratosClient) WhoamiWithSessionToken(ctx context.Context, token string) (Session, error) {
+	if token == "" {
+		return Session{}, ErrSessionUnauthorized
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.publicURL+"/sessions/whoami", nil)
+	if err != nil {
+		return Session{}, fmt.Errorf("kratos: build whoami request: %w", err)
+	}
+	req.Header.Set(KratosSessionTokenHeader, token)
+
+	return c.doWhoami(req)
+}
+
+func (c *KratosClient) doWhoami(req *http.Request) (Session, error) {
 
 	resp, err := c.http.Do(req)
 	if err != nil {

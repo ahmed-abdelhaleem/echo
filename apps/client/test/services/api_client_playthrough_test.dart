@@ -13,6 +13,31 @@ import '../_helpers/fakes.dart';
 
 void main() {
   group('ApiClient.createPlaythrough', () {
+    test('attaches X-Session-Token when configured', () async {
+      final adapter = ProgrammableAdapter()
+        ..registerJson(
+          method: 'POST',
+          path: RegExp(r'^/playthroughs$'),
+          status: 201,
+          body: <String, dynamic>{
+            'playthrough': <String, dynamic>{
+              'id': 'pt-1',
+              'season_id': 'season-001',
+              'season_version': 1,
+            },
+          },
+        );
+
+      final client = apiClientWith(adapter);
+      client.setSessionToken('session-token-1');
+
+      await client.createPlaythrough(seasonId: 'season-001');
+
+      expect(adapter.recorded, hasLength(1));
+      expect(adapter.recorded.single.headers['x-session-token'],
+          'session-token-1');
+    });
+
     test('parses 201 envelope into RemotePlaythrough', () async {
       final adapter = ProgrammableAdapter()
         ..registerJson(

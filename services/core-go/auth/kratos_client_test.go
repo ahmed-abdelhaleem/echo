@@ -31,6 +31,23 @@ func stubKratos(t *testing.T, status int, body string) *httptest.Server {
 	return srv
 }
 
+func stubKratosToken(t *testing.T, status int, body string) *httptest.Server {
+	t.Helper()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/sessions/whoami", func(w http.ResponseWriter, r *http.Request) {
+		if strings.TrimSpace(r.Header.Get(auth.KratosSessionTokenHeader)) == "" {
+			http.Error(w, "missing session token", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		_, _ = w.Write([]byte(body))
+	})
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	return srv
+}
+
 func TestKratosClient_Whoami_HappyPath(t *testing.T) {
 	t.Parallel()
 
@@ -78,6 +95,39 @@ func TestKratosClient_Whoami_HappyPath(t *testing.T) {
 	}
 }
 
+func TestKratosClient_WhoamiWithSessionToken_HappyPath(t *testing.T) {
+	t.Parallel()
+	body := `{
+		"id": "session-token-abc",
+		"active": true,
+		"issued_at": "2026-05-21T10:00:00Z",
+		"expires_at": "2030-01-01T00:00:00Z",
+		"identity": {
+			"id": "identity-token-xyz",
+			"schema_id": "default",
+			"created_at": "2026-01-01T00:00:00Z",
+			"traits": {
+				"email": "ada@example.test",
+				"display_name": "Ada",
+				"birthdate": "1995-06-10"
+			}
+		}
+	}`
+	srv := stubKratosToken(t, http.StatusOK, body)
+
+	client := auth.NewKratosClient(srv.URL, srv.URL, nil)
+	sess, err := client.WhoamiWithSessionToken(context.Background(), "session-token")
+	if err != nil {
+		t.Fatalf("WhoamiWithSessionToken returned err: %v", err)
+	}
+	if sess.ID != "session-token-abc" {
+		t.Errorf("session ID: got %q, want %q", sess.ID, "session-token-abc")
+	}
+	if sess.IdentityID != "identity-token-xyz" {
+		t.Errorf("identity ID: got %q, want %q", sess.IdentityID, "identity-token-xyz")
+	}
+}
+
 func TestKratosClient_Whoami_MissingCookie(t *testing.T) {
 	t.Parallel()
 	// Server should never be hit; build a client with an unreachable URL
@@ -85,6 +135,16 @@ func TestKratosClient_Whoami_MissingCookie(t *testing.T) {
 	client := auth.NewKratosClient("http://127.0.0.1:0", "http://127.0.0.1:0", nil)
 
 	_, err := client.Whoami(context.Background(), "")
+	if !errors.Is(err, auth.ErrSessionUnauthorized) {
+		t.Fatalf("expected ErrSessionUnauthorized, got %v", err)
+	}
+}
+
+func TestKratosClient_WhoamiWithSessionToken_MissingToken(t *testing.T) {
+	t.Parallel()
+	client := auth.NewKratosClient("http://127.0.0.1:0", "http://127.0.0.1:0", nil)
+
+	_, err := client.WhoamiWithSessionToken(context.Background(), "")
 	if !errors.Is(err, auth.ErrSessionUnauthorized) {
 		t.Fatalf("expected ErrSessionUnauthorized, got %v", err)
 	}

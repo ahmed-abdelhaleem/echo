@@ -11,6 +11,7 @@
 
 import 'package:echo_client/app/app.dart';
 import 'package:echo_client/data/content_repository.dart';
+import 'package:echo_client/features/auth/auth_controller.dart';
 import 'package:echo_client/features/sync/sync_controller.dart';
 import 'package:echo_client/features/vignette/vignette_controller.dart';
 import 'package:echo_client/services/api_client.dart';
@@ -22,6 +23,25 @@ void main() {
   runApp(
     ProviderScope(
       overrides: <Override>[
+        apiClientProvider.overrideWith((Ref ref) {
+          final client = ApiClient(baseUrl: ref.watch(apiBaseUrlProvider));
+
+          void applySessionToken(AuthState state) {
+            switch (state) {
+              case AuthStateSignedIn(session: final session):
+                client.setSessionToken(session.token);
+              case AuthStateAnonymous():
+                client.setSessionToken(null);
+            }
+          }
+
+          applySessionToken(ref.read(authControllerProvider));
+          ref.listen<AuthState>(authControllerProvider, (_, next) {
+            applySessionToken(next);
+          });
+
+          return client;
+        }),
         contentRepositoryProvider.overrideWith((Ref ref) {
           return ContentRepository(
             api: ref.watch(apiClientProvider),

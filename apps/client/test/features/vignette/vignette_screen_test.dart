@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:echo_client/data/choice_repository.dart';
 import 'package:echo_client/data/local/database.dart';
@@ -12,6 +15,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../_helpers/fakes.dart';
+
+final List<int> _onePixelPngBytes = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+nm2cAAAAASUVORK5CYII=',
+);
 
 class _StaticCompleteVignetteController extends VignetteController {
   _StaticCompleteVignetteController({
@@ -31,6 +38,43 @@ class _StaticCompleteVignetteController extends VignetteController {
   @override
   Future<void> start({required String seasonId}) async {
     // Keep the test pinned on the complete state.
+  }
+}
+
+class _CompleteViewApiClientFake extends ApiClient {
+  _CompleteViewApiClientFake({
+    required this.reflectionText,
+    required this.portraitBytes,
+  }) : super(baseUrl: 'http://test.invalid');
+
+  final String reflectionText;
+  final List<int> portraitBytes;
+
+  @override
+  Future<Map<String, dynamic>> finalizePlaythrough({
+    required String playthroughId,
+  }) async {
+    return <String, dynamic>{'playthrough_id': playthroughId};
+  }
+
+  @override
+  Future<String> getReflection({required String playthroughId}) async {
+    return reflectionText;
+  }
+
+  @override
+  Future<List<int>> getPortraitBytes({
+    required String playthroughId,
+    bool animate = false,
+  }) async {
+    if (animate) {
+      throw DioException(
+        requestOptions:
+            RequestOptions(path: '/playthroughs/$playthroughId/portrait'),
+        message: 'animation not expected in this test',
+      );
+    }
+    return portraitBytes;
   }
 }
 
@@ -120,6 +164,66 @@ void main() {
 
       expect(tester.takeException(), isNull);
       expect(find.text('Unable to generate Portrait'), findsOneWidget);
+      expect(syncController.state, isA<SyncSucceeded>());
+    },
+  );
+
+  testWidgets(
+    'complete view renders portrait + reflection without provider lifecycle errors',
+    (WidgetTester tester) async {
+      final db = newInMemoryDatabase();
+      addTearDown(db.close);
+
+      const localPlaythroughId = 'local-playthrough-2';
+      const remotePlaythroughId = 'remote-playthrough-2';
+
+      await db.insertLocalPlaythrough(
+        LocalPlaythroughsCompanion.insert(
+          localId: localPlaythroughId,
+          seasonId: 'season-001',
+          remoteId: const Value<String?>(remotePlaythroughId),
+          startedAt: DateTime.utc(2026, 6, 4, 11, 0),
+        ),
+      );
+
+      final api = _CompleteViewApiClientFake(
+        reflectionText: 'Reach for the unfamiliar.',
+        portraitBytes: _onePixelPngBytes,
+      );
+      final syncController = SyncController(
+        service: SyncService(api: api, db: db),
+      );
+      final vignetteController = _StaticCompleteVignetteController(
+        db: db,
+        localPlaythroughId: localPlaythroughId,
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: <Override>[
+            apiClientProvider.overrideWithValue(api),
+            playthroughRepositoryProvider.overrideWith(
+              (Ref ref) => PlaythroughRepository(db: db),
+            ),
+            syncControllerProvider.overrideWith((Ref ref) => syncController),
+            vignetteControllerProvider.overrideWith(
+              (Ref ref) => vignetteController,
+            ),
+          ],
+          child: const MaterialApp(
+            home: VignetteScreen(seasonId: 'season-001'),
+          ),
+        ),
+      );
+
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('Your Portrait'), findsOneWidget);
+      expect(find.text('Reach for the unfamiliar.'), findsOneWidget);
+      expect(find.byType(Image), findsOneWidget);
       expect(syncController.state, isA<SyncSucceeded>());
     },
   );

@@ -213,6 +213,12 @@ class ProgrammableAdapter implements HttpClientAdapter {
         method: options.method.toUpperCase(),
         path: options.path,
         body: rawBody,
+        headers: options.headers.map(
+          (key, value) => MapEntry(
+            key.toLowerCase(),
+            value is String ? value : value.toString(),
+          ),
+        ),
       ),
     );
     for (final route in _routes) {
@@ -261,10 +267,12 @@ class RecordedRequest {
     required this.method,
     required this.path,
     required this.body,
+    required this.headers,
   });
   final String method;
   final String path;
   final String body;
+  final Map<String, String> headers;
 }
 
 /// Builds an [ApiClient] with a Dio wired to [adapter]. Useful when a

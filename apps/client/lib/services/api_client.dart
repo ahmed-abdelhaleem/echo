@@ -20,6 +20,17 @@ class ApiClient {
                 receiveTimeout: const Duration(seconds: 10),
               ),
             ) {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          final token = _sessionToken;
+          if (token != null && token.isNotEmpty) {
+            options.headers.putIfAbsent('X-Session-Token', () => token);
+          }
+          handler.next(options);
+        },
+      ),
+    );
     // Treat 4xx as data, not exceptions — the repositories need to
     // distinguish 404 (cache fallback / null) from 5xx (transient,
     // rethrow) and a Dio that throws on every non-2xx makes that
@@ -31,6 +42,14 @@ class ApiClient {
 
   final String baseUrl;
   final Dio _dio;
+  String? _sessionToken;
+
+  /// Sets/clears the Kratos API-flow session token attached to subsequent
+  /// requests as `X-Session-Token`.
+  void setSessionToken(String? token) {
+    final trimmed = token?.trim();
+    _sessionToken = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+  }
 
   Future<bool> healthz() async {
     final response = await _dio.get<Map<String, dynamic>>('/healthz');

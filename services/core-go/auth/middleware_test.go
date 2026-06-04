@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/auth"
@@ -82,6 +83,52 @@ func TestMiddleware_RejectsMissingCookie(t *testing.T) {
 
 	if resp.StatusCode != http.StatusUnauthorized {
 		t.Errorf("status: got %d, want 401", resp.StatusCode)
+	}
+}
+
+func TestMiddleware_AcceptsSessionTokenHeaderWhenCookieMissing(t *testing.T) {
+	t.Parallel()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/sessions/whoami", func(w http.ResponseWriter, r *http.Request) {
+		if strings.TrimSpace(r.Header.Get(auth.KratosSessionTokenHeader)) == "" {
+			http.Error(w, "missing session token", http.StatusBadRequest)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{
+			"id": "s1",
+			"active": true,
+			"expires_at": "2030-01-01T00:00:00Z",
+			"identity": {
+				"id": "user-token-123",
+				"traits": {"email": "a@b.test", "display_name": "A", "birthdate": "1995-06-10"}
+			}
+		}`))
+	})
+	kratos := httptest.NewServer(mux)
+	t.Cleanup(kratos.Close)
+
+	client := auth.NewKratosClient(kratos.URL, kratos.URL, nil)
+	mw := auth.Middleware(client, nil)
+	srv := httptest.NewServer(mw(protectedHandler(t, "user-token-123")))
+	t.Cleanup(srv.Close)
+
+	req, err := http.NewRequest(http.MethodGet, srv.URL, nil)
+	if err != nil {
+		t.Fatalf("build request: %v", err)
+	}
+	req.Header.Set(auth.KratosSessionTokenHeader, "session-token")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("do: %v", err)
+	}
+	t.Cleanup(func() { _ = resp.Body.Close() })
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("status: got %d, want 200", resp.StatusCode)
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 )
 
 // contextKey is unexported so external packages cannot stuff arbitrary
@@ -32,13 +33,24 @@ func Middleware(client *KratosClient, logger *slog.Logger) func(http.Handler) ht
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			cookie, err := r.Cookie(KratosCookieName)
-			if err != nil {
+			cookie, cookieErr := r.Cookie(KratosCookieName)
+			token := strings.TrimSpace(r.Header.Get(KratosSessionTokenHeader))
+			if cookieErr != nil && token == "" {
 				writeAuthError(w, http.StatusUnauthorized, "no session cookie")
 				return
 			}
 
-			sess, err := client.Whoami(r.Context(), cookie.Value)
+			var (
+				sess Session
+				err  error
+			)
+			if cookieErr == nil {
+				sess, err = client.Whoami(r.Context(), cookie.Value)
+			}
+			if token != "" && (cookieErr != nil || errors.Is(err, ErrSessionUnauthorized) || errors.Is(err, ErrSessionNotActive)) {
+				sess, err = client.WhoamiWithSessionToken(r.Context(), token)
+			}
+
 			switch {
 			case errors.Is(err, ErrSessionUnauthorized), errors.Is(err, ErrSessionNotActive):
 				writeAuthError(w, http.StatusUnauthorized, "invalid or expired session")
