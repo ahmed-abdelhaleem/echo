@@ -11,7 +11,8 @@ import 'package:go_router/go_router.dart';
 /// Builds the OAuth return URL for the current Flutter web origin.
 String buildOidcReturnUrl(String type) {
   // Keep return_to stable for local web dev. Kratos allow-lists this URL.
-  if (kIsWeb && (Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1')) {
+  if (kIsWeb &&
+      (Uri.base.host == 'localhost' || Uri.base.host == '127.0.0.1')) {
     return Uri(
       scheme: Uri.base.scheme,
       host: Uri.base.host,

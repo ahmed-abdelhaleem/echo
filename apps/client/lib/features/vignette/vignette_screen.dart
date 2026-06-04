@@ -249,7 +249,8 @@ class _CompleteViewState extends ConsumerState<_CompleteView> {
       await ref.read(syncControllerProvider.notifier).syncNow();
 
       // Check if remoteId is populated
-      LocalPlaythroughRow? localPlay = await playRepo.findById(widget.state.localPlaythroughId);
+      LocalPlaythroughRow? localPlay =
+          await playRepo.findById(widget.state.localPlaythroughId);
       String? remoteId = localPlay?.remoteId;
 
       if (remoteId == null) {
@@ -265,7 +266,9 @@ class _CompleteViewState extends ConsumerState<_CompleteView> {
       }
 
       if (remoteId == null) {
-        throw Exception('Playthrough could not be registered on server. Please check your internet connection.');
+        throw Exception(
+          'Playthrough could not be registered on server. Please check your internet connection.',
+        );
       }
 
       _remoteId = remoteId;
@@ -287,7 +290,8 @@ class _CompleteViewState extends ConsumerState<_CompleteView> {
       setState(() {
         _statusMessage = 'Generating visual Portrait…';
       });
-      final bytes = await api.getPortraitBytes(playthroughId: remoteId, animate: false);
+      final bytes =
+          await api.getPortraitBytes(playthroughId: remoteId, animate: false);
 
       if (mounted) {
         setState(() {
@@ -334,7 +338,8 @@ class _CompleteViewState extends ConsumerState<_CompleteView> {
         children: <Widget>[
           Text(
             'Unable to generate Portrait',
-            style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.error),
+            style: theme.textTheme.headlineSmall
+                ?.copyWith(color: theme.colorScheme.error),
           ),
           const SizedBox(height: 12),
           Text(_errorMessage!),
@@ -365,7 +370,8 @@ class _CompleteViewState extends ConsumerState<_CompleteView> {
           children: <Widget>[
             Text(
               'Your Portrait',
-              style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.headlineMedium
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
             if (_portraitBytes != null)
@@ -408,8 +414,7 @@ class _CompleteViewState extends ConsumerState<_CompleteView> {
                 ),
               ),
             const SizedBox(height: 32),
-            if (_remoteId != null)
-              ShareButton(playthroughId: _remoteId!),
+            if (_remoteId != null) ShareButton(playthroughId: _remoteId!),
             const SizedBox(height: 12),
             OutlinedButton(
               onPressed: () => context.goNamed('home'),

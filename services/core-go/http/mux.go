@@ -34,6 +34,12 @@ type Dependencies struct {
 	Sharing     *sharing.Service
 	Users       auth.UsersRepository
 
+	// Optional hooks for friend-comparison token flows.
+	// CompareAllowTokenResolve returning false results in 429 for token
+	// resolution endpoints.
+	CompareAllowTokenResolve compareTokenAllowFunc
+	CompareAudit             compareAuditFunc
+
 	// KratosHookSecret is the shared secret that Kratos must include in
 	// the [auth.HookSecretHeader] header when invoking the registration
 	// hooks (`/auth/hooks/before-registration`,
@@ -163,6 +169,8 @@ func NewMux(deps Dependencies) http.Handler {
 			Users:        deps.Users,
 			ShareBaseURL: deps.ShareBaseURL,
 			APIBaseURL:   deps.APIBaseURL,
+			TokenAllow:   deps.CompareAllowTokenResolve,
+			Audit:        deps.CompareAudit,
 			Logger:       deps.Logger,
 			Now:          nowFn,
 		}

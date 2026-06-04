@@ -134,7 +134,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     final displayName = _displayNameCtrl.text.trim();
     final birthdate = _birthdateCtrl.text.trim();
     if (displayName.isEmpty) {
-      setState(() => _topError = 'Enter a display name before continuing with Google.');
+      setState(
+        () => _topError = 'Enter a display name before continuing with Google.',
+      );
       return;
     }
     if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(birthdate)) {
@@ -277,7 +279,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     FilledButton(
                       key: const Key('signup.submit'),
                       onPressed: _busy ? null : _onSubmit,
-                      child: Text(_busy ? 'Creating…' : 'Create account with email'),
+                      child: Text(
+                        _busy ? 'Creating…' : 'Create account with email',
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextButton(

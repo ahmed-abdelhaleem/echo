@@ -380,7 +380,22 @@ func (f *fakeReflectionGen) GenerateReflection(_ context.Context, in playthrough
 // use newPlaythroughSuiteWithoutML.
 func newPlaythroughSuite(t *testing.T, usersRepo *fakeUsersRepo) (http.Handler, string, *fakeRepo) {
 	t.Helper()
-	mux, cookie, repo, _, _ := newPlaythroughSuiteFull(t, usersRepo, true)
+	mux, cookie, repo, _, _ := newPlaythroughSuiteFullWithHooks(t, usersRepo, true, compareHookOverrides{})
+	return mux, cookie, repo
+}
+
+type compareHookOverrides struct {
+	allow compareTokenAllowFunc
+	audit compareAuditFunc
+}
+
+func newPlaythroughSuiteWithCompareHooks(
+	t *testing.T,
+	usersRepo *fakeUsersRepo,
+	hooks compareHookOverrides,
+) (http.Handler, string, *fakeRepo) {
+	t.Helper()
+	mux, cookie, repo, _, _ := newPlaythroughSuiteFullWithHooks(t, usersRepo, true, hooks)
 	return mux, cookie, repo
 }
 
@@ -391,6 +406,16 @@ func newPlaythroughSuiteFull(
 	t *testing.T,
 	usersRepo *fakeUsersRepo,
 	wireML bool,
+) (http.Handler, string, *fakeRepo, *fakePortraitGen, *fakeReflectionGen) {
+	t.Helper()
+	return newPlaythroughSuiteFullWithHooks(t, usersRepo, wireML, compareHookOverrides{})
+}
+
+func newPlaythroughSuiteFullWithHooks(
+	t *testing.T,
+	usersRepo *fakeUsersRepo,
+	wireML bool,
+	hooks compareHookOverrides,
 ) (http.Handler, string, *fakeRepo, *fakePortraitGen, *fakeReflectionGen) {
 	t.Helper()
 	// Kratos identity used by the session below. Any valid UUID works.
@@ -439,11 +464,13 @@ func newPlaythroughSuiteFull(
 	}
 
 	mux := NewMux(Dependencies{
-		Logger:      slog.Default(),
-		Auth:        authSvc,
-		Content:     contentSvc,
-		Playthrough: ptSvc,
-		Users:       usersRepo,
+		Logger:                   slog.Default(),
+		Auth:                     authSvc,
+		Content:                  contentSvc,
+		Playthrough:              ptSvc,
+		Users:                    usersRepo,
+		CompareAllowTokenResolve: hooks.allow,
+		CompareAudit:             hooks.audit,
 	})
 
 	return mux, "session-token", repo, portrait, reflection

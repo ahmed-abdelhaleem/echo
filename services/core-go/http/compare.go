@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -18,15 +19,34 @@ type compareHandlerConfig struct {
 	Users        auth.UsersRepository
 	ShareBaseURL string
 	APIBaseURL   string
+	TokenAllow   compareTokenAllowFunc
+	Audit        compareAuditFunc
 	Logger       *slog.Logger
 	Now          func() time.Time
 }
+
+type compareTokenAllowFunc func(ctx context.Context, action, token string) bool
+
+type compareAuditFunc func(action, outcome string)
 
 func (c compareHandlerConfig) now() time.Time {
 	if c.Now != nil {
 		return c.Now()
 	}
 	return time.Now()
+}
+
+func (c compareHandlerConfig) allow(ctx context.Context, action, token string) bool {
+	if c.TokenAllow == nil {
+		return true
+	}
+	return c.TokenAllow(ctx, action, token)
+}
+
+func (c compareHandlerConfig) audit(action, outcome string) {
+	if c.Audit != nil {
+		c.Audit(action, outcome)
+	}
 }
 
 type compareInviteResponse struct {
@@ -60,22 +80,28 @@ func createCompareHandler(cfg compareHandlerConfig) http.HandlerFunc {
 		comp, err := cfg.Playthrough.CreateComparisonInvite(r.Context(), user.ID, ptID)
 		switch {
 		case errors.Is(err, playthrough.ErrGuardianConsentRequired):
+			cfg.audit("compare_invite_create", "guardian_consent_required")
 			writeJSONError(w, http.StatusForbidden, "guardian consent required for youth comparison")
 			return
 		case errors.Is(err, playthrough.ErrYouthSafeDenied):
+			cfg.audit("compare_invite_create", "youth_safe_denied")
 			writeJSONError(w, http.StatusForbidden, "comparisons disabled for youth-safe accounts")
 			return
 		case errors.Is(err, playthrough.ErrNotOwner):
+			cfg.audit("compare_invite_create", "not_found")
 			writeJSONError(w, http.StatusNotFound, "playthrough not found")
 			return
 		case errors.Is(err, playthrough.ErrPlaythroughNotComplete):
+			cfg.audit("compare_invite_create", "playthrough_incomplete")
 			writeJSONError(w, http.StatusConflict, "playthrough not complete")
 			return
 		case err != nil:
+			cfg.audit("compare_invite_create", "error")
 			cfg.Logger.Error("compare: create invite", "err", err)
 			writeJSONError(w, http.StatusInternalServerError, "comparison invite creation failed")
 			return
 		}
+		cfg.audit("compare_invite_create", "success")
 
 		writeJSON(w, http.StatusCreated, compareInviteResponse{
 			Token:      comp.Token,
@@ -106,41 +132,57 @@ func acceptCompareHandler(cfg compareHandlerConfig) http.HandlerFunc {
 
 		var body acceptCompareRequest
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Token == "" || body.PlaythroughID == uuid.Nil {
+			cfg.audit("compare_accept", "bad_request")
 			writeJSONError(w, http.StatusBadRequest, "token and playthrough_id required")
+			return
+		}
+		if !cfg.allow(r.Context(), "compare_accept", body.Token) {
+			cfg.audit("compare_accept", "rate_limited")
+			writeJSONError(w, http.StatusTooManyRequests, "too many requests")
 			return
 		}
 
 		comp, err := cfg.Playthrough.AcceptComparisonInvite(r.Context(), user.ID, body.Token, body.PlaythroughID)
 		switch {
 		case errors.Is(err, playthrough.ErrGuardianConsentRequired):
+			cfg.audit("compare_accept", "guardian_consent_required")
 			writeJSONError(w, http.StatusForbidden, "guardian consent required for youth comparison")
 			return
 		case errors.Is(err, playthrough.ErrComparisonNotFound):
+			cfg.audit("compare_accept", "not_found")
 			writeJSONError(w, http.StatusNotFound, "comparison not found")
 			return
 		case errors.Is(err, playthrough.ErrComparisonTokenExpired):
+			cfg.audit("compare_accept", "expired")
 			writeJSONError(w, http.StatusGone, "comparison invite expired")
 			return
 		case errors.Is(err, playthrough.ErrYouthSafeDenied):
+			cfg.audit("compare_accept", "youth_safe_denied")
 			writeJSONError(w, http.StatusForbidden, "comparisons disabled for youth-safe accounts")
 			return
 		case errors.Is(err, playthrough.ErrNotOwner):
+			cfg.audit("compare_accept", "not_owner")
 			writeJSONError(w, http.StatusNotFound, "playthrough not found")
 			return
 		case errors.Is(err, playthrough.ErrPlaythroughNotComplete):
+			cfg.audit("compare_accept", "playthrough_incomplete")
 			writeJSONError(w, http.StatusConflict, "playthrough not complete")
 			return
 		case errors.Is(err, playthrough.ErrSeasonMismatch):
+			cfg.audit("compare_accept", "season_mismatch")
 			writeJSONError(w, http.StatusBadRequest, "playthroughs must belong to the same season")
 			return
 		case errors.Is(err, playthrough.ErrComparisonNotPending):
+			cfg.audit("compare_accept", "not_pending")
 			writeJSONError(w, http.StatusGone, "comparison is not pending")
 			return
 		case err != nil:
+			cfg.audit("compare_accept", "error")
 			cfg.Logger.Error("compare: accept invite", "err", err)
 			writeJSONError(w, http.StatusInternalServerError, "accepting comparison failed")
 			return
 		}
+		cfg.audit("compare_accept", "success")
 
 		writeJSON(w, http.StatusOK, comp)
 	}
@@ -158,28 +200,39 @@ func getCompareHandler(cfg compareHandlerConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := strings.TrimSpace(r.PathValue("token"))
 		if token == "" {
+			cfg.audit("compare_get", "not_found")
 			writeJSONError(w, http.StatusNotFound, "comparison not found")
+			return
+		}
+		if !cfg.allow(r.Context(), "compare_get", token) {
+			cfg.audit("compare_get", "rate_limited")
+			writeJSONError(w, http.StatusTooManyRequests, "too many requests")
 			return
 		}
 
 		res, err := cfg.Playthrough.GetComparisonResult(r.Context(), token)
 		switch {
 		case errors.Is(err, playthrough.ErrComparisonNotFound):
+			cfg.audit("compare_get", "not_found")
 			writeJSONError(w, http.StatusNotFound, "comparison not found")
 			return
 		case errors.Is(err, playthrough.ErrComparisonTokenExpired):
+			cfg.audit("compare_get", "expired")
 			writeJSONError(w, http.StatusGone, "comparison link expired")
 			return
 		case errors.Is(err, playthrough.ErrNotFound):
+			cfg.audit("compare_get", "not_found")
 			writeJSONError(w, http.StatusNotFound, "comparison not found")
 			return
 		case errors.Is(err, playthrough.ErrNoDivergence):
+			cfg.audit("compare_get", "no_divergence")
 			// If there's no divergence but it's accepted, we still return the model structure
 			// but we handle no divergence. But service returns ErrNoDivergence.
 			// Let's write standard error response.
 			writeJSONError(w, http.StatusConflict, "no divergence moment found between playthroughs")
 			return
 		case err != nil:
+			cfg.audit("compare_get", "error")
 			cfg.Logger.Error("compare: get result", "err", err)
 			writeJSONError(w, http.StatusInternalServerError, "get comparison failed")
 			return
@@ -198,6 +251,7 @@ func getCompareHandler(cfg compareHandlerConfig) http.HandlerFunc {
 			InviterPNG: inviterPNG,
 			InviteePNG: inviteePNG,
 		})
+		cfg.audit("compare_get", "success")
 	}
 }
 
@@ -207,24 +261,34 @@ func publicComparePortraitHandler(cfg compareHandlerConfig) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := strings.TrimSpace(r.PathValue("token"))
 		if token == "" {
+			cfg.audit("compare_portrait_get", "not_found")
 			writeJSONError(w, http.StatusNotFound, "comparison not found")
+			return
+		}
+		if !cfg.allow(r.Context(), "compare_portrait_get", token) {
+			cfg.audit("compare_portrait_get", "rate_limited")
+			writeJSONError(w, http.StatusTooManyRequests, "too many requests")
 			return
 		}
 
 		comp, err := cfg.Playthrough.GetComparisonResult(r.Context(), token)
 		if err != nil {
 			if errors.Is(err, playthrough.ErrComparisonNotFound) {
+				cfg.audit("compare_portrait_get", "not_found")
 				writeJSONError(w, http.StatusNotFound, "comparison not found")
 				return
 			}
 			if errors.Is(err, playthrough.ErrComparisonTokenExpired) {
+				cfg.audit("compare_portrait_get", "expired")
 				writeJSONError(w, http.StatusGone, "comparison link expired")
 				return
 			}
 			if errors.Is(err, playthrough.ErrNotFound) {
+				cfg.audit("compare_portrait_get", "not_found")
 				writeJSONError(w, http.StatusNotFound, "comparison not found")
 				return
 			}
+			cfg.audit("compare_portrait_get", "error")
 			cfg.Logger.Error("compare: public portrait check", "err", err)
 			writeJSONError(w, http.StatusInternalServerError, "fetch failed")
 			return
@@ -234,6 +298,7 @@ func publicComparePortraitHandler(cfg compareHandlerConfig) http.HandlerFunc {
 		var targetPtID uuid.UUID
 		if side == "invitee" {
 			if comp.Comparison.InviteePlaythroughID == nil {
+				cfg.audit("compare_portrait_get", "bad_request")
 				writeJSONError(w, http.StatusBadRequest, "invitee playthrough not accepted yet")
 				return
 			}
@@ -245,12 +310,14 @@ func publicComparePortraitHandler(cfg compareHandlerConfig) http.HandlerFunc {
 		animate := r.URL.Query().Get("format") == "webp"
 		assets, err := cfg.Playthrough.GetPortrait(r.Context(), targetPtID, animate)
 		if err != nil {
+			cfg.audit("compare_portrait_get", "error")
 			cfg.Logger.Error("compare: public portrait gen", "err", err)
 			writeJSONError(w, http.StatusInternalServerError, "portrait unavailable")
 			return
 		}
 
 		if animate && len(assets.AnimatedWebP) > 0 {
+			cfg.audit("compare_portrait_get", "success")
 			w.Header().Set("Content-Type", "image/webp")
 			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 			_, _ = w.Write(assets.AnimatedWebP)
@@ -259,6 +326,7 @@ func publicComparePortraitHandler(cfg compareHandlerConfig) http.HandlerFunc {
 		w.Header().Set("Content-Type", "image/png")
 		w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		_, _ = w.Write(assets.PNG)
+		cfg.audit("compare_portrait_get", "success")
 	}
 }
 
@@ -278,6 +346,7 @@ func revokeCompareHandler(cfg compareHandlerConfig) http.HandlerFunc {
 
 		token := strings.TrimSpace(r.PathValue("token"))
 		if token == "" {
+			cfg.audit("compare_revoke", "bad_request")
 			writeJSONError(w, http.StatusBadRequest, "token required")
 			return
 		}
@@ -285,13 +354,16 @@ func revokeCompareHandler(cfg compareHandlerConfig) http.HandlerFunc {
 		err = cfg.Playthrough.RevokeComparison(r.Context(), user.ID, token)
 		switch {
 		case errors.Is(err, playthrough.ErrNotFound), errors.Is(err, playthrough.ErrNotOwner):
+			cfg.audit("compare_revoke", "not_found")
 			writeJSONError(w, http.StatusNotFound, "comparison not found")
 			return
 		case err != nil:
+			cfg.audit("compare_revoke", "error")
 			cfg.Logger.Error("compare: revoke", "err", err)
 			writeJSONError(w, http.StatusInternalServerError, "revoke failed")
 			return
 		}
+		cfg.audit("compare_revoke", "success")
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

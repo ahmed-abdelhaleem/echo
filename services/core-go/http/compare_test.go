@@ -1,11 +1,13 @@
 package http
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"testing"
 	"time"
 
@@ -39,6 +41,10 @@ func createCompletedPlaythrough(t *testing.T, mux http.Handler, cookie string, c
 func hashTokenForTest(raw string) string {
 	sum := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(sum[:])
+}
+
+func containsAuditEvent(events []string, want string) bool {
+	return slices.Contains(events, want)
 }
 
 func TestCompareFlow_ShareEnable_TokenGating_AndRevokeInvalidation(t *testing.T) {
@@ -340,4 +346,74 @@ func TestComparePublicPortrait_ExpiredShareToken_ReturnsGone(t *testing.T) {
 
 	expiredPortraitRead := doJSON(t, mux, http.MethodGet, "/compare/"+shareResp.ShareToken+"/portrait?side=invitee", "", nil)
 	require.Equal(t, http.StatusGone, expiredPortraitRead.Code, expiredPortraitRead.Body.String())
+}
+
+func TestCompareGet_RateLimited_AndAudited(t *testing.T) {
+	var auditEvents []string
+	hooks := compareHookOverrides{
+		allow: func(_ context.Context, action, _ string) bool {
+			return action != "compare_get"
+		},
+		audit: func(action, outcome string) {
+			auditEvents = append(auditEvents, action+":"+outcome)
+		},
+	}
+
+	users := &fakeUsersRepo{user: auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}}
+	mux, cookie, _ := newPlaythroughSuiteWithCompareHooks(t, users, hooks)
+
+	inviterID := users.user.ID
+	inviterPlaythroughID := createCompletedPlaythrough(t, mux, cookie, "choice-1")
+
+	users.user = auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}
+	inviteeID := users.user.ID
+	inviteePlaythroughID := createCompletedPlaythrough(t, mux, cookie, "choice-2")
+
+	users.user = auth.User{ID: inviterID, AgeBand: auth.AgeBandAdult}
+	createInviteRec := doJSON(t, mux, http.MethodPost, fmt.Sprintf("/playthroughs/%s/compare", inviterPlaythroughID.String()), cookie, nil)
+	require.Equal(t, http.StatusCreated, createInviteRec.Code, createInviteRec.Body.String())
+
+	var inviteResp compareInviteResponse
+	require.NoError(t, json.Unmarshal(createInviteRec.Body.Bytes(), &inviteResp))
+
+	users.user = auth.User{ID: inviteeID, AgeBand: auth.AgeBandAdult}
+	acceptRec := doJSON(t, mux, http.MethodPost, "/compare/accept", cookie, map[string]any{
+		"token":          inviteResp.Token,
+		"playthrough_id": inviteePlaythroughID.String(),
+	})
+	require.Equal(t, http.StatusOK, acceptRec.Code, acceptRec.Body.String())
+
+	users.user = auth.User{ID: inviterID, AgeBand: auth.AgeBandAdult}
+	shareEnableRec := doJSON(t, mux, http.MethodPost, "/compare/"+inviteResp.Token+"/share-enable", cookie, nil)
+	require.Equal(t, http.StatusOK, shareEnableRec.Code, shareEnableRec.Body.String())
+
+	var shareResp shareEnableResponse
+	require.NoError(t, json.Unmarshal(shareEnableRec.Body.Bytes(), &shareResp))
+
+	rateLimitedRead := doJSON(t, mux, http.MethodGet, "/compare/"+shareResp.ShareToken, "", nil)
+	require.Equal(t, http.StatusTooManyRequests, rateLimitedRead.Code)
+	require.True(t, containsAuditEvent(auditEvents, "compare_get:rate_limited"))
+}
+
+func TestCompareRevoke_AuditedSuccess(t *testing.T) {
+	var auditEvents []string
+	hooks := compareHookOverrides{
+		audit: func(action, outcome string) {
+			auditEvents = append(auditEvents, action+":"+outcome)
+		},
+	}
+
+	users := &fakeUsersRepo{user: auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}}
+	mux, cookie, _ := newPlaythroughSuiteWithCompareHooks(t, users, hooks)
+
+	playthroughID := createCompletedPlaythrough(t, mux, cookie, "choice-1")
+	createInviteRec := doJSON(t, mux, http.MethodPost, fmt.Sprintf("/playthroughs/%s/compare", playthroughID.String()), cookie, nil)
+	require.Equal(t, http.StatusCreated, createInviteRec.Code, createInviteRec.Body.String())
+
+	var inviteResp compareInviteResponse
+	require.NoError(t, json.Unmarshal(createInviteRec.Body.Bytes(), &inviteResp))
+
+	revokeRec := doJSON(t, mux, http.MethodDelete, "/compare/"+inviteResp.Token, cookie, nil)
+	require.Equal(t, http.StatusNoContent, revokeRec.Code, revokeRec.Body.String())
+	require.True(t, containsAuditEvent(auditEvents, "compare_revoke:success"))
 }
