@@ -3,6 +3,7 @@ import 'package:echo_client/features/auth/auth_controller.dart';
 import 'package:echo_client/features/vignette/vignette_controller.dart';
 import 'package:echo_client/services/api_client.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -290,7 +291,27 @@ class _CompareBody extends StatelessWidget {
           if (signedIn && share != null) ...<Widget>[
             const Text('Public share link:'),
             const SizedBox(height: 6),
-            SelectableText(share!.shareUrl),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Expanded(child: SelectableText(share!.shareUrl)),
+                IconButton(
+                  key: const Key('compare.copyShareLink'),
+                  tooltip: 'Copy link',
+                  onPressed: () async {
+                    await Clipboard.setData(
+                      ClipboardData(text: share!.shareUrl),
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Share link copied')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.copy_outlined),
+                ),
+              ],
+            ),
           ],
           if (!signedIn) ...<Widget>[
             const Text('Sign in to enable a public share link.'),

@@ -66,6 +66,19 @@ describe('ComparePage', () => {
 });
 
 describe('ComparePage metadata', () => {
+  it('includes divergence fields in metadata when compare payload resolves', async () => {
+    mockedFetchCompare.mockResolvedValueOnce({ kind: 'ok', payload: PAYLOAD });
+    const meta = await generateMetadata({ params: { token: 'tok-aaa' } });
+
+    const description = String(meta.description ?? '');
+    expect(description).toContain('vignette-009');
+    expect(description).toContain('choice-a');
+    expect(description).toContain('choice-b');
+    const ogImage =
+      (meta.openGraph?.images as Array<{ url: string }> | undefined)?.[0]?.url;
+    expect(ogImage).toBe(PAYLOAD.inviter_png_url);
+  });
+
   it('returns noindex metadata on revoked outcome', async () => {
     mockedFetchCompare.mockResolvedValueOnce({ kind: 'revoked' });
     const meta = await generateMetadata({ params: { token: 'tok-aaa' } });

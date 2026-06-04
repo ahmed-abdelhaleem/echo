@@ -20,8 +20,7 @@ export async function generateMetadata({
 
   const { payload } = outcome;
   const title = 'Echo — Friend comparison';
-  const description =
-    'Two portraits, one divergence moment. A side-by-side mirror of your choices.';
+  const description = `Two portraits, one divergence moment at ${payload.divergence.vignette_id}: inviter chose ${payload.divergence.inviter_choice}, invitee chose ${payload.divergence.invitee_choice}.`;
 
   return {
     title,
