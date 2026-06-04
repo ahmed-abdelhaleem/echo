@@ -235,6 +235,108 @@ func TestCompareCreateInvite_YouthWithGuardianConsent_Allows(t *testing.T) {
 	require.Equal(t, http.StatusCreated, createInviteRec.Code, createInviteRec.Body.String())
 }
 
+func TestCompareAcceptInvite_YouthWithoutGuardianConsent_Forbidden(t *testing.T) {
+	users := &fakeUsersRepo{user: auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}}
+	mux, cookie, _ := newPlaythroughSuite(t, users)
 
+	inviterPlaythroughID := createCompletedPlaythrough(t, mux, cookie, "choice-1")
 
+	users.user = auth.User{ID: uuid.New(), AgeBand: auth.AgeBandYouth}
+	inviteeID := users.user.ID
+	inviteePlaythroughID := createCompletedPlaythrough(t, mux, cookie, "choice-2")
 
+	users.user = auth.User{ID: inviterID, AgeBand: auth.AgeBandAdult}
+	createInviteRec := doJSON(t, mux, http.MethodPost, fmt.Sprintf("/playthroughs/%s/compare", inviterPlaythroughID.String()), cookie, nil)
+	require.Equal(t, http.StatusCreated, createInviteRec.Code, createInviteRec.Body.String())
+
+	var inviteResp compareInviteResponse
+	require.NoError(t, json.Unmarshal(createInviteRec.Body.Bytes(), &inviteResp))
+
+	users.user = auth.User{ID: inviteeID, AgeBand: auth.AgeBandYouth}
+	acceptRec := doJSON(t, mux, http.MethodPost, "/compare/accept", cookie, map[string]any{
+		"token":          inviteResp.Token,
+		"playthrough_id": inviteePlaythroughID.String(),
+	})
+	require.Equal(t, http.StatusForbidden, acceptRec.Code, acceptRec.Body.String())
+}
+
+func TestComparePublicPortrait_RevokedShareToken_ReturnsNotFound(t *testing.T) {
+	users := &fakeUsersRepo{user: auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}}
+	mux, cookie, _ := newPlaythroughSuite(t, users)
+
+	inviterID := users.user.ID
+	inviterPlaythroughID := createCompletedPlaythrough(t, mux, cookie, "choice-1")
+
+	users.user = auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}
+	inviteeID := users.user.ID
+	inviteePlaythroughID := createCompletedPlaythrough(t, mux, cookie, "choice-2")
+
+	users.user = auth.User{ID: inviterID, AgeBand: auth.AgeBandAdult}
+	createInviteRec := doJSON(t, mux, http.MethodPost, fmt.Sprintf("/playthroughs/%s/compare", inviterPlaythroughID.String()), cookie, nil)
+	require.Equal(t, http.StatusCreated, createInviteRec.Code, createInviteRec.Body.String())
+
+	var inviteResp compareInviteResponse
+	require.NoError(t, json.Unmarshal(createInviteRec.Body.Bytes(), &inviteResp))
+
+	users.user = auth.User{ID: inviteeID, AgeBand: auth.AgeBandAdult}
+	acceptRec := doJSON(t, mux, http.MethodPost, "/compare/accept", cookie, map[string]any{
+		"token":          inviteResp.Token,
+		"playthrough_id": inviteePlaythroughID.String(),
+	})
+	require.Equal(t, http.StatusOK, acceptRec.Code, acceptRec.Body.String())
+
+	users.user = auth.User{ID: inviterID, AgeBand: auth.AgeBandAdult}
+	shareEnableRec := doJSON(t, mux, http.MethodPost, "/compare/"+inviteResp.Token+"/share-enable", cookie, nil)
+	require.Equal(t, http.StatusOK, shareEnableRec.Code, shareEnableRec.Body.String())
+
+	var shareResp shareEnableResponse
+	require.NoError(t, json.Unmarshal(shareEnableRec.Body.Bytes(), &shareResp))
+
+	revokeRec := doJSON(t, mux, http.MethodDelete, "/compare/"+inviteResp.Token, cookie, nil)
+	require.Equal(t, http.StatusNoContent, revokeRec.Code, revokeRec.Body.String())
+
+	portraitReadAfterRevoke := doJSON(t, mux, http.MethodGet, "/compare/"+shareResp.ShareToken+"/portrait?side=inviter", "", nil)
+	require.Equal(t, http.StatusNotFound, portraitReadAfterRevoke.Code)
+}
+
+func TestComparePublicPortrait_ExpiredShareToken_ReturnsGone(t *testing.T) {
+	users := &fakeUsersRepo{user: auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}}
+	mux, cookie, repo := newPlaythroughSuite(t, users)
+
+	inviterID := users.user.ID
+	inviterPlaythroughID := createCompletedPlaythrough(t, mux, cookie, "choice-1")
+
+	users.user = auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}
+	inviteeID := users.user.ID
+	inviteePlaythroughID := createCompletedPlaythrough(t, mux, cookie, "choice-2")
+
+	users.user = auth.User{ID: inviterID, AgeBand: auth.AgeBandAdult}
+	createInviteRec := doJSON(t, mux, http.MethodPost, fmt.Sprintf("/playthroughs/%s/compare", inviterPlaythroughID.String()), cookie, nil)
+	require.Equal(t, http.StatusCreated, createInviteRec.Code, createInviteRec.Body.String())
+
+	var inviteResp compareInviteResponse
+	require.NoError(t, json.Unmarshal(createInviteRec.Body.Bytes(), &inviteResp))
+
+	users.user = auth.User{ID: inviteeID, AgeBand: auth.AgeBandAdult}
+	acceptRec := doJSON(t, mux, http.MethodPost, "/compare/accept", cookie, map[string]any{
+		"token":          inviteResp.Token,
+		"playthrough_id": inviteePlaythroughID.String(),
+	})
+	require.Equal(t, http.StatusOK, acceptRec.Code, acceptRec.Body.String())
+
+	users.user = auth.User{ID: inviterID, AgeBand: auth.AgeBandAdult}
+	shareEnableRec := doJSON(t, mux, http.MethodPost, "/compare/"+inviteResp.Token+"/share-enable", cookie, nil)
+	require.Equal(t, http.StatusOK, shareEnableRec.Code, shareEnableRec.Body.String())
+
+	var shareResp shareEnableResponse
+	require.NoError(t, json.Unmarshal(shareEnableRec.Body.Bytes(), &shareResp))
+
+	shareHash := hashTokenForTest(shareResp.ShareToken)
+	shareKey := repo.tokenKey(shareHash, playthrough.ComparisonTokenTypeShare)
+	tk := repo.compTokens[shareKey]
+	tk.ExpiresAt = time.Now().UTC().Add(-time.Minute)
+	repo.compTokens[shareKey] = tk
+
+	expiredPortraitRead := doJSON(t, mux, http.MethodGet, "/compare/"+shareResp.ShareToken+"/portrait?side=invitee", "", nil)
+	require.Equal(t, http.StatusGone, expiredPortraitRead.Code, expiredPortraitRead.Body.String())
+}

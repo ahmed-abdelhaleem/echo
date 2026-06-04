@@ -24,15 +24,15 @@ var ErrUnderageIdentity = errors.New("auth: identity is under 13")
 
 // User is the in-memory projection of an auth.users row.
 type User struct {
-	ID                uuid.UUID
-	KratosIdentityID  uuid.UUID
-	AgeBand           AgeBand
+	ID                                  uuid.UUID
+	KratosIdentityID                    uuid.UUID
+	AgeBand                             AgeBand
 	GuardianComparisonConsentVerifiedAt *time.Time
-	TosVersion        string
-	TosAcceptedAt     time.Time
-	PrivacyVersion    string
-	PrivacyAcceptedAt time.Time
-	CreatedAt         time.Time
+	TosVersion                          string
+	TosAcceptedAt                       time.Time
+	PrivacyVersion                      string
+	PrivacyAcceptedAt                   time.Time
+	CreatedAt                           time.Time
 }
 
 // UsersRepository is the persistence interface for auth.users. Defined as

@@ -466,4 +466,3 @@ func (r *PgRepository) RevokeComparisonTokens(ctx context.Context, comparisonID 
 	}
 	return nil
 }
-

@@ -28,4 +28,3 @@ func TestFindDivergenceMoment_UsesCanonicalVignetteOrder(t *testing.T) {
 		t.Fatalf("unexpected choices: %+v", divergence)
 	}
 }
-

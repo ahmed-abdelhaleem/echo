@@ -286,7 +286,8 @@ class _CompareBody extends StatelessWidget {
             FilledButton(
               onPressed: enablingShare ? null : onEnableShare,
               child: Text(
-                  enablingShare ? 'Publishing…' : 'Enable public share link'),
+                enablingShare ? 'Publishing…' : 'Enable public share link',
+              ),
             ),
           if (signedIn && share != null) ...<Widget>[
             const Text('Public share link:'),

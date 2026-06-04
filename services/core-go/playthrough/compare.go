@@ -15,14 +15,14 @@ import (
 )
 
 var (
-	ErrYouthSafeDenied        = errors.New("playthrough: youth-safe accounts cannot participate in comparisons")
-	ErrNotOwner               = errors.New("playthrough: caller does not own the playthrough")
-	ErrPlaythroughNotComplete = errors.New("playthrough: playthrough is not complete")
-	ErrComparisonNotPending   = errors.New("playthrough: comparison is not pending")
-	ErrSeasonMismatch         = errors.New("playthrough: playthroughs must belong to the same season")
-	ErrNoDivergence           = errors.New("playthrough: playthroughs have no divergence moments")
-	ErrComparisonNotAccepted  = errors.New("playthrough: comparison is not accepted")
-	ErrComparisonTokenExpired = errors.New("playthrough: comparison token expired")
+	ErrYouthSafeDenied         = errors.New("playthrough: youth-safe accounts cannot participate in comparisons")
+	ErrNotOwner                = errors.New("playthrough: caller does not own the playthrough")
+	ErrPlaythroughNotComplete  = errors.New("playthrough: playthrough is not complete")
+	ErrComparisonNotPending    = errors.New("playthrough: comparison is not pending")
+	ErrSeasonMismatch          = errors.New("playthrough: playthroughs must belong to the same season")
+	ErrNoDivergence            = errors.New("playthrough: playthroughs have no divergence moments")
+	ErrComparisonNotAccepted   = errors.New("playthrough: comparison is not accepted")
+	ErrComparisonTokenExpired  = errors.New("playthrough: comparison token expired")
 	ErrGuardianConsentRequired = errors.New("playthrough: guardian consent required for youth comparison")
 )
 
@@ -326,11 +326,11 @@ func findDivergenceMoment(canonicalOrder []string, choicesA, choicesB []ChoiceEv
 		choiceA, okA := mapA[vignetteID]
 		choiceB, okB := mapB[vignetteID]
 		if okA && okB && choiceA != choiceB {
-				return ComparisonDivergence{
-					VignetteID:    vignetteID,
-					InviterChoice: choiceA,
-					InviteeChoice: choiceB,
-				}, nil
+			return ComparisonDivergence{
+				VignetteID:    vignetteID,
+				InviterChoice: choiceA,
+				InviteeChoice: choiceB,
+			}, nil
 		}
 	}
 
@@ -380,4 +380,3 @@ func validateComparisonEligibility(u auth.User) error {
 	}
 	return nil
 }
-

@@ -24,8 +24,8 @@ void main() {
         remoteId: '11111111-1111-4111-8111-111111111111',
       );
 
-      final signedIn = AuthStateSignedIn(
-        session: const AuthSession(
+      const signedIn = AuthStateSignedIn(
+        session: AuthSession(
           token: 'token-1',
           identityId: 'identity-1',
           email: 'user@example.test',
@@ -54,8 +54,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('compare.accept.knownPlaythroughs')),
-          findsOneWidget);
+      expect(
+        find.byKey(const Key('compare.accept.knownPlaythroughs')),
+        findsOneWidget,
+      );
       expect(
         find.text('11111111-1111-4111-8111-111111111111'),
         findsAtLeastNWidgets(1),

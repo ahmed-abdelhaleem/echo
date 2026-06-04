@@ -29,10 +29,6 @@ func (c compareHandlerConfig) now() time.Time {
 	return time.Now()
 }
 
-type createCompareRequest struct {
-	PlaythroughID uuid.UUID `json:"playthrough_id"`
-}
-
 type compareInviteResponse struct {
 	Token      string `json:"token"`
 	CompareURL string `json:"compare_url"`
