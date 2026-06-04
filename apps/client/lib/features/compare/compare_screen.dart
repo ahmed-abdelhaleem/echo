@@ -1,9 +1,14 @@
 import 'package:dio/dio.dart';
 import 'package:echo_client/features/auth/auth_controller.dart';
+import 'package:echo_client/features/vignette/vignette_controller.dart';
 import 'package:echo_client/services/api_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+final RegExp _uuidPattern = RegExp(
+  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
+);
 
 class CompareScreen extends ConsumerStatefulWidget {
   const CompareScreen({required this.token, super.key});
@@ -20,6 +25,7 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
   String? _error;
   bool _loading = true;
   bool _enablingShare = false;
+  bool _revoking = false;
 
   @override
   void initState() {
@@ -137,6 +143,45 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
     }
   }
 
+  Future<void> _revokeComparison() async {
+    setState(() {
+      _revoking = true;
+      _error = null;
+    });
+    final api = ref.read(apiClientProvider);
+    try {
+      await api.revokeComparison(token: widget.token);
+      if (!mounted) {
+        return;
+      }
+      context.goNamed('home');
+    } on CompareUnauthorised {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _error = 'Sign in required to revoke this comparison.';
+        _revoking = false;
+      });
+    } on CompareNotFound {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _error = 'Comparison not found.';
+        _revoking = false;
+      });
+    } on DioException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _error = 'Could not revoke comparison: ${e.message ?? 'network error'}';
+        _revoking = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authControllerProvider);
@@ -156,7 +201,9 @@ class _CompareScreenState extends ConsumerState<CompareScreen> {
                       signedIn: signedIn,
                       share: _share,
                       enablingShare: _enablingShare,
+                      revoking: _revoking,
                       onEnableShare: _enableShare,
+                      onRevoke: _revokeComparison,
                     ),
         ),
       ),
@@ -170,14 +217,18 @@ class _CompareBody extends StatelessWidget {
     required this.signedIn,
     required this.share,
     required this.enablingShare,
+    required this.revoking,
     required this.onEnableShare,
+    required this.onRevoke,
   });
 
   final ComparisonPublicPayload payload;
   final bool signedIn;
   final ComparisonSharePayload? share;
   final bool enablingShare;
+  final bool revoking;
   final VoidCallback onEnableShare;
+  final VoidCallback onRevoke;
 
   @override
   Widget build(BuildContext context) {
@@ -247,6 +298,12 @@ class _CompareBody extends StatelessWidget {
             OutlinedButton(
               onPressed: () => context.goNamed('login'),
               child: const Text('Sign in'),
+            ),
+          ] else ...<Widget>[
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: revoking ? null : onRevoke,
+              child: Text(revoking ? 'Revoking…' : 'Revoke comparison'),
             ),
           ],
         ],
@@ -329,8 +386,17 @@ class CompareAcceptScreen extends ConsumerStatefulWidget {
 class _CompareAcceptScreenState extends ConsumerState<CompareAcceptScreen> {
   final TextEditingController _playthroughIdController =
       TextEditingController();
+  List<String> _knownRemotePlaythroughIds = const <String>[];
+  bool _loadingKnownRemoteIds = true;
+  String? _selectedKnownRemoteId;
   bool _submitting = false;
   String? _message;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadKnownRemotePlaythroughIds();
+  }
 
   @override
   void dispose() {
@@ -338,11 +404,45 @@ class _CompareAcceptScreenState extends ConsumerState<CompareAcceptScreen> {
     super.dispose();
   }
 
+  Future<void> _loadKnownRemotePlaythroughIds() async {
+    final repo = ref.read(playthroughRepositoryProvider);
+    final rows = await repo.listSyncedPlaythroughs();
+
+    final List<String> ids = <String>[];
+    for (final row in rows) {
+      final remoteId = row.remoteId;
+      if (remoteId == null || remoteId.isEmpty) {
+        continue;
+      }
+      if (!ids.contains(remoteId)) {
+        ids.add(remoteId);
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _knownRemotePlaythroughIds = ids;
+      _loadingKnownRemoteIds = false;
+      if (ids.length == 1) {
+        _selectedKnownRemoteId = ids.first;
+        _playthroughIdController.text = ids.first;
+      }
+    });
+  }
+
   Future<void> _submit() async {
     final playthroughId = _playthroughIdController.text.trim();
     if (playthroughId.isEmpty) {
       setState(() {
         _message = 'Playthrough ID is required.';
+      });
+      return;
+    }
+    if (!_uuidPattern.hasMatch(playthroughId)) {
+      setState(() {
+        _message = 'Playthrough ID must be a valid UUID.';
       });
       return;
     }
@@ -362,6 +462,11 @@ class _CompareAcceptScreenState extends ConsumerState<CompareAcceptScreen> {
         return;
       }
       context.go('/compare/${widget.token}');
+    } on CompareUnauthorised {
+      setState(() {
+        _message = 'Sign in again to accept this invite.';
+        _submitting = false;
+      });
     } on CompareForbidden {
       setState(() {
         _message = 'Your account is not eligible to accept this invite.';
@@ -402,8 +507,43 @@ class _CompareAcceptScreenState extends ConsumerState<CompareAcceptScreen> {
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  const Text('Paste your completed remote playthrough ID:'),
+                  const Text(
+                    'Choose one of your synced playthroughs or paste a remote playthrough ID:',
+                  ),
                   const SizedBox(height: 8),
+                  if (_loadingKnownRemoteIds)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 8),
+                      child: LinearProgressIndicator(),
+                    ),
+                  if (!_loadingKnownRemoteIds &&
+                      _knownRemotePlaythroughIds.isNotEmpty) ...<Widget>[
+                    DropdownButtonFormField<String>(
+                      key: const Key('compare.accept.knownPlaythroughs'),
+                      value: _selectedKnownRemoteId,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        labelText: 'Known playthroughs',
+                      ),
+                      items: _knownRemotePlaythroughIds
+                          .map(
+                            (id) => DropdownMenuItem<String>(
+                              value: id,
+                              child: Text(id),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedKnownRemoteId = value;
+                          if (value != null) {
+                            _playthroughIdController.text = value;
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   TextField(
                     key: const Key('compare.accept.playthroughId'),
                     controller: _playthroughIdController,

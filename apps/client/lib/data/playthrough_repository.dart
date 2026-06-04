@@ -42,4 +42,8 @@ class PlaythroughRepository {
   Future<LocalPlaythroughRow?> findById(String localId) {
     return _db.findLocalPlaythrough(localId);
   }
+
+  Future<List<LocalPlaythroughRow>> listSyncedPlaythroughs() {
+    return _db.listLocalPlaythroughsWithRemote();
+  }
 }

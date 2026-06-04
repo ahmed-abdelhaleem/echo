@@ -148,6 +148,18 @@ class EchoDatabase extends _$EchoDatabase {
         .get();
   }
 
+  /// Returns locally-known playthroughs that already have a server id.
+  /// The compare-accept flow uses this to let users pick one instead of
+  /// manually pasting ids.
+  Future<List<LocalPlaythroughRow>> listLocalPlaythroughsWithRemote() {
+    return (select(localPlaythroughs)
+          ..where((t) => t.remoteId.isNotNull())
+          ..orderBy(<OrderClauseGenerator<LocalPlaythroughs>>[
+            (t) => OrderingTerm.desc(t.startedAt),
+          ]))
+        .get();
+  }
+
   /// Stamps a local playthrough with the server-assigned UUID returned
   /// from POST /playthroughs.
   Future<int> setLocalPlaythroughRemoteId({

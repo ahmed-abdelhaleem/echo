@@ -139,4 +139,34 @@ void main() {
       );
     });
   });
+
+  group('ApiClient.revokeComparison', () {
+    test('204 resolves normally', () async {
+      final adapter = ProgrammableAdapter()
+        ..registerJson(
+          method: 'DELETE',
+          path: RegExp(r'^/compare/tok-3$'),
+          status: 204,
+        );
+
+      final client = apiClientWith(adapter);
+      await client.revokeComparison(token: 'tok-3');
+    });
+
+    test('404 surfaces as CompareNotFound', () async {
+      final adapter = ProgrammableAdapter()
+        ..registerJson(
+          method: 'DELETE',
+          path: RegExp(r'^/compare/tok-3$'),
+          status: 404,
+          body: <String, dynamic>{'error': 'not found'},
+        );
+
+      final client = apiClientWith(adapter);
+      await expectLater(
+        client.revokeComparison(token: 'tok-3'),
+        throwsA(isA<CompareNotFound>()),
+      );
+    });
+  });
 }

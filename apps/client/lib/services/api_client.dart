@@ -352,6 +352,25 @@ class ApiClient {
     return ComparisonSharePayload.fromJson(body);
   }
 
+  /// DELETE /compare/{token}. Revokes the comparison for both participants.
+  Future<void> revokeComparison({required String token}) async {
+    final response = await _dio.delete<void>('/compare/$token');
+    final status = response.statusCode ?? 0;
+    if (status == 401) {
+      throw CompareUnauthorised();
+    }
+    if (status == 404) {
+      throw CompareNotFound();
+    }
+    if (status != 204) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Unexpected status $status from revokeComparison',
+      );
+    }
+  }
+
   /// POST /playthroughs/{id}/finalize. Returns the trait vector as a map.
   Future<Map<String, dynamic>> finalizePlaythrough({
     required String playthroughId,
