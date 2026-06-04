@@ -110,6 +110,27 @@ type StoredTraitVector struct {
 	CreatedAt      time.Time `json:"created_at"`
 }
 
+// --- Comparisons (T-SOCIAL-001) -------------------------------------------
+
+type ComparisonStatus string
+
+const (
+	ComparisonStatusPending  ComparisonStatus = "pending"
+	ComparisonStatusAccepted ComparisonStatus = "accepted"
+	ComparisonStatusRevoked  ComparisonStatus = "revoked"
+)
+
+type Comparison struct {
+	ID                   uuid.UUID        `json:"id"`
+	Token                string           `json:"token"`
+	InviterPlaythroughID uuid.UUID        `json:"inviter_playthrough_id"`
+	InviteePlaythroughID *uuid.UUID       `json:"invitee_playthrough_id,omitempty"`
+	SeasonID             string           `json:"season_id"`
+	Status               ComparisonStatus `json:"status"`
+	CreatedAt            time.Time        `json:"created_at"`
+	AcceptedAt           *time.Time       `json:"accepted_at,omitempty"`
+}
+
 // --- Portrait + Reflection (M1 stubs) --------------------------------------
 
 // PortraitInput is the payload sent to ml-py's PortraitGenService. The

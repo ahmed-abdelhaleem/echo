@@ -164,6 +164,9 @@ func main() {
 			NewService(playthrough.NewPgRepository(deps.PG), deps.Content, scorer).
 			WithPortraitGenerator(portraitGen).
 			WithReflectionGenerator(reflectionGen)
+		if deps.Users != nil {
+			deps.Playthrough = deps.Playthrough.WithUsersRepository(deps.Users)
+		}
 		logger.Info("playthrough enabled")
 	} else {
 		logger.Info("playthrough disabled; postgres or content not available")

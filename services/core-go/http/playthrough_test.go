@@ -44,6 +44,7 @@ type fakeRepo struct {
 	playthroughs map[uuid.UUID]playthrough.Playthrough
 	choices      map[string]playthrough.ChoiceEvent
 	vectors      map[uuid.UUID]playthrough.StoredTraitVector
+	comparisons  map[string]playthrough.Comparison
 }
 
 func newFakeRepo() *fakeRepo {
@@ -51,6 +52,7 @@ func newFakeRepo() *fakeRepo {
 		playthroughs: map[uuid.UUID]playthrough.Playthrough{},
 		choices:      map[string]playthrough.ChoiceEvent{},
 		vectors:      map[uuid.UUID]playthrough.StoredTraitVector{},
+		comparisons:  map[string]playthrough.Comparison{},
 	}
 }
 func key(p uuid.UUID, v string) string { return p.String() + "|" + v }
@@ -125,6 +127,50 @@ func (r *fakeRepo) GetTraitVector(_ context.Context, playthroughID uuid.UUID) (p
 		return playthrough.StoredTraitVector{}, playthrough.ErrTraitVectorNotFound
 	}
 	return stored, nil
+}
+
+func (r *fakeRepo) CreateComparison(_ context.Context, token string, inviterPlaythroughID uuid.UUID, seasonID string) (playthrough.Comparison, error) {
+	c := playthrough.Comparison{
+		ID:                   uuid.New(),
+		Token:                token,
+		InviterPlaythroughID: inviterPlaythroughID,
+		SeasonID:             seasonID,
+		Status:               playthrough.ComparisonStatusPending,
+		CreatedAt:            time.Now(),
+	}
+	r.comparisons[token] = c
+	return c, nil
+}
+
+func (r *fakeRepo) GetComparison(_ context.Context, token string) (playthrough.Comparison, error) {
+	c, ok := r.comparisons[token]
+	if !ok {
+		return playthrough.Comparison{}, playthrough.ErrComparisonNotFound
+	}
+	return c, nil
+}
+
+func (r *fakeRepo) AcceptComparison(_ context.Context, token string, inviteePlaythroughID uuid.UUID) (playthrough.Comparison, error) {
+	c, ok := r.comparisons[token]
+	if !ok {
+		return playthrough.Comparison{}, playthrough.ErrComparisonNotFound
+	}
+	now := time.Now()
+	c.InviteePlaythroughID = &inviteePlaythroughID
+	c.AcceptedAt = &now
+	c.Status = playthrough.ComparisonStatusAccepted
+	r.comparisons[token] = c
+	return c, nil
+}
+
+func (r *fakeRepo) RevokeComparison(_ context.Context, token string) error {
+	c, ok := r.comparisons[token]
+	if !ok {
+		return playthrough.ErrComparisonNotFound
+	}
+	c.Status = playthrough.ComparisonStatusRevoked
+	r.comparisons[token] = c
+	return nil
 }
 
 // fakeScorer is a recording stand-in for the gRPC client. The HTTP

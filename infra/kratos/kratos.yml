@@ -126,7 +126,7 @@ selfservice:
                 body: file:///etc/config/kratos/hooks/after-registration.jsonnet
                 response:
                   ignore: false
-                  parse: true
+                  parse: false
                 auth:
                   type: api_key
                   config:
@@ -144,7 +144,7 @@ selfservice:
                 body: file:///etc/config/kratos/hooks/after-registration.jsonnet
                 response:
                   ignore: false
-                  parse: true
+                  parse: false
                 auth:
                   type: api_key
                   config:

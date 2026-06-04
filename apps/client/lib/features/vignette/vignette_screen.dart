@@ -14,8 +14,14 @@
 // persistence. PR 8 (T-CLIENT-012) will drain pending choices to the
 // server in the background.
 
+import 'dart:typed_data';
+
+import 'package:echo_client/data/local/database.dart';
 import 'package:echo_client/data/models/content.dart';
 import 'package:echo_client/features/vignette/vignette_controller.dart';
+import 'package:echo_client/features/share/share_button.dart';
+import 'package:echo_client/features/sync/sync_controller.dart';
+import 'package:echo_client/services/api_client.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -208,31 +214,211 @@ class _PlayingView extends ConsumerWidget {
   }
 }
 
-class _CompleteView extends StatelessWidget {
+class _CompleteView extends ConsumerStatefulWidget {
   const _CompleteView({required this.state});
   final VignetteComplete state;
 
   @override
+  ConsumerState<_CompleteView> createState() => _CompleteViewState();
+}
+
+class _CompleteViewState extends ConsumerState<_CompleteView> {
+  String? _remoteId;
+  String? _reflection;
+  Uint8List? _portraitBytes;
+  String? _errorMessage;
+  bool _loading = true;
+  String _statusMessage = 'Finalizing playthrough…';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadResults();
+  }
+
+  Future<void> _loadResults() async {
+    try {
+      final playRepo = ref.read(playthroughRepositoryProvider);
+
+      // Step 1: Ensure choices are synced and remoteId is acquired.
+      setState(() {
+        _statusMessage = 'Syncing choices to server…';
+      });
+
+      // Force a sync right now.
+      await ref.read(syncControllerProvider.notifier).syncNow();
+
+      // Check if remoteId is populated
+      LocalPlaythroughRow? localPlay = await playRepo.findById(widget.state.localPlaythroughId);
+      String? remoteId = localPlay?.remoteId;
+
+      if (remoteId == null) {
+        // If not synced, wait a bit and check again.
+        int attempts = 0;
+        while (remoteId == null && attempts < 5) {
+          await Future<void>.delayed(const Duration(seconds: 2));
+          await ref.read(syncControllerProvider.notifier).syncNow();
+          localPlay = await playRepo.findById(widget.state.localPlaythroughId);
+          remoteId = localPlay?.remoteId;
+          attempts++;
+        }
+      }
+
+      if (remoteId == null) {
+        throw Exception('Playthrough could not be registered on server. Please check your internet connection.');
+      }
+
+      _remoteId = remoteId;
+
+      // Step 2: Finalize the playthrough on the server.
+      setState(() {
+        _statusMessage = 'Reflecting on your choices…';
+      });
+      final api = ref.read(apiClientProvider);
+      await api.finalizePlaythrough(playthroughId: remoteId);
+
+      // Step 3: Fetch the reflection text.
+      setState(() {
+        _statusMessage = 'Composing personality reflection…';
+      });
+      final reflection = await api.getReflection(playthroughId: remoteId);
+
+      // Step 4: Fetch the visual Portrait bytes.
+      setState(() {
+        _statusMessage = 'Generating visual Portrait…';
+      });
+      final bytes = await api.getPortraitBytes(playthroughId: remoteId, animate: false);
+
+      if (mounted) {
+        setState(() {
+          _reflection = reflection;
+          _portraitBytes = Uint8List.fromList(bytes);
+          _loading = false;
+        });
+      }
+    } catch (e, st) {
+      debugPrintStack(stackTrace: st, label: '_CompleteView._loadResults');
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        Text(
-          'Season complete',
-          style: Theme.of(context).textTheme.headlineSmall,
+    final theme = Theme.of(context);
+
+    if (_loading) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const CircularProgressIndicator(),
+            const SizedBox(height: 24),
+            Text(
+              _statusMessage,
+              style: theme.textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        Text(
-          'Thanks for playing “${state.season.title}”. Your choices are '
-          'saved locally and will sync the next time the device is online. '
-          'The Portrait and reflection land in a later release.',
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(
+            'Unable to generate Portrait',
+            style: theme.textTheme.headlineSmall?.copyWith(color: theme.colorScheme.error),
+          ),
+          const SizedBox(height: 12),
+          Text(_errorMessage!),
+          const Spacer(),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _loading = true;
+                _errorMessage = null;
+              });
+              _loadResults();
+            },
+            child: const Text('Try Again'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton(
+            onPressed: () => context.goNamed('home'),
+            child: const Text('Back to home'),
+          ),
+        ],
+      );
+    }
+
+    return Center(
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: <Widget>[
+            Text(
+              'Your Portrait',
+              style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            if (_portraitBytes != null)
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.shadow.withAlpha(51),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.memory(
+                    _portraitBytes!,
+                    width: 320,
+                    height: 320,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 24),
+            if (_reflection != null)
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _reflection!,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            const SizedBox(height: 32),
+            if (_remoteId != null)
+              ShareButton(playthroughId: _remoteId!),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () => context.goNamed('home'),
+              child: const Text('Back to home'),
+            ),
+            const SizedBox(height: 24),
+          ],
         ),
-        const Spacer(),
-        OutlinedButton(
-          onPressed: () => context.goNamed('home'),
-          child: const Text('Back to home'),
-        ),
-      ],
+      ),
     );
   }
 }

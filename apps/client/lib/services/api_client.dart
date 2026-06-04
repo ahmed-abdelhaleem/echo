@@ -244,6 +244,91 @@ class ApiClient {
     return data;
   }
 
+  /// POST /playthroughs/{id}/finalize. Returns the trait vector as a map.
+  Future<Map<String, dynamic>> finalizePlaythrough({
+    required String playthroughId,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/playthroughs/$playthroughId/finalize',
+    );
+    final status = response.statusCode ?? 0;
+    if (status != 200) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Unexpected status $status from finalizePlaythrough',
+      );
+    }
+    final body = response.data;
+    if (body == null || body['trait_vector'] == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Malformed envelope from finalizePlaythrough',
+      );
+    }
+    return body['trait_vector'] as Map<String, dynamic>;
+  }
+
+  /// GET /playthroughs/{id}/reflection. Returns the reflection text.
+  Future<String> getReflection({
+    required String playthroughId,
+  }) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/playthroughs/$playthroughId/reflection',
+    );
+    final status = response.statusCode ?? 0;
+    if (status != 200) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Unexpected status $status from getReflection',
+      );
+    }
+    final body = response.data;
+    if (body == null || body['reflection'] == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Malformed envelope from getReflection',
+      );
+    }
+    return body['reflection']['text'] as String;
+  }
+
+  /// GET /playthroughs/{id}/portrait. Returns the image bytes.
+  Future<List<int>> getPortraitBytes({
+    required String playthroughId,
+    bool animate = false,
+  }) async {
+    final format = animate ? 'webp' : 'png';
+    final response = await _dio.get<List<int>>(
+      '/playthroughs/$playthroughId/portrait',
+      queryParameters: <String, dynamic>{'format': format},
+      options: Options(
+        responseType: ResponseType.bytes,
+        validateStatus: (s) => s != null && s < 500,
+      ),
+    );
+    final status = response.statusCode ?? 0;
+    if (status != 200) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Unexpected status $status from getPortraitBytes',
+      );
+    }
+    final data = response.data;
+    if (data == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Empty body from getPortraitBytes',
+      );
+    }
+    return data;
+  }
+
   Dio get raw => _dio;
 }
 

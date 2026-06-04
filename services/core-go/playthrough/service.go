@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/ahmed-abdelhaleem/echo/services/core-go/auth"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/content"
 	"github.com/google/uuid"
 )
@@ -71,6 +72,7 @@ type Service struct {
 	repo          Repository
 	content       *content.Service
 	scorer        TraitScorer
+	users         auth.UsersRepository
 	portraitGen   PortraitGenerator
 	reflectionGen ReflectionGenerator
 }

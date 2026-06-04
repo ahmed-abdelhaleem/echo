@@ -154,6 +154,30 @@ func NewMux(deps Dependencies) http.Handler {
 		}
 	}
 
+	// Friend comparison surface (T-SOCIAL-001). Public compare routes are
+	// token-based and intentionally unauthenticated; write operations require
+	// an authenticated session.
+	if deps.Playthrough != nil && deps.Users != nil {
+		compareCfg := compareHandlerConfig{
+			Playthrough:  deps.Playthrough,
+			Users:        deps.Users,
+			ShareBaseURL: deps.ShareBaseURL,
+			APIBaseURL:   deps.APIBaseURL,
+			Logger:       deps.Logger,
+			Now:          nowFn,
+		}
+
+		mux.Handle("GET /compare/{token}", getCompareHandler(compareCfg))
+		mux.Handle("GET /compare/{token}/portrait", publicComparePortraitHandler(compareCfg))
+
+		if deps.Auth != nil && deps.Auth.Kratos != nil {
+			mw := auth.Middleware(deps.Auth.Kratos, deps.Logger)
+			mux.Handle("POST /playthroughs/{id}/compare", mw(createCompareHandler(compareCfg)))
+			mux.Handle("POST /compare/accept", mw(acceptCompareHandler(compareCfg)))
+			mux.Handle("DELETE /compare/{token}", mw(revokeCompareHandler(compareCfg)))
+		}
+	}
+
 	return mux
 }
 
