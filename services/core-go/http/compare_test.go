@@ -239,6 +239,7 @@ func TestCompareAcceptInvite_YouthWithoutGuardianConsent_Forbidden(t *testing.T)
 	users := &fakeUsersRepo{user: auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}}
 	mux, cookie, _ := newPlaythroughSuite(t, users)
 
+	inviterID := users.user.ID
 	inviterPlaythroughID := createCompletedPlaythrough(t, mux, cookie, "choice-1")
 
 	users.user = auth.User{ID: uuid.New(), AgeBand: auth.AgeBandYouth}
