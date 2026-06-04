@@ -233,7 +233,15 @@ class _CompleteViewState extends ConsumerState<_CompleteView> {
   @override
   void initState() {
     super.initState();
-    _loadResults();
+    // _loadResults triggers syncController state mutations. Deferring to the
+    // first post-frame callback avoids Riverpod's "modify provider while
+    // building" guard in initState.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _loadResults();
+    });
   }
 
   Future<void> _loadResults() async {
