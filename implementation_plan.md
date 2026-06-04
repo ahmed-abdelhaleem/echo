@@ -221,17 +221,17 @@ Structured logs:
 
 ## Execution Checklist
 
-- [ ] finalize migration spec and apply locally
-- [ ] implement repository updates
-- [ ] implement service rules and divergence selector
-- [ ] wire HTTP routes + handlers
-- [ ] implement client compare and accept routes
-- [ ] implement share-web compare page
-- [ ] add tests for all layers
-- [ ] run `make lint`
-- [ ] run `make test`
-- [ ] run `make build`
-- [ ] run `make validate-content`
+- [x] finalize migration spec and apply locally
+- [x] implement repository updates
+- [x] implement service rules and divergence selector
+- [x] wire HTTP routes + handlers
+- [x] implement client compare and accept routes
+- [x] implement share-web compare page
+- [x] add tests for all layers
+- [x] run `make lint`
+- [x] run `make test`
+- [x] run `make build`
+- [x] run `make validate-content`
 
 ## Human Review Required
 

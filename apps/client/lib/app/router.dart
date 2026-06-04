@@ -21,6 +21,7 @@ import 'package:echo_client/features/auth/settings_screen.dart';
 import 'package:echo_client/features/auth/sign_up_screen.dart';
 import 'package:echo_client/features/compare/compare_screen.dart';
 import 'package:echo_client/features/home/home_screen.dart';
+import 'package:echo_client/features/subscription/subscription_screen.dart';
 import 'package:echo_client/features/vignette/vignette_screen.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,7 +29,7 @@ import 'package:go_router/go_router.dart';
 
 /// Routes that require a signed-in user. Anonymous visitors are
 /// redirected to /login.
-const Set<String> _authRequiredPaths = <String>{'/settings'};
+const Set<String> _authRequiredPaths = <String>{'/settings', '/subscription'};
 
 /// Routes that should not be visible to signed-in users (no point
 /// signing in when you're already signed in). Visitors here are
@@ -108,6 +109,11 @@ final Provider<GoRouter> appRouterProvider = Provider<GoRouter>((Ref ref) {
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/subscription',
+        name: 'subscription',
+        builder: (context, state) => const SubscriptionScreen(),
       ),
       GoRoute(
         path: '/auth/callback',

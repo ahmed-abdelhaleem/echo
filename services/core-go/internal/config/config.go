@@ -84,6 +84,33 @@ type Config struct {
 	// primarily useful for local Flutter web (single-origin auth calls).
 	// Defaults to true in dev and false otherwise.
 	EnableKratosProxy bool
+
+	// ─── Billing (T-MONEY-001 / F-MONEY-001) ────────────────────────────────
+	//
+	// ⚠️  HUMAN REVIEW REQUIRED before enabling in production.
+	//     Per AGENTS.md escalation rule #10 (billing logic).
+
+	// StripeSecretKey is the Stripe API secret key (sk_live_… / sk_test_…).
+	// Empty disables Stripe checkout and portal session creation.
+	StripeSecretKey string
+
+	// StripeWebhookSecret is the Stripe webhook signing secret (whsec_…).
+	// Empty skips signature verification (dev only — never empty in production).
+	StripeWebhookSecret string
+
+	// StripeMonthlyPriceID is the Stripe Price ID for the monthly Echo+ plan.
+	StripeMonthlyPriceID string
+
+	// StripeYearlyPriceID is the Stripe Price ID for the annual Echo+ plan.
+	StripeYearlyPriceID string
+
+	// AppleWebhookSecret is the shared secret for Apple App Store Server
+	// Notifications. Empty skips JWS signature verification (dev only).
+	AppleWebhookSecret string
+
+	// GoogleWebhookSecret is the Google Cloud Pub/Sub push bearer token.
+	// Empty skips token verification (dev only).
+	GoogleWebhookSecret string
 }
 
 // Load reads the configuration from the environment, applying defaults.
@@ -108,6 +135,14 @@ func Load() (Config, error) {
 	cfg.CORSAllowedOrigins = parseCSV(os.Getenv("CORE_CORS_ALLOWED_ORIGINS"))
 	cfg.CORSAllowLocalhost = corsAllowLocalhost(cfg.Environment, os.Getenv("CORE_CORS_ALLOW_LOCALHOST"))
 	cfg.EnableKratosProxy = boolWithDevDefault(cfg.Environment, os.Getenv("CORE_ENABLE_KRATOS_PROXY"))
+
+	// Billing.
+	cfg.StripeSecretKey = strings.TrimSpace(os.Getenv("STRIPE_SECRET_KEY"))
+	cfg.StripeWebhookSecret = strings.TrimSpace(os.Getenv("STRIPE_WEBHOOK_SECRET"))
+	cfg.StripeMonthlyPriceID = strings.TrimSpace(os.Getenv("STRIPE_MONTHLY_PRICE_ID"))
+	cfg.StripeYearlyPriceID = strings.TrimSpace(os.Getenv("STRIPE_YEARLY_PRICE_ID"))
+	cfg.AppleWebhookSecret = strings.TrimSpace(os.Getenv("APPLE_WEBHOOK_SECRET"))
+	cfg.GoogleWebhookSecret = strings.TrimSpace(os.Getenv("GOOGLE_WEBHOOK_SECRET"))
 
 	if cfg.HTTPAddr == "" {
 		return cfg, errors.New("CORE_HTTP_ADDR cannot be empty")

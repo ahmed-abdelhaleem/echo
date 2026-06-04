@@ -512,8 +512,172 @@ class ApiClient {
     return data;
   }
 
+  /// GET /users/me/subscription. Returns the current Echo+ subscription
+  /// status for the authenticated user. Returns free tier when no
+  /// subscription exists.
+  Future<SubscriptionStatus> getSubscription() async {
+    final response = await _dio.get<Map<String, dynamic>>('/users/me/subscription');
+    final status = response.statusCode ?? 0;
+    if (status == 401) throw SubscriptionUnauthorised();
+    if (status != 200) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Unexpected status $status from getSubscription',
+      );
+    }
+    final body = response.data;
+    if (body == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Empty body from getSubscription',
+      );
+    }
+    return SubscriptionStatus.fromJson(body);
+  }
+
+  /// POST /billing/stripe/checkout. Creates a Stripe Checkout session for
+  /// desktop (Windows/macOS) Echo+ purchase. Returns a URL to redirect the
+  /// player's browser to.
+  Future<StripeCheckoutSession> createStripeCheckout({String? priceId}) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/billing/stripe/checkout',
+      data: priceId != null ? <String, dynamic>{'price_id': priceId} : null,
+    );
+    final status = response.statusCode ?? 0;
+    if (status == 401) throw SubscriptionUnauthorised();
+    if (status != 201) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Unexpected status $status from createStripeCheckout',
+      );
+    }
+    final body = response.data;
+    if (body == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Empty body from createStripeCheckout',
+      );
+    }
+    return StripeCheckoutSession.fromJson(body);
+  }
+
+  /// POST /billing/stripe/portal. Returns a Stripe Billing Portal URL for
+  /// managing or canceling an existing subscription on desktop.
+  Future<StripePortalSession> createStripePortal() async {
+    final response = await _dio.post<Map<String, dynamic>>('/billing/stripe/portal');
+    final status = response.statusCode ?? 0;
+    if (status == 401) throw SubscriptionUnauthorised();
+    if (status != 201) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Unexpected status $status from createStripePortal',
+      );
+    }
+    final body = response.data;
+    if (body == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Empty body from createStripePortal',
+      );
+    }
+    return StripePortalSession.fromJson(body);
+  }
+
+  /// POST /billing/google/acknowledge. Called by the Android client after a
+  /// successful Play Billing purchase to register the purchase on the server.
+  Future<void> acknowledgeGooglePurchase({
+    required String purchaseToken,
+    required String subscriptionId,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/billing/google/acknowledge',
+      data: <String, dynamic>{
+        'purchase_token': purchaseToken,
+        'subscription_id': subscriptionId,
+      },
+    );
+    final status = response.statusCode ?? 0;
+    if (status == 401) throw SubscriptionUnauthorised();
+    if (status != 200) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Unexpected status $status from acknowledgeGooglePurchase',
+      );
+    }
+  }
+
   Dio get raw => _dio;
 }
+
+// ─── Subscription (T-MONEY-001 / F-MONEY-001) ─────────────────────────────
+
+/// Wire shape of GET /users/me/subscription.
+/// Structurally aligned with
+/// `services/core-go/http/billing.go::billingSubscriptionResponse`.
+class SubscriptionStatus {
+  const SubscriptionStatus({
+    required this.tier,
+    required this.status,
+    required this.store,
+    required this.isPremium,
+    this.currentPeriodEnd,
+  });
+
+  factory SubscriptionStatus.fromJson(Map<String, dynamic> json) {
+    return SubscriptionStatus(
+      tier: json['tier'] as String,
+      status: json['status'] as String,
+      store: json['store'] as String,
+      isPremium: json['is_premium'] as bool,
+      currentPeriodEnd: json['current_period_end'] as String?,
+    );
+  }
+
+  final String tier;
+  final String status;
+  final String store;
+  final bool isPremium;
+  final String? currentPeriodEnd;
+}
+
+/// Wire shape of POST /billing/stripe/checkout.
+class StripeCheckoutSession {
+  const StripeCheckoutSession({
+    required this.sessionId,
+    required this.url,
+  });
+
+  factory StripeCheckoutSession.fromJson(Map<String, dynamic> json) {
+    return StripeCheckoutSession(
+      sessionId: json['session_id'] as String,
+      url: json['url'] as String,
+    );
+  }
+
+  final String sessionId;
+  final String url;
+}
+
+/// Wire shape of POST /billing/stripe/portal.
+class StripePortalSession {
+  const StripePortalSession({required this.url});
+
+  factory StripePortalSession.fromJson(Map<String, dynamic> json) {
+    return StripePortalSession(url: json['url'] as String);
+  }
+
+  final String url;
+}
+
+/// Marker exception thrown when billing endpoints return 401.
+class SubscriptionUnauthorised implements Exception {}
 
 /// The subset of the server's playthrough payload the client needs to
 /// remember locally. The trait vector / status / completion timestamps

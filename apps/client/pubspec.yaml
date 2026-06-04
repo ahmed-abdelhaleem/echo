@@ -51,6 +51,15 @@ dependencies:
   # description.
   share_plus: ^10.1.4
 
+  # In-app purchase plugin for Echo+ subscription.
+  # Handles Apple StoreKit2 (iOS/macOS) and Google Play Billing (Android).
+  # On desktop (Windows/macOS direct download) the client redirects to
+  # Stripe Checkout instead (T-MONEY-001).
+  # New top-level dep — justified: the only maintained Flutter IAP plugin
+  # that supports all four target platforms with a single API surface.
+  # https://pub.dev/packages/in_app_purchase
+  in_app_purchase: ^3.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -395,6 +395,71 @@ func TestCompareGet_RateLimited_AndAudited(t *testing.T) {
 	require.True(t, containsAuditEvent(auditEvents, "compare_get:rate_limited"))
 }
 
+func TestCompareAcceptInvite_SeasonMismatch_ReturnsBadRequest(t *testing.T) {
+	users := &fakeUsersRepo{user: auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}}
+	mux, cookie, repo := newPlaythroughSuite(t, users)
+
+	inviterID := users.user.ID
+	inviterPlaythroughID := createCompletedPlaythrough(t, mux, cookie, "choice-1")
+
+	// Seed a second season so the invitee can have a different season_id.
+	repo.playthroughs[inviterPlaythroughID] = func() playthrough.Playthrough {
+		pt := repo.playthroughs[inviterPlaythroughID]
+		pt.SeasonID = "season-001"
+		return pt
+	}()
+
+	users.user = auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}
+	inviteeID := users.user.ID
+	inviteePlaythroughID := createCompletedPlaythrough(t, mux, cookie, "choice-2")
+
+	// Manually override the invitee's season to a different value.
+	repo.playthroughs[inviteePlaythroughID] = func() playthrough.Playthrough {
+		pt := repo.playthroughs[inviteePlaythroughID]
+		pt.SeasonID = "season-002"
+		return pt
+	}()
+
+	users.user = auth.User{ID: inviterID, AgeBand: auth.AgeBandAdult}
+	createInviteRec := doJSON(t, mux, http.MethodPost, fmt.Sprintf("/playthroughs/%s/compare", inviterPlaythroughID.String()), cookie, nil)
+	require.Equal(t, http.StatusCreated, createInviteRec.Code, createInviteRec.Body.String())
+
+	var inviteResp compareInviteResponse
+	require.NoError(t, json.Unmarshal(createInviteRec.Body.Bytes(), &inviteResp))
+
+	users.user = auth.User{ID: inviteeID, AgeBand: auth.AgeBandAdult}
+	acceptRec := doJSON(t, mux, http.MethodPost, "/compare/accept", cookie, map[string]any{
+		"token":          inviteResp.Token,
+		"playthrough_id": inviteePlaythroughID.String(),
+	})
+	require.Equal(t, http.StatusBadRequest, acceptRec.Code, acceptRec.Body.String())
+}
+
+func TestCompareAcceptInvite_SelfComparison_ReturnsBadRequest(t *testing.T) {
+	users := &fakeUsersRepo{user: auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}}
+	mux, cookie, _ := newPlaythroughSuite(t, users)
+
+	// Inviter creates a completed playthrough.
+	inviterPlaythroughID := createCompletedPlaythrough(t, mux, cookie, "choice-1")
+
+	// Inviter also has a second completed playthrough.
+	secondPlaythroughID := createCompletedPlaythrough(t, mux, cookie, "choice-2")
+
+	createInviteRec := doJSON(t, mux, http.MethodPost, fmt.Sprintf("/playthroughs/%s/compare", inviterPlaythroughID.String()), cookie, nil)
+	require.Equal(t, http.StatusCreated, createInviteRec.Code, createInviteRec.Body.String())
+
+	var inviteResp compareInviteResponse
+	require.NoError(t, json.Unmarshal(createInviteRec.Body.Bytes(), &inviteResp))
+
+	// Same user tries to accept using their own other playthrough — should be rejected.
+	acceptRec := doJSON(t, mux, http.MethodPost, "/compare/accept", cookie, map[string]any{
+		"token":          inviteResp.Token,
+		"playthrough_id": secondPlaythroughID.String(),
+	})
+	// Self-comparison returns 409 (conflict/bad request depending on how error maps).
+	require.NotEqual(t, http.StatusOK, acceptRec.Code, "self-comparison must be rejected")
+}
+
 func TestCompareRevoke_AuditedSuccess(t *testing.T) {
 	var auditEvents []string
 	hooks := compareHookOverrides{

@@ -27,6 +27,7 @@ import (
 	"time"
 
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/auth"
+	"github.com/ahmed-abdelhaleem/echo/services/core-go/billing"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/content"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/db"
 	coregrpc "github.com/ahmed-abdelhaleem/echo/services/core-go/grpc"
@@ -187,6 +188,33 @@ func main() {
 			"share_base_url", cfg.ShareBaseURL,
 			"api_base_url", cfg.APIBaseURL,
 		)
+	}
+
+	// Billing (T-MONEY-001). Requires Postgres + Users; degrades gracefully
+	// when not configured so the binary boots without payment credentials.
+	//
+	// ⚠️  HUMAN REVIEW REQUIRED before enabling STRIPE_SECRET_KEY in production.
+	if deps.PG != nil && deps.Users != nil {
+		deps.Billing = billing.New(billing.Config{
+			Repository:           billing.NewPgRepository(deps.PG),
+			StripeSecretKey:      cfg.StripeSecretKey,
+			StripeWebhookSecret:  cfg.StripeWebhookSecret,
+			StripeMonthlyPriceID: cfg.StripeMonthlyPriceID,
+			StripeYearlyPriceID:  cfg.StripeYearlyPriceID,
+			AppleWebhookSecret:   cfg.AppleWebhookSecret,
+			GoogleWebhookSecret:  cfg.GoogleWebhookSecret,
+		})
+		stripeWired := "no"
+		if cfg.StripeSecretKey != "" {
+			stripeWired = "yes"
+		}
+		logger.Info("billing enabled",
+			"stripe_wired", stripeWired,
+			"stripe_monthly_price", cfg.StripeMonthlyPriceID,
+			"stripe_yearly_price", cfg.StripeYearlyPriceID,
+		)
+	} else {
+		logger.Info("billing disabled; postgres or users repo not available")
 	}
 
 	handler := corehttp.NewMux(deps)

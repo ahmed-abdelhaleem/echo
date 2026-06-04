@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/auth"
+	"github.com/ahmed-abdelhaleem/echo/services/core-go/billing"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/content"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/playthrough"
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/sharing"
@@ -39,6 +40,12 @@ type Dependencies struct {
 	// resolution endpoints.
 	CompareAllowTokenResolve compareTokenAllowFunc
 	CompareAudit             compareAuditFunc
+
+	// Billing is the Echo+ subscription service (T-MONEY-001).
+	// When nil, all /billing/* and /users/me/subscription routes are not
+	// registered. This allows the binary to boot without billing config
+	// in dev and test environments.
+	Billing *billing.Service
 
 	// KratosHookSecret is the shared secret that Kratos must include in
 	// the [auth.HookSecretHeader] header when invoking the registration
@@ -184,6 +191,34 @@ func NewMux(deps Dependencies) http.Handler {
 			mux.Handle("POST /compare/accept", mw(acceptCompareHandler(compareCfg)))
 			mux.Handle("POST /compare/{token}/share-enable", mw(enableCompareShareHandler(compareCfg)))
 			mux.Handle("DELETE /compare/{token}", mw(revokeCompareHandler(compareCfg)))
+		}
+	}
+
+	// Billing surface (T-MONEY-001). Authenticated routes require a session;
+	// webhook routes are public but HMAC/JWS-verified by the service layer.
+	//
+	// ⚠️  HUMAN REVIEW REQUIRED before this block is enabled in production.
+	//     Per AGENTS.md escalation rule #10 (billing logic).
+	if deps.Billing != nil && deps.Users != nil {
+		billCfg := billingHandlerConfig{
+			Billing:      deps.Billing,
+			Users:        deps.Users,
+			ShareBaseURL: deps.ShareBaseURL,
+			Logger:       deps.Logger,
+			Now:          nowFn,
+		}
+		// Public webhook endpoints — no auth middleware.
+		mux.Handle("POST /billing/webhooks/stripe", stripeWebhookHandler(billCfg))
+		mux.Handle("POST /billing/webhooks/apple", appleWebhookHandler(billCfg))
+		mux.Handle("POST /billing/webhooks/google", googleWebhookHandler(billCfg))
+
+		// Authenticated endpoints.
+		if deps.Auth != nil && deps.Auth.Kratos != nil {
+			mw := auth.Middleware(deps.Auth.Kratos, deps.Logger)
+			mux.Handle("GET /users/me/subscription", mw(getSubscriptionHandler(billCfg)))
+			mux.Handle("POST /billing/stripe/checkout", mw(createStripeCheckoutHandler(billCfg)))
+			mux.Handle("POST /billing/stripe/portal", mw(createStripePortalHandler(billCfg)))
+			mux.Handle("POST /billing/google/acknowledge", mw(googleAcknowledgeHandler(billCfg)))
 		}
 	}
 
