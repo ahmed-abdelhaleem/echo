@@ -263,6 +263,43 @@ class ApiClient {
     return data;
   }
 
+  /// POST /playthroughs/{id}/compare. Mints a fresh comparison invite
+  /// token for the caller's completed playthrough. The returned
+  /// [CompareInvitePayload.compareUrl] is the deep-link the caller shares
+  /// with a friend via the system share sheet or clipboard.
+  ///
+  /// 401 → [CompareUnauthorised], 403 → [CompareForbidden],
+  /// 404 → [CompareNotFound], 409 → [CompareConflict] (playthrough not
+  /// complete or season mismatch).
+  Future<CompareInvitePayload> createComparisonInvite({
+    required String playthroughId,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      '/playthroughs/$playthroughId/compare',
+    );
+    final status = response.statusCode ?? 0;
+    if (status == 401) throw CompareUnauthorised();
+    if (status == 403) throw CompareForbidden();
+    if (status == 404) throw CompareNotFound();
+    if (status == 409) throw CompareConflict();
+    if (status != 201) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Unexpected status $status from createComparisonInvite',
+      );
+    }
+    final body = response.data;
+    if (body == null) {
+      throw DioException(
+        requestOptions: response.requestOptions,
+        response: response,
+        message: 'Empty body from createComparisonInvite',
+      );
+    }
+    return CompareInvitePayload.fromJson(body);
+  }
+
   /// POST /compare/accept. Binds the caller's completed playthrough to
   /// an invite token minted by another user.
   Future<void> acceptComparisonInvite({
@@ -636,6 +673,29 @@ class CompareNotFound implements Exception {}
 class CompareConflict implements Exception {}
 
 class CompareExpired implements Exception {}
+
+/// Wire shape of POST /playthroughs/{id}/compare (invite creation).
+/// Structurally aligned with
+/// `services/core-go/http/compare.go::compareInviteResponse`.
+class CompareInvitePayload {
+  const CompareInvitePayload({
+    required this.token,
+    required this.compareUrl,
+    required this.createdAt,
+  });
+
+  factory CompareInvitePayload.fromJson(Map<String, dynamic> json) {
+    return CompareInvitePayload(
+      token: json['token'] as String,
+      compareUrl: json['compare_url'] as String,
+      createdAt: json['created_at'] as String,
+    );
+  }
+
+  final String token;
+  final String compareUrl;
+  final String createdAt;
+}
 
 /// Override `apiBaseUrlProvider` in tests / per-flavour bootstrap to point
 /// the client at a local or staging gateway. The default is the local

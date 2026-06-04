@@ -5,6 +5,78 @@ import 'package:flutter_test/flutter_test.dart';
 import '../_helpers/fakes.dart';
 
 void main() {
+  group('ApiClient.createComparisonInvite', () {
+    test('201 parses CompareInvitePayload', () async {
+      final adapter = ProgrammableAdapter()
+        ..registerJson(
+          method: 'POST',
+          path: RegExp(r'^/playthroughs/pt-1/compare$'),
+          status: 201,
+          body: <String, dynamic>{
+            'token': 'inv-tok-1',
+            'compare_url': 'https://share.echo.test/compare/inv-tok-1',
+            'created_at': '2026-06-04T12:00:00Z',
+          },
+        );
+
+      final client = apiClientWith(adapter);
+      final payload =
+          await client.createComparisonInvite(playthroughId: 'pt-1');
+
+      expect(payload.token, 'inv-tok-1');
+      expect(payload.compareUrl, 'https://share.echo.test/compare/inv-tok-1');
+      expect(payload.createdAt, '2026-06-04T12:00:00Z');
+    });
+
+    test('401 surfaces as CompareUnauthorised', () async {
+      final adapter = ProgrammableAdapter()
+        ..registerJson(
+          method: 'POST',
+          path: RegExp(r'^/playthroughs/pt-1/compare$'),
+          status: 401,
+          body: <String, dynamic>{'error': 'unauthenticated'},
+        );
+
+      final client = apiClientWith(adapter);
+      await expectLater(
+        client.createComparisonInvite(playthroughId: 'pt-1'),
+        throwsA(isA<CompareUnauthorised>()),
+      );
+    });
+
+    test('403 surfaces as CompareForbidden', () async {
+      final adapter = ProgrammableAdapter()
+        ..registerJson(
+          method: 'POST',
+          path: RegExp(r'^/playthroughs/pt-1/compare$'),
+          status: 403,
+          body: <String, dynamic>{'error': 'forbidden'},
+        );
+
+      final client = apiClientWith(adapter);
+      await expectLater(
+        client.createComparisonInvite(playthroughId: 'pt-1'),
+        throwsA(isA<CompareForbidden>()),
+      );
+    });
+
+    test('409 surfaces as CompareConflict', () async {
+      final adapter = ProgrammableAdapter()
+        ..registerJson(
+          method: 'POST',
+          path: RegExp(r'^/playthroughs/pt-1/compare$'),
+          status: 409,
+          body: <String, dynamic>{'error': 'not complete'},
+        );
+
+      final client = apiClientWith(adapter);
+      await expectLater(
+        client.createComparisonInvite(playthroughId: 'pt-1'),
+        throwsA(isA<CompareConflict>()),
+      );
+    });
+  });
+
   group('ApiClient.getComparisonPublic', () {
     test('parses 200 payload', () async {
       final adapter = ProgrammableAdapter()

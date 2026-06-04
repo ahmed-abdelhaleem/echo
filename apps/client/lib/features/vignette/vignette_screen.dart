@@ -14,7 +14,6 @@
 // persistence. PR 8 (T-CLIENT-012) will drain pending choices to the
 // server in the background.
 
-import 'dart:typed_data';
 
 import 'package:echo_client/data/local/database.dart';
 import 'package:echo_client/data/models/content.dart';
@@ -23,6 +22,7 @@ import 'package:echo_client/features/share/share_button.dart';
 import 'package:echo_client/features/sync/sync_controller.dart';
 import 'package:echo_client/services/api_client.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -230,6 +230,11 @@ class _CompleteViewState extends ConsumerState<_CompleteView> {
   bool _loading = true;
   String _statusMessage = 'Finalizing playthrough…';
 
+  // Compare-invite sub-state
+  bool _creatingInvite = false;
+  CompareInvitePayload? _compareInvite;
+  String? _compareError;
+
   @override
   void initState() {
     super.initState();
@@ -242,6 +247,48 @@ class _CompleteViewState extends ConsumerState<_CompleteView> {
       }
       _loadResults();
     });
+  }
+
+  Future<void> _createCompareInvite() async {
+    final remoteId = _remoteId;
+    if (remoteId == null) return;
+    setState(() {
+      _creatingInvite = true;
+      _compareError = null;
+    });
+    try {
+      final api = ref.read(apiClientProvider);
+      final invite = await api.createComparisonInvite(playthroughId: remoteId);
+      if (!mounted) return;
+      setState(() {
+        _compareInvite = invite;
+        _creatingInvite = false;
+      });
+    } on CompareUnauthorised {
+      if (!mounted) return;
+      setState(() {
+        _compareError = 'Sign in to compare with a friend.';
+        _creatingInvite = false;
+      });
+    } on CompareForbidden {
+      if (!mounted) return;
+      setState(() {
+        _compareError = 'Comparisons are disabled for your account.';
+        _creatingInvite = false;
+      });
+    } on CompareConflict {
+      if (!mounted) return;
+      setState(() {
+        _compareError = 'Finish the season before inviting a friend.';
+        _creatingInvite = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _compareError = 'Could not create invite: $e';
+        _creatingInvite = false;
+      });
+    }
   }
 
   Future<void> _loadResults() async {
@@ -423,6 +470,68 @@ class _CompleteViewState extends ConsumerState<_CompleteView> {
               ),
             const SizedBox(height: 32),
             if (_remoteId != null) ShareButton(playthroughId: _remoteId!),
+            const SizedBox(height: 12),
+            // ── Compare invite ──────────────────────────────────────────
+            // CHOICE: show URL inline (copy-to-clipboard) rather than
+            // auto-invoking the system share sheet — keeps the surface
+            // simple and lets the user share when they're ready.
+            // Alternative considered: share_plus XFile + URL (same as
+            // portrait share). Deferred because compare links have no
+            // image attachment.
+            if (_compareInvite == null)
+              OutlinedButton.icon(
+                key: const Key('complete.compareInvite'),
+                onPressed: _creatingInvite ? null : _createCompareInvite,
+                icon: const Icon(Icons.people_outline),
+                label: Text(
+                  _creatingInvite
+                      ? 'Creating invite…'
+                      : 'Compare with a friend',
+                ),
+              )
+            else ...<Widget>[
+              const Text('Send this link to a friend:'),
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Expanded(
+                    child: SelectableText(
+                      _compareInvite!.compareUrl,
+                      key: const Key('complete.compareUrl'),
+                    ),
+                  ),
+                  IconButton(
+                    key: const Key('complete.copyCompareLink'),
+                    tooltip: 'Copy invite link',
+                    onPressed: () async {
+                      await Clipboard.setData(
+                        ClipboardData(text: _compareInvite!.compareUrl),
+                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Invite link copied'),
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.copy_outlined),
+                  ),
+                ],
+              ),
+            ],
+            if (_compareError != null) ...<Widget>[
+              const SizedBox(height: 6),
+              Text(
+                _compareError!,
+                key: const Key('complete.compareError'),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontSize: 12,
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             OutlinedButton(
               onPressed: () => context.goNamed('home'),
