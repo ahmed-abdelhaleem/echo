@@ -420,6 +420,7 @@ func newPlaythroughSuiteFull(
 		},
 	}
 	ptSvc := playthrough.NewService(repo, contentSvc, scorer)
+	ptSvc.WithUsersRepository(usersRepo)
 	var (
 		portrait   *fakePortraitGen
 		reflection *fakeReflectionGen

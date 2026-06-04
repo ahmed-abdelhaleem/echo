@@ -63,6 +63,9 @@ func createCompareHandler(cfg compareHandlerConfig) http.HandlerFunc {
 
 		comp, err := cfg.Playthrough.CreateComparisonInvite(r.Context(), user.ID, ptID)
 		switch {
+		case errors.Is(err, playthrough.ErrGuardianConsentRequired):
+			writeJSONError(w, http.StatusForbidden, "guardian consent required for youth comparison")
+			return
 		case errors.Is(err, playthrough.ErrYouthSafeDenied):
 			writeJSONError(w, http.StatusForbidden, "comparisons disabled for youth-safe accounts")
 			return
@@ -113,6 +116,9 @@ func acceptCompareHandler(cfg compareHandlerConfig) http.HandlerFunc {
 
 		comp, err := cfg.Playthrough.AcceptComparisonInvite(r.Context(), user.ID, body.Token, body.PlaythroughID)
 		switch {
+		case errors.Is(err, playthrough.ErrGuardianConsentRequired):
+			writeJSONError(w, http.StatusForbidden, "guardian consent required for youth comparison")
+			return
 		case errors.Is(err, playthrough.ErrComparisonNotFound):
 			writeJSONError(w, http.StatusNotFound, "comparison not found")
 			return

@@ -80,6 +80,14 @@ func TestCompareFlow_ShareEnable_TokenGating_AndRevokeInvalidation(t *testing.T)
 
 	shareRead := doJSON(t, mux, http.MethodGet, "/compare/"+shareResp.ShareToken, "", nil)
 	require.Equal(t, http.StatusOK, shareRead.Code, shareRead.Body.String())
+	var shareBody map[string]any
+	require.NoError(t, json.Unmarshal(shareRead.Body.Bytes(), &shareBody))
+	_, hasComparison := shareBody["comparison"]
+	_, hasInviterTraits := shareBody["inviter_traits"]
+	_, hasInviteeTraits := shareBody["invitee_traits"]
+	require.False(t, hasComparison, "public payload must not include internal comparison object")
+	require.False(t, hasInviterTraits, "public payload must not include inviter trait vectors")
+	require.False(t, hasInviteeTraits, "public payload must not include invitee trait vectors")
 
 	revokeRec := doJSON(t, mux, http.MethodDelete, "/compare/"+inviteResp.Token, cookie, nil)
 	require.Equal(t, http.StatusNoContent, revokeRec.Code, revokeRec.Body.String())
@@ -129,6 +137,29 @@ func TestComparePublicRead_ExpiredShareToken_ReturnsGone(t *testing.T) {
 
 	expiredRead := doJSON(t, mux, http.MethodGet, "/compare/"+shareResp.ShareToken, "", nil)
 	require.Equal(t, http.StatusGone, expiredRead.Code, expiredRead.Body.String())
+}
+
+func TestCompareCreateInvite_YouthWithoutGuardianConsent_Forbidden(t *testing.T) {
+	users := &fakeUsersRepo{user: auth.User{ID: uuid.New(), AgeBand: auth.AgeBandYouth}}
+	mux, cookie, _ := newPlaythroughSuite(t, users)
+
+	playthroughID := createCompletedPlaythrough(t, mux, cookie, "choice-1")
+	createInviteRec := doJSON(t, mux, http.MethodPost, fmt.Sprintf("/playthroughs/%s/compare", playthroughID.String()), cookie, nil)
+	require.Equal(t, http.StatusForbidden, createInviteRec.Code, createInviteRec.Body.String())
+}
+
+func TestCompareCreateInvite_YouthWithGuardianConsent_Allows(t *testing.T) {
+	now := time.Now().UTC()
+	users := &fakeUsersRepo{user: auth.User{
+		ID:                                  uuid.New(),
+		AgeBand:                             auth.AgeBandYouth,
+		GuardianComparisonConsentVerifiedAt: &now,
+	}}
+	mux, cookie, _ := newPlaythroughSuite(t, users)
+
+	playthroughID := createCompletedPlaythrough(t, mux, cookie, "choice-1")
+	createInviteRec := doJSON(t, mux, http.MethodPost, fmt.Sprintf("/playthroughs/%s/compare", playthroughID.String()), cookie, nil)
+	require.Equal(t, http.StatusCreated, createInviteRec.Code, createInviteRec.Body.String())
 }
 
 

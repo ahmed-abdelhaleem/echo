@@ -27,6 +27,7 @@ type User struct {
 	ID                uuid.UUID
 	KratosIdentityID  uuid.UUID
 	AgeBand           AgeBand
+	GuardianComparisonConsentVerifiedAt *time.Time
 	TosVersion        string
 	TosAcceptedAt     time.Time
 	PrivacyVersion    string
@@ -70,14 +71,14 @@ func NewPgUsersRepository(pool *pgxpool.Pool) *PgUsersRepository {
 // GetByKratosID looks up an existing user row.
 func (r *PgUsersRepository) GetByKratosID(ctx context.Context, kratosIdentityID uuid.UUID) (User, error) {
 	const q = `
-		SELECT id, kratos_identity_id, age_band, tos_version, tos_accepted_at,
+		SELECT id, kratos_identity_id, age_band, guardian_comparison_consent_verified_at, tos_version, tos_accepted_at,
 		       privacy_version, privacy_accepted_at, created_at
 		FROM auth.users
 		WHERE kratos_identity_id = $1 AND deleted_at IS NULL
 	`
 	var u User
 	err := r.pool.QueryRow(ctx, q, kratosIdentityID).Scan(
-		&u.ID, &u.KratosIdentityID, &u.AgeBand, &u.TosVersion, &u.TosAcceptedAt,
+		&u.ID, &u.KratosIdentityID, &u.AgeBand, &u.GuardianComparisonConsentVerifiedAt, &u.TosVersion, &u.TosAcceptedAt,
 		&u.PrivacyVersion, &u.PrivacyAcceptedAt, &u.CreatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -92,14 +93,14 @@ func (r *PgUsersRepository) GetByKratosID(ctx context.Context, kratosIdentityID 
 // GetByID looks up an existing user row by its internal auth.users id.
 func (r *PgUsersRepository) GetByID(ctx context.Context, id uuid.UUID) (User, error) {
 	const q = `
-		SELECT id, kratos_identity_id, age_band, tos_version, tos_accepted_at,
+		SELECT id, kratos_identity_id, age_band, guardian_comparison_consent_verified_at, tos_version, tos_accepted_at,
 		       privacy_version, privacy_accepted_at, created_at
 		FROM auth.users
 		WHERE id = $1 AND deleted_at IS NULL
 	`
 	var u User
 	err := r.pool.QueryRow(ctx, q, id).Scan(
-		&u.ID, &u.KratosIdentityID, &u.AgeBand, &u.TosVersion, &u.TosAcceptedAt,
+		&u.ID, &u.KratosIdentityID, &u.AgeBand, &u.GuardianComparisonConsentVerifiedAt, &u.TosVersion, &u.TosAcceptedAt,
 		&u.PrivacyVersion, &u.PrivacyAcceptedAt, &u.CreatedAt,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -165,14 +166,14 @@ func (r *PgUsersRepository) EnsureFromSession(ctx context.Context, sess Session,
 		)
 		VALUES ($1, $2, $3, $4, $5, $4)
 		ON CONFLICT (kratos_identity_id) DO UPDATE SET updated_at = NOW()
-		RETURNING id, kratos_identity_id, age_band, tos_version, tos_accepted_at,
+		RETURNING id, kratos_identity_id, age_band, guardian_comparison_consent_verified_at, tos_version, tos_accepted_at,
 		          privacy_version, privacy_accepted_at, created_at
 	`
 	var u User
 	err = r.pool.QueryRow(ctx, insert,
 		identityID, string(band), m1TosVersion, now, m1PrivacyVersion,
 	).Scan(
-		&u.ID, &u.KratosIdentityID, &u.AgeBand, &u.TosVersion, &u.TosAcceptedAt,
+		&u.ID, &u.KratosIdentityID, &u.AgeBand, &u.GuardianComparisonConsentVerifiedAt, &u.TosVersion, &u.TosAcceptedAt,
 		&u.PrivacyVersion, &u.PrivacyAcceptedAt, &u.CreatedAt,
 	)
 	if err != nil {
@@ -208,14 +209,14 @@ func (r *PgUsersRepository) EnsureForKratosIdentity(ctx context.Context, identit
 		)
 		VALUES ($1, $2, $3, $4, $5, $4)
 		ON CONFLICT (kratos_identity_id) DO UPDATE SET updated_at = NOW()
-		RETURNING id, kratos_identity_id, age_band, tos_version, tos_accepted_at,
+		RETURNING id, kratos_identity_id, age_band, guardian_comparison_consent_verified_at, tos_version, tos_accepted_at,
 		          privacy_version, privacy_accepted_at, created_at
 	`
 	var u User
 	err = r.pool.QueryRow(ctx, insert,
 		identityID, string(band), m1TosVersion, now, m1PrivacyVersion,
 	).Scan(
-		&u.ID, &u.KratosIdentityID, &u.AgeBand, &u.TosVersion, &u.TosAcceptedAt,
+		&u.ID, &u.KratosIdentityID, &u.AgeBand, &u.GuardianComparisonConsentVerifiedAt, &u.TosVersion, &u.TosAcceptedAt,
 		&u.PrivacyVersion, &u.PrivacyAcceptedAt, &u.CreatedAt,
 	)
 	if err != nil {

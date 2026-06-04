@@ -23,6 +23,7 @@ var (
 	ErrNoDivergence           = errors.New("playthrough: playthroughs have no divergence moments")
 	ErrComparisonNotAccepted  = errors.New("playthrough: comparison is not accepted")
 	ErrComparisonTokenExpired = errors.New("playthrough: comparison token expired")
+	ErrGuardianConsentRequired = errors.New("playthrough: guardian consent required for youth comparison")
 )
 
 const (
@@ -44,8 +45,8 @@ func (s *Service) CreateComparisonInvite(ctx context.Context, userID uuid.UUID, 
 		if err != nil {
 			return Comparison{}, fmt.Errorf("playthrough: lookup user: %w", err)
 		}
-		if u.AgeBand == auth.AgeBandYouth {
-			return Comparison{}, ErrYouthSafeDenied
+		if err := validateComparisonEligibility(u); err != nil {
+			return Comparison{}, err
 		}
 	}
 
@@ -89,8 +90,8 @@ func (s *Service) AcceptComparisonInvite(ctx context.Context, userID uuid.UUID, 
 		if err != nil {
 			return Comparison{}, fmt.Errorf("playthrough: lookup user: %w", err)
 		}
-		if u.AgeBand == auth.AgeBandYouth {
-			return Comparison{}, ErrYouthSafeDenied
+		if err := validateComparisonEligibility(u); err != nil {
+			return Comparison{}, err
 		}
 	}
 
@@ -368,5 +369,15 @@ func (s *Service) getComparisonByToken(ctx context.Context, tokenHash string, to
 		return Comparison{}, ErrComparisonTokenExpired
 	}
 	return Comparison{}, err
+}
+
+func validateComparisonEligibility(u auth.User) error {
+	if u.AgeBand != auth.AgeBandYouth {
+		return nil
+	}
+	if u.GuardianComparisonConsentVerifiedAt == nil {
+		return ErrGuardianConsentRequired
+	}
+	return nil
 }
 
