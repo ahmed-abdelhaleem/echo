@@ -118,6 +118,14 @@ const (
 	ComparisonStatusPending  ComparisonStatus = "pending"
 	ComparisonStatusAccepted ComparisonStatus = "accepted"
 	ComparisonStatusRevoked  ComparisonStatus = "revoked"
+	ComparisonStatusExpired  ComparisonStatus = "expired"
+)
+
+type ComparisonTokenType string
+
+const (
+	ComparisonTokenTypeInvite ComparisonTokenType = "invite"
+	ComparisonTokenTypeShare  ComparisonTokenType = "share"
 )
 
 type Comparison struct {
@@ -129,6 +137,11 @@ type Comparison struct {
 	Status               ComparisonStatus `json:"status"`
 	CreatedAt            time.Time        `json:"created_at"`
 	AcceptedAt           *time.Time       `json:"accepted_at,omitempty"`
+	RevokedAt            *time.Time       `json:"revoked_at,omitempty"`
+	ExpiresAt            *time.Time       `json:"expires_at,omitempty"`
+	ShareEnabled         bool             `json:"share_enabled"`
+	ShareEnabledAt       *time.Time       `json:"share_enabled_at,omitempty"`
+	DivergenceVignetteID *string          `json:"divergence_vignette_id,omitempty"`
 }
 
 // --- Portrait + Reflection (M1 stubs) --------------------------------------

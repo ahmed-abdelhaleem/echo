@@ -174,6 +174,7 @@ func NewMux(deps Dependencies) http.Handler {
 			mw := auth.Middleware(deps.Auth.Kratos, deps.Logger)
 			mux.Handle("POST /playthroughs/{id}/compare", mw(createCompareHandler(compareCfg)))
 			mux.Handle("POST /compare/accept", mw(acceptCompareHandler(compareCfg)))
+			mux.Handle("POST /compare/{token}/share-enable", mw(enableCompareShareHandler(compareCfg)))
 			mux.Handle("DELETE /compare/{token}", mw(revokeCompareHandler(compareCfg)))
 		}
 	}

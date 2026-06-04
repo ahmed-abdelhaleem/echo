@@ -3,9 +3,12 @@ package playthrough
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/ahmed-abdelhaleem/echo/services/core-go/auth"
 	"github.com/google/uuid"
@@ -18,6 +21,12 @@ var (
 	ErrComparisonNotPending   = errors.New("playthrough: comparison is not pending")
 	ErrSeasonMismatch         = errors.New("playthrough: playthroughs must belong to the same season")
 	ErrNoDivergence           = errors.New("playthrough: playthroughs have no divergence moments")
+	ErrComparisonNotAccepted  = errors.New("playthrough: comparison is not accepted")
+)
+
+const (
+	inviteTokenTTL = 7 * 24 * time.Hour
+	shareTokenTTL  = 30 * 24 * time.Hour
 )
 
 // WithUsersRepository attaches a UsersRepository to the service.
@@ -55,14 +64,20 @@ func (s *Service) CreateComparisonInvite(ctx context.Context, userID uuid.UUID, 
 		return Comparison{}, ErrPlaythroughNotComplete
 	}
 
-	// Generate 22-char base64-urlsafe token
-	buf := make([]byte, 16)
-	if _, err := rand.Read(buf); err != nil {
-		return Comparison{}, fmt.Errorf("playthrough: generate comparison token: %w", err)
+	token, tokenHash, err := generateComparisonToken()
+	if err != nil {
+		return Comparison{}, err
 	}
-	token := base64.RawURLEncoding.EncodeToString(buf)
 
-	return s.repo.CreateComparison(ctx, token, playthroughID, pt.SeasonID)
+	comp, err := s.repo.CreateComparison(ctx, tokenHash, playthroughID, pt.SeasonID)
+	if err != nil {
+		return Comparison{}, err
+	}
+	if err := s.repo.CreateComparisonToken(ctx, comp.ID, ComparisonTokenTypeInvite, tokenHash, userID, time.Now().UTC().Add(inviteTokenTTL)); err != nil {
+		return Comparison{}, err
+	}
+	comp.Token = token
+	return comp, nil
 }
 
 // AcceptComparisonInvite accepts a comparison token and binds User B's playthrough.
@@ -78,7 +93,8 @@ func (s *Service) AcceptComparisonInvite(ctx context.Context, userID uuid.UUID, 
 		}
 	}
 
-	comp, err := s.repo.GetComparison(ctx, token)
+	tokenHash := hashComparisonToken(token)
+	comp, err := s.repo.GetComparisonByToken(ctx, tokenHash, ComparisonTokenTypeInvite, time.Now().UTC())
 	if err != nil {
 		return Comparison{}, err
 	}
@@ -116,7 +132,20 @@ func (s *Service) AcceptComparisonInvite(ctx context.Context, userID uuid.UUID, 
 		return Comparison{}, errors.New("playthrough: cannot compare with your own playthrough")
 	}
 
-	return s.repo.AcceptComparison(ctx, token, playthroughID)
+	inviterChoices, err := s.repo.ListChoices(ctx, comp.InviterPlaythroughID)
+	if err != nil {
+		return Comparison{}, err
+	}
+	inviteeChoices, err := s.repo.ListChoices(ctx, playthroughID)
+	if err != nil {
+		return Comparison{}, err
+	}
+	divergence, err := findDivergenceMoment(inviterChoices, inviteeChoices)
+	if err != nil {
+		return Comparison{}, err
+	}
+
+	return s.repo.AcceptComparison(ctx, comp.ID, playthroughID, divergence.VignetteID)
 }
 
 // ComparisonDivergence represents the divergence vignette.
@@ -136,13 +165,17 @@ type ComparisonResult struct {
 
 // GetComparisonResult aggregates portraits and computes divergence.
 func (s *Service) GetComparisonResult(ctx context.Context, token string) (ComparisonResult, error) {
-	comp, err := s.repo.GetComparison(ctx, token)
+	tokenHash := hashComparisonToken(token)
+	comp, err := s.repo.GetComparisonByToken(ctx, tokenHash, ComparisonTokenTypeShare, time.Now().UTC())
 	if err != nil {
 		return ComparisonResult{}, err
 	}
 
 	if comp.Status != ComparisonStatusAccepted || comp.InviteePlaythroughID == nil {
 		return ComparisonResult{Comparison: comp}, nil
+	}
+	if !comp.ShareEnabled {
+		return ComparisonResult{}, ErrNotFound
 	}
 
 	inviterTraits, err := s.repo.GetTraitVector(ctx, comp.InviterPlaythroughID)
@@ -178,9 +211,51 @@ func (s *Service) GetComparisonResult(ctx context.Context, token string) (Compar
 	}, nil
 }
 
+// EnableComparisonShare flips share_enabled and mints a share token.
+func (s *Service) EnableComparisonShare(ctx context.Context, userID uuid.UUID, token string) (string, error) {
+	tokenHash := hashComparisonToken(token)
+	comp, err := s.repo.GetComparisonByAnyToken(ctx, tokenHash)
+	if err != nil {
+		return "", err
+	}
+
+	inviterPt, err := s.repo.GetPlaythrough(ctx, comp.InviterPlaythroughID)
+	if err != nil {
+		return "", err
+	}
+	isOwner := inviterPt.UserID == userID
+	if !isOwner && comp.InviteePlaythroughID != nil {
+		inviteePt, err := s.repo.GetPlaythrough(ctx, *comp.InviteePlaythroughID)
+		if err == nil && inviteePt.UserID == userID {
+			isOwner = true
+		}
+	}
+	if !isOwner {
+		return "", ErrNotOwner
+	}
+	if comp.Status != ComparisonStatusAccepted {
+		return "", ErrComparisonNotAccepted
+	}
+
+	now := time.Now().UTC()
+	if err := s.repo.EnableComparisonShare(ctx, comp.ID, now); err != nil {
+		return "", err
+	}
+
+	shareToken, shareTokenHash, err := generateComparisonToken()
+	if err != nil {
+		return "", err
+	}
+	if err := s.repo.CreateComparisonToken(ctx, comp.ID, ComparisonTokenTypeShare, shareTokenHash, userID, now.Add(shareTokenTTL)); err != nil {
+		return "", err
+	}
+	return shareToken, nil
+}
+
 // RevokeComparison revokes the comparison. Only owner (inviter or invitee) may revoke.
 func (s *Service) RevokeComparison(ctx context.Context, userID uuid.UUID, token string) error {
-	comp, err := s.repo.GetComparison(ctx, token)
+	tokenHash := hashComparisonToken(token)
+	comp, err := s.repo.GetComparisonByAnyToken(ctx, tokenHash)
 	if err != nil {
 		return err
 	}
@@ -203,7 +278,25 @@ func (s *Service) RevokeComparison(ctx context.Context, userID uuid.UUID, token 
 		return ErrNotOwner
 	}
 
-	return s.repo.RevokeComparison(ctx, token)
+	now := time.Now().UTC()
+	if err := s.repo.RevokeComparison(ctx, comp.ID, now); err != nil {
+		return err
+	}
+	return s.repo.RevokeComparisonTokens(ctx, comp.ID, now)
+}
+
+func generateComparisonToken() (string, string, error) {
+	buf := make([]byte, 16)
+	if _, err := rand.Read(buf); err != nil {
+		return "", "", fmt.Errorf("playthrough: generate comparison token: %w", err)
+	}
+	token := base64.RawURLEncoding.EncodeToString(buf)
+	return token, hashComparisonToken(token), nil
+}
+
+func hashComparisonToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
 }
 
 func findDivergenceMoment(choicesA, choicesB []ChoiceEvent) (ComparisonDivergence, error) {

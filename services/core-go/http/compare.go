@@ -139,12 +139,11 @@ func acceptCompareHandler(cfg compareHandlerConfig) http.HandlerFunc {
 }
 
 type comparePublicResponse struct {
-	Comparison   playthrough.Comparison           `json:"comparison"`
-	InviterModel playthrough.StoredTraitVector    `json:"inviter_traits"`
-	InviteeModel playthrough.StoredTraitVector    `json:"invitee_traits"`
-	Divergence   playthrough.ComparisonDivergence `json:"divergence"`
-	InviterPNG   string                           `json:"inviter_png_url"`
-	InviteePNG   string                           `json:"invitee_png_url"`
+	SeasonID   string                           `json:"season_id"`
+	Status     playthrough.ComparisonStatus     `json:"status"`
+	Divergence playthrough.ComparisonDivergence `json:"divergence"`
+	InviterPNG string                           `json:"inviter_png_url"`
+	InviteePNG string                           `json:"invitee_png_url"`
 }
 
 func getCompareHandler(cfg compareHandlerConfig) http.HandlerFunc {
@@ -174,17 +173,16 @@ func getCompareHandler(cfg compareHandlerConfig) http.HandlerFunc {
 
 		var inviterPNG, inviteePNG string
 		if res.Comparison.Status == playthrough.ComparisonStatusAccepted {
-			inviterPNG = portraitURLForToken(cfg.APIBaseURL, res.Comparison.Token, false) + "?side=inviter"
-			inviteePNG = portraitURLForToken(cfg.APIBaseURL, res.Comparison.Token, false) + "?side=invitee"
+			inviterPNG = portraitURLForToken(cfg.APIBaseURL, token, false) + "?side=inviter"
+			inviteePNG = portraitURLForToken(cfg.APIBaseURL, token, false) + "?side=invitee"
 		}
 
 		writeJSON(w, http.StatusOK, comparePublicResponse{
-			Comparison:   res.Comparison,
-			InviterModel: res.InviterModel,
-			InviteeModel: res.InviteeModel,
-			Divergence:   res.Divergence,
-			InviterPNG:   inviterPNG,
-			InviteePNG:   inviteePNG,
+			SeasonID:   res.Comparison.SeasonID,
+			Status:     res.Comparison.Status,
+			Divergence: res.Divergence,
+			InviterPNG: inviterPNG,
+			InviteePNG: inviteePNG,
 		})
 	}
 }
@@ -273,6 +271,52 @@ func revokeCompareHandler(cfg compareHandlerConfig) http.HandlerFunc {
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+type shareEnableResponse struct {
+	ShareToken string `json:"share_token"`
+	ShareURL   string `json:"share_url"`
+}
+
+func enableCompareShareHandler(cfg compareHandlerConfig) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		sess, ok := auth.SessionFromContext(r.Context())
+		if !ok {
+			writeJSONError(w, http.StatusUnauthorized, "authentication required")
+			return
+		}
+		user, err := cfg.Users.EnsureFromSession(r.Context(), sess, cfg.now())
+		if err != nil {
+			cfg.Logger.Error("compare: share-enable: ensure user", "err", err)
+			writeJSONError(w, http.StatusInternalServerError, "user provisioning failed")
+			return
+		}
+
+		token := strings.TrimSpace(r.PathValue("token"))
+		if token == "" {
+			writeJSONError(w, http.StatusBadRequest, "token required")
+			return
+		}
+
+		shareToken, err := cfg.Playthrough.EnableComparisonShare(r.Context(), user.ID, token)
+		switch {
+		case errors.Is(err, playthrough.ErrNotFound), errors.Is(err, playthrough.ErrNotOwner):
+			writeJSONError(w, http.StatusNotFound, "comparison not found")
+			return
+		case errors.Is(err, playthrough.ErrComparisonNotAccepted):
+			writeJSONError(w, http.StatusConflict, "comparison is not accepted")
+			return
+		case err != nil:
+			cfg.Logger.Error("compare: share-enable", "err", err)
+			writeJSONError(w, http.StatusInternalServerError, "share-enable failed")
+			return
+		}
+
+		writeJSON(w, http.StatusOK, shareEnableResponse{
+			ShareToken: shareToken,
+			ShareURL:   compareURL(cfg.ShareBaseURL, shareToken),
+		})
 	}
 }
 

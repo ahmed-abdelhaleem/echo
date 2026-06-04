@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -43,9 +44,13 @@ type Repository interface {
 	UpsertTraitVector(ctx context.Context, playthroughID uuid.UUID, vec TraitVector, scoringVersion, seasonVersion int) (StoredTraitVector, error)
 	GetTraitVector(ctx context.Context, playthroughID uuid.UUID) (StoredTraitVector, error)
 	CreateComparison(ctx context.Context, token string, inviterPlaythroughID uuid.UUID, seasonID string) (Comparison, error)
-	GetComparison(ctx context.Context, token string) (Comparison, error)
-	AcceptComparison(ctx context.Context, token string, inviteePlaythroughID uuid.UUID) (Comparison, error)
-	RevokeComparison(ctx context.Context, token string) error
+	CreateComparisonToken(ctx context.Context, comparisonID uuid.UUID, tokenType ComparisonTokenType, tokenHash string, createdByUserID uuid.UUID, expiresAt time.Time) error
+	GetComparisonByToken(ctx context.Context, tokenHash string, tokenType ComparisonTokenType, now time.Time) (Comparison, error)
+	GetComparisonByAnyToken(ctx context.Context, tokenHash string) (Comparison, error)
+	AcceptComparison(ctx context.Context, comparisonID uuid.UUID, inviteePlaythroughID uuid.UUID, divergenceVignetteID string) (Comparison, error)
+	EnableComparisonShare(ctx context.Context, comparisonID uuid.UUID, enabledAt time.Time) error
+	RevokeComparison(ctx context.Context, comparisonID uuid.UUID, revokedAt time.Time) error
+	RevokeComparisonTokens(ctx context.Context, comparisonID uuid.UUID, revokedAt time.Time) error
 }
 
 // PgRepository is the pgxpool-backed Repository implementation.
@@ -271,12 +276,14 @@ func (r *PgRepository) CreateComparison(ctx context.Context, token string, invit
 	const q = `
 		INSERT INTO playthrough.comparisons (token, inviter_playthrough_id, season_id, status)
 		VALUES ($1, $2, $3, 'pending')
-		RETURNING id, token, inviter_playthrough_id, invitee_playthrough_id, season_id, status, created_at, accepted_at
+		RETURNING id, token, inviter_playthrough_id, invitee_playthrough_id, season_id, status, created_at, accepted_at,
+		       revoked_at, expires_at, share_enabled, share_enabled_at, divergence_vignette_id
 	`
 	var c Comparison
 	err := r.pool.QueryRow(ctx, q, token, inviterPlaythroughID, seasonID).Scan(
 		&c.ID, &c.Token, &c.InviterPlaythroughID, &c.InviteePlaythroughID,
 		&c.SeasonID, &c.Status, &c.CreatedAt, &c.AcceptedAt,
+		&c.RevokedAt, &c.ExpiresAt, &c.ShareEnabled, &c.ShareEnabledAt, &c.DivergenceVignetteID,
 	)
 	if err != nil {
 		return Comparison{}, fmt.Errorf("playthrough: create comparison: %w", err)
@@ -285,40 +292,96 @@ func (r *PgRepository) CreateComparison(ctx context.Context, token string, invit
 }
 
 // GetComparison retrieves a comparison by its token.
-func (r *PgRepository) GetComparison(ctx context.Context, token string) (Comparison, error) {
+func (r *PgRepository) CreateComparisonToken(
+	ctx context.Context,
+	comparisonID uuid.UUID,
+	tokenType ComparisonTokenType,
+	tokenHash string,
+	createdByUserID uuid.UUID,
+	expiresAt time.Time,
+) error {
 	const q = `
-		SELECT id, token, inviter_playthrough_id, invitee_playthrough_id, season_id, status, created_at, accepted_at
-		FROM playthrough.comparisons
-		WHERE token = $1
+		INSERT INTO playthrough.comparison_tokens
+			(comparison_id, token_type, token_hash, created_by_user_id, expires_at)
+		VALUES ($1, $2, $3, $4, $5)
+	`
+	if _, err := r.pool.Exec(ctx, q, comparisonID, tokenType, tokenHash, createdByUserID, expiresAt); err != nil {
+		return fmt.Errorf("playthrough: create comparison token: %w", err)
+	}
+	return nil
+}
+
+// GetComparisonByToken resolves an active comparison token by hash and type.
+func (r *PgRepository) GetComparisonByToken(ctx context.Context, tokenHash string, tokenType ComparisonTokenType, now time.Time) (Comparison, error) {
+	const q = `
+		SELECT c.id, c.token, c.inviter_playthrough_id, c.invitee_playthrough_id, c.season_id, c.status,
+		       c.created_at, c.accepted_at, c.revoked_at, c.expires_at, c.share_enabled, c.share_enabled_at,
+		       c.divergence_vignette_id
+		FROM playthrough.comparison_tokens ct
+		JOIN playthrough.comparisons c ON c.id = ct.comparison_id
+		WHERE ct.token_hash = $1
+		  AND ct.token_type = $2
+		  AND ct.revoked_at IS NULL
+		  AND ct.expires_at > $3
+		  AND c.status <> 'revoked'
 	`
 	var c Comparison
-	err := r.pool.QueryRow(ctx, q, token).Scan(
+	err := r.pool.QueryRow(ctx, q, tokenHash, tokenType, now).Scan(
 		&c.ID, &c.Token, &c.InviterPlaythroughID, &c.InviteePlaythroughID,
 		&c.SeasonID, &c.Status, &c.CreatedAt, &c.AcceptedAt,
+		&c.RevokedAt, &c.ExpiresAt, &c.ShareEnabled, &c.ShareEnabledAt, &c.DivergenceVignetteID,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Comparison{}, ErrComparisonNotFound
 	}
 	if err != nil {
-		return Comparison{}, fmt.Errorf("playthrough: get comparison: %w", err)
+		return Comparison{}, fmt.Errorf("playthrough: get comparison by token: %w", err)
+	}
+	return c, nil
+}
+
+func (r *PgRepository) GetComparisonByAnyToken(ctx context.Context, tokenHash string) (Comparison, error) {
+	const q = `
+		SELECT c.id, c.token, c.inviter_playthrough_id, c.invitee_playthrough_id, c.season_id, c.status,
+		       c.created_at, c.accepted_at, c.revoked_at, c.expires_at, c.share_enabled, c.share_enabled_at,
+		       c.divergence_vignette_id
+		FROM playthrough.comparison_tokens ct
+		JOIN playthrough.comparisons c ON c.id = ct.comparison_id
+		WHERE ct.token_hash = $1
+		LIMIT 1
+	`
+	var c Comparison
+	err := r.pool.QueryRow(ctx, q, tokenHash).Scan(
+		&c.ID, &c.Token, &c.InviterPlaythroughID, &c.InviteePlaythroughID,
+		&c.SeasonID, &c.Status, &c.CreatedAt, &c.AcceptedAt,
+		&c.RevokedAt, &c.ExpiresAt, &c.ShareEnabled, &c.ShareEnabledAt, &c.DivergenceVignetteID,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Comparison{}, ErrComparisonNotFound
+	}
+	if err != nil {
+		return Comparison{}, fmt.Errorf("playthrough: get comparison by any token: %w", err)
 	}
 	return c, nil
 }
 
 // AcceptComparison accepts a comparison invite and binds the invitee's playthrough.
-func (r *PgRepository) AcceptComparison(ctx context.Context, token string, inviteePlaythroughID uuid.UUID) (Comparison, error) {
+func (r *PgRepository) AcceptComparison(ctx context.Context, comparisonID uuid.UUID, inviteePlaythroughID uuid.UUID, divergenceVignetteID string) (Comparison, error) {
 	const q = `
 		UPDATE playthrough.comparisons
 		SET invitee_playthrough_id = $2,
 		    status = 'accepted',
-		    accepted_at = NOW()
-		WHERE token = $1 AND status = 'pending'
-		RETURNING id, token, inviter_playthrough_id, invitee_playthrough_id, season_id, status, created_at, accepted_at
+		    accepted_at = NOW(),
+		    divergence_vignette_id = $3
+		WHERE id = $1 AND status = 'pending'
+		RETURNING id, token, inviter_playthrough_id, invitee_playthrough_id, season_id, status, created_at, accepted_at,
+		       revoked_at, expires_at, share_enabled, share_enabled_at, divergence_vignette_id
 	`
 	var c Comparison
-	err := r.pool.QueryRow(ctx, q, token, inviteePlaythroughID).Scan(
+	err := r.pool.QueryRow(ctx, q, comparisonID, inviteePlaythroughID, divergenceVignetteID).Scan(
 		&c.ID, &c.Token, &c.InviterPlaythroughID, &c.InviteePlaythroughID,
 		&c.SeasonID, &c.Status, &c.CreatedAt, &c.AcceptedAt,
+		&c.RevokedAt, &c.ExpiresAt, &c.ShareEnabled, &c.ShareEnabledAt, &c.DivergenceVignetteID,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Comparison{}, ErrComparisonNotFound
@@ -329,19 +392,50 @@ func (r *PgRepository) AcceptComparison(ctx context.Context, token string, invit
 	return c, nil
 }
 
-// RevokeComparison updates a comparison's status to 'revoked'.
-func (r *PgRepository) RevokeComparison(ctx context.Context, token string) error {
+func (r *PgRepository) EnableComparisonShare(ctx context.Context, comparisonID uuid.UUID, enabledAt time.Time) error {
 	const q = `
 		UPDATE playthrough.comparisons
-		SET status = 'revoked'
-		WHERE token = $1
+		SET share_enabled = true,
+		    share_enabled_at = $2
+		WHERE id = $1
 	`
-	tag, err := r.pool.Exec(ctx, q, token)
+	tag, err := r.pool.Exec(ctx, q, comparisonID, enabledAt)
+	if err != nil {
+		return fmt.Errorf("playthrough: enable comparison share: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrComparisonNotFound
+	}
+	return nil
+}
+
+// RevokeComparison updates a comparison's status to 'revoked'.
+func (r *PgRepository) RevokeComparison(ctx context.Context, comparisonID uuid.UUID, revokedAt time.Time) error {
+	const q = `
+		UPDATE playthrough.comparisons
+		SET status = 'revoked',
+		    revoked_at = $2
+		WHERE id = $1
+	`
+	tag, err := r.pool.Exec(ctx, q, comparisonID, revokedAt)
 	if err != nil {
 		return fmt.Errorf("playthrough: revoke comparison: %w", err)
 	}
 	if tag.RowsAffected() == 0 {
 		return ErrComparisonNotFound
+	}
+	return nil
+}
+
+func (r *PgRepository) RevokeComparisonTokens(ctx context.Context, comparisonID uuid.UUID, revokedAt time.Time) error {
+	const q = `
+		UPDATE playthrough.comparison_tokens
+		SET revoked_at = $2
+		WHERE comparison_id = $1
+		  AND revoked_at IS NULL
+	`
+	if _, err := r.pool.Exec(ctx, q, comparisonID, revokedAt); err != nil {
+		return fmt.Errorf("playthrough: revoke comparison tokens: %w", err)
 	}
 	return nil
 }
