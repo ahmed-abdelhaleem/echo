@@ -34,8 +34,10 @@ void main() {
       await client.createPlaythrough(seasonId: 'season-001');
 
       expect(adapter.recorded, hasLength(1));
-      expect(adapter.recorded.single.headers['x-session-token'],
-          'session-token-1');
+      expect(
+        adapter.recorded.single.headers['x-session-token'],
+        'session-token-1',
+      );
     });
 
     test('parses 201 envelope into RemotePlaythrough', () async {
