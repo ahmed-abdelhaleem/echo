@@ -516,7 +516,8 @@ class ApiClient {
   /// status for the authenticated user. Returns free tier when no
   /// subscription exists.
   Future<SubscriptionStatus> getSubscription() async {
-    final response = await _dio.get<Map<String, dynamic>>('/users/me/subscription');
+    final response =
+        await _dio.get<Map<String, dynamic>>('/users/me/subscription');
     final status = response.statusCode ?? 0;
     if (status == 401) throw SubscriptionUnauthorised();
     if (status != 200) {
@@ -568,7 +569,8 @@ class ApiClient {
   /// POST /billing/stripe/portal. Returns a Stripe Billing Portal URL for
   /// managing or canceling an existing subscription on desktop.
   Future<StripePortalSession> createStripePortal() async {
-    final response = await _dio.post<Map<String, dynamic>>('/billing/stripe/portal');
+    final response =
+        await _dio.post<Map<String, dynamic>>('/billing/stripe/portal');
     final status = response.statusCode ?? 0;
     if (status == 401) throw SubscriptionUnauthorised();
     if (status != 201) {

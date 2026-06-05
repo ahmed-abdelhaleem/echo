@@ -282,4 +282,3 @@ class ManageSubscriptionResultError extends ManageSubscriptionResult {
   const ManageSubscriptionResultError(this.message);
   final String message;
 }
-

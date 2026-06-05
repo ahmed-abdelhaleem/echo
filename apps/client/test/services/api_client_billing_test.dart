@@ -71,7 +71,8 @@ void main() {
 
     test('throws SubscriptionUnauthorised on 401', () async {
       final client = _client(401, {'error': 'unauthorized'});
-      expect(client.getSubscription(), throwsA(isA<SubscriptionUnauthorised>()));
+      expect(
+          client.getSubscription(), throwsA(isA<SubscriptionUnauthorised>()));
     });
   });
 
@@ -134,4 +135,3 @@ void main() {
     });
   });
 }
-

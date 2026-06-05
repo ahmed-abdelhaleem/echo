@@ -14,7 +14,6 @@
 // persistence. PR 8 (T-CLIENT-012) will drain pending choices to the
 // server in the background.
 
-
 import 'package:echo_client/data/local/database.dart';
 import 'package:echo_client/data/models/content.dart';
 import 'package:echo_client/features/vignette/vignette_controller.dart';
