@@ -68,6 +68,7 @@ help:
 	@echo "  make test             Run all unit + integration tests"
 	@echo "  make build            Build all services for the current platform"
 	@echo "  make validate-content Validate content/ against content-schema"
+	@echo "  make validate-assets  Validate 3D asset manifests (content/assets-3d)"
 	@echo "  make simulate         Run tools/playthrough-sim (placeholder until M1)"
 	@echo "  make replay           Run tools/trait-replay (placeholder until M1)"
 	@echo ""
@@ -322,6 +323,15 @@ ifeq ($(PNPM_AVAILABLE),yes)
 	@pnpm --filter @echo/content-validator run validate
 else
 	@echo "↷ pnpm not installed; skipping validate-content"
+endif
+
+.PHONY: validate-assets
+validate-assets:
+ifeq ($(PNPM_AVAILABLE),yes)
+	@echo "→ validate-assets"
+	@pnpm --filter @echo/content-validator run validate -- --only assets
+else
+	@echo "↷ pnpm not installed; skipping validate-assets"
 endif
 
 # ---------------------------------------------------------------------------

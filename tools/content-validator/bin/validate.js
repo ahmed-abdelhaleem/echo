@@ -26,7 +26,10 @@ import {
   choiceSchema,
   traitWeightSchema,
   reflectionTemplateSchema,
+  assetManifestSchema,
 } from "@echo/content-schema";
+
+import { contentAddress } from "../lib/content_address.js";
 
 // ---------------------------------------------------------------------------
 // CLI arg parsing
@@ -40,6 +43,11 @@ for (let i = 0; i < args.length; i++) {
     flags.root = args[++i];
   } else if (a === "--self-check") {
     flags.selfCheck = true;
+  } else if (a === "--only") {
+    flags.only = args[++i];
+  } else if (a === "--") {
+    // pnpm forwards a literal `--` separator; ignore it.
+    continue;
   } else if (a === "-h" || a === "--help") {
     flags.help = true;
   } else {
@@ -49,9 +57,22 @@ for (let i = 0; i < args.length; i++) {
 }
 
 if (flags.help) {
-  console.log("usage: validate.js [--root <repo_root>] [--self-check]");
+  console.log(
+    "usage: validate.js [--root <repo_root>] [--self-check] [--only seasons|templates|assets]",
+  );
   process.exit(0);
 }
+
+const ONLY_KINDS = new Set(["seasons", "templates", "assets"]);
+if (flags.only && !ONLY_KINDS.has(flags.only)) {
+  console.error(`--only must be one of: ${[...ONLY_KINDS].join(", ")}`);
+  process.exit(2);
+}
+const run = {
+  seasons: !flags.only || flags.only === "seasons",
+  templates: !flags.only || flags.only === "templates",
+  assets: !flags.only || flags.only === "assets",
+};
 
 // ---------------------------------------------------------------------------
 // Find repo root (walk up until we find content/ + packages/content-schema/)
@@ -104,6 +125,7 @@ ajv.addSchema(choiceSchema);
 ajv.addSchema(traitWeightSchema);
 const validateSeason = ajv.compile(seasonSchema);
 const validateReflectionTemplate = ajv.compile(reflectionTemplateSchema);
+const validateAssetManifest = ajv.compile(assetManifestSchema);
 
 if (flags.selfCheck) {
   console.log("✓ content-validator self-check: all schemas compiled.");
@@ -118,32 +140,36 @@ const seasonsDir = join(repoRoot, "content", "seasons");
 const seasonPattern = join(seasonsDir, "*", "season.json");
 
 const seasonFiles = [];
-for await (const entry of glob(seasonPattern)) {
-  seasonFiles.push(entry);
-}
+if (run.seasons) {
+  for await (const entry of glob(seasonPattern)) {
+    seasonFiles.push(entry);
+  }
 
-if (seasonFiles.length === 0) {
-  console.error(`no season.json files found under ${seasonsDir}`);
-  process.exit(2);
+  if (seasonFiles.length === 0) {
+    console.error(`no season.json files found under ${seasonsDir}`);
+    process.exit(2);
+  }
 }
 
 const templatesDir = join(repoRoot, "content", "reflection-templates");
 const templatePattern = join(templatesDir, "*.template.json");
 
 const templateFiles = [];
-for await (const entry of glob(templatePattern)) {
-  templateFiles.push(entry);
-}
+if (run.templates) {
+  for await (const entry of glob(templatePattern)) {
+    templateFiles.push(entry);
+  }
 
-// Reflection templates are required by T-ML-040 (≥50 templates). We do
-// NOT short-circuit on an empty directory the way we do for seasons —
-// missing template content is a hard fail because the M2 reflection
-// pipeline depends on it.
-if (templateFiles.length === 0) {
-  console.error(
-    `no *.template.json files found under ${templatesDir} (T-ML-040 requires ≥50 templates)`,
-  );
-  process.exit(2);
+  // Reflection templates are required by T-ML-040 (≥50 templates). We do
+  // NOT short-circuit on an empty directory the way we do for seasons —
+  // missing template content is a hard fail because the M2 reflection
+  // pipeline depends on it.
+  if (templateFiles.length === 0) {
+    console.error(
+      `no *.template.json files found under ${templatesDir} (T-ML-040 requires ≥50 templates)`,
+    );
+    process.exit(2);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -237,12 +263,81 @@ for (const file of templateFiles) {
   console.log(`✓ ${rel}`);
 }
 
+// ---------------------------------------------------------------------------
+// Validate 3D asset manifests under content/assets-3d/ (T-CONTENT-004)
+// ---------------------------------------------------------------------------
+
+const assetsDir = join(repoRoot, "content", "assets-3d");
+const assetPattern = join(assetsDir, "*", "*.manifest.json");
+
+const assetFiles = [];
+if (run.assets) {
+  for await (const entry of glob(assetPattern)) {
+    assetFiles.push(entry);
+  }
+}
+
+for (const file of assetFiles) {
+  const rel = file.slice(repoRoot.length + 1);
+  let data;
+  try {
+    data = JSON.parse(readFileSync(file, "utf-8"));
+  } catch (err) {
+    console.error(`✗ ${rel}: invalid JSON: ${err.message}`);
+    failed++;
+    continue;
+  }
+  if (!validateAssetManifest(data)) {
+    console.error(`✗ ${rel}: schema validation failed:`);
+    for (const e of validateAssetManifest.errors ?? []) {
+      console.error(`    ${e.instancePath || "(root)"} ${e.message}`);
+    }
+    failed++;
+    continue;
+  }
+
+  // Rules JSON Schema can't express cleanly: unique ids, image-to-3d needs a
+  // reference, and the content_address must match the generation inputs.
+  let assetError = null;
+  const seenIds = new Set();
+  for (const asset of data.assets) {
+    if (seenIds.has(asset.id)) {
+      assetError = `duplicate asset id "${asset.id}"`;
+      break;
+    }
+    seenIds.add(asset.id);
+
+    if (asset.generation.mode === "image-to-3d" && !asset.generation.references?.length) {
+      assetError = `asset "${asset.id}": mode 'image-to-3d' requires at least one reference`;
+      break;
+    }
+
+    const expected = contentAddress(asset);
+    if (asset.content_address !== expected) {
+      assetError = `asset "${asset.id}": content_address ${asset.content_address} does not match generation inputs (${expected})`;
+      break;
+    }
+  }
+  if (assetError) {
+    console.error(`✗ ${rel}: ${assetError}`);
+    failed++;
+    continue;
+  }
+
+  console.log(`✓ ${rel}`);
+}
+
 if (failed > 0) {
   console.error(
-    `\n${failed} content file(s) failed validation (across ${seasonFiles.length} season(s) and ${templateFiles.length} template(s)).`,
+    `\n${failed} content file(s) failed validation (across ${seasonFiles.length} season(s), ${templateFiles.length} template(s), and ${assetFiles.length} asset manifest(s)).`,
   );
   process.exit(1);
 }
-console.log(
-  `\n${seasonFiles.length} season(s) and ${templateFiles.length} reflection template(s) validated.`,
-);
+if (run.seasons || run.templates) {
+  console.log(
+    `\n${seasonFiles.length} season(s) and ${templateFiles.length} reflection template(s) validated.`,
+  );
+}
+if (run.assets) {
+  console.log(`${assetFiles.length} asset manifest(s) validated.`);
+}

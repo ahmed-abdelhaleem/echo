@@ -8,7 +8,7 @@
   },
   "scripts": {
     "validate": "node bin/validate.js",
-    "test": "node --test test/validate.test.js",
+    "test": "node --test test/*.test.js",
     "lint": "node bin/validate.js --self-check"
   },
   "dependencies": {

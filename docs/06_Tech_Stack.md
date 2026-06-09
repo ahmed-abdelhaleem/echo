@@ -57,6 +57,17 @@ The **Replace path** field exists so that future-us, future-team, or an AI agent
 - **Lock-in risk:** Low.
 - **Replace path:** Custom Flutter `CustomPainter`-based renderers for the affected vignettes.
 
+### Thermion (Filament) + glTF/GLB · 3D scene and model rendering
+- **Version:** Thermion 0.x (Flutter runtime), glTF 2.0 / GLB asset format
+- **Role:** Render AI-generated 3D vignette environments, props, and ambient scene elements inside the client — atmospheric depth for vignettes that benefit from a navigable or parallaxed 3D space. (The player **Portrait** is *not* 3D; it stays a deterministic parametric render — see Pillow + Cairo below.)
+- **Why this:** Thermion wraps Google's **Filament** PBR engine behind a Flutter API, giving high-fidelity, identical rendering across all four platforms — the same parity argument that selected Flutter itself. **glTF/GLB** is the universal, royalty-free 3D interchange format that every generation provider can export, which keeps us provider-neutral end to end.
+- **Alternatives considered:**
+  - **flutter_scene** (Impeller-native 3D from the Flutter team) — lighter and promising, but still experimental; revisit as it matures.
+  - **model_viewer_plus** (`<model-viewer>` in a platform webview) — trivial to adopt and a fine low-fidelity fallback, but webview overhead and weak control over lighting/perf.
+  - **Embedding Unity / Godot** — full engines, but heavyweight and reintroduce exactly the cross-platform-bridge problems Flutter exists to avoid.
+- **Lock-in risk:** Low. Assets are standard glTF/GLB; the renderer is swappable without touching content.
+- **Replace path:** Swap to flutter_scene or model_viewer_plus; assets are unchanged because they are standard glTF.
+
 ### graphql_flutter + ferry · GraphQL client
 - **Version:** ferry 0.16+ (preferred for stricter typing and offline cache)
 - **Role:** Type-safe GraphQL client with codegen.
@@ -204,6 +215,15 @@ The **Replace path** field exists so that future-us, future-team, or an AI agent
 - **Why this:** Pure server-side rendering, deterministic output, fully under our control. No external API dependency for the highest-stakes asset.
 - **Lock-in risk:** None.
 
+### Meshy AI (+ open-model fallback) · AI 3D model generation
+- **Role:** Generate 3D models and scene elements (props, environments, ambient objects) for vignettes from text and reference-image prompts. This is **content tooling for the atmospheric world**, distinct from the player Portrait — the Portrait remains a deterministic parametric render with no external dependency (see Pillow + Cairo above).
+- **Why this:** Meshy AI offers strong text-to-3D and image-to-3D with direct **glTF/GLB + PBR-texture** export, an API suited to automated pipelines, and good quality-for-cost. It lets a tiny team produce a large, cohesive set of 3D assets without a 3D-artist headcount.
+- **Alternatives considered:**
+  - **Luma AI (Genie), Tripo AI, Rodin / Hyper3D, Stability AI (Stable Fast 3D)** — viable hosted providers; kept behind the same abstraction as redundant / cost-arbitrage routes.
+  - **Self-hosted open models — TripoSR, InstantMesh, Hunyuan3D-2, Stable Fast 3D** (served via the existing Python ML stack / vLLM-style serving) — owned inference for cost control at scale and for assets we prefer not to send to a third party; the same role the self-hosted LLM plays for reflection.
+- **Lock-in risk:** Medium — mitigated by (a) a multi-provider abstraction identical in spirit to the LLM router and (b) standardized glTF/GLB output that any provider and any renderer accept.
+- **Replace path:** The provider router in the `asset-gen` service makes a provider swap a config change; self-hosted open models are the floor if every hosted provider becomes unviable. See the **continuous background asset generation** pipeline in `05_Technical_Architecture`.
+
 ---
 
 ## Infrastructure and platform
@@ -295,6 +315,7 @@ The **Replace path** field exists so that future-us, future-team, or an AI agent
 | Layer | Choice |
 |---|---|
 | Client | Flutter (Dart) + Drift + Rive + Riverpod + Ferry GraphQL |
+| Client 3D | Thermion (Filament) + glTF/GLB |
 | API surface | GraphQL (gqlgen) + REST for public surfaces + WebSocket for live |
 | Backend services | Go (core) + Python (ML/content) |
 | Inter-service | gRPC |
@@ -304,6 +325,7 @@ The **Replace path** field exists so that future-us, future-team, or an AI agent
 | Object storage | Cloudflare R2 |
 | Auth | Ory Kratos + Apple/Google OAuth |
 | LLM | Anthropic Claude (primary) + self-hosted open model (fallback) |
+| 3D assets | AI-generated — Meshy (primary) + self-hosted open models (fallback), glTF/GLB |
 | Hosting phase 0 | Fly.io |
 | Hosting phase 1 | GKE (Kubernetes on Google Cloud, EU) |
 | Edge | Cloudflare (CDN, R2, Workers) |

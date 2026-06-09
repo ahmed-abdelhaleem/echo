@@ -53,6 +53,8 @@ These categories should never be merged by an AI agent without human review:
 8. Changes to data-residency configuration, region pinning, or backup encryption.
 9. Anything that affects the public API contract used by clients in the wild.
 10. Changes to billing logic.
+11. Triggering paid external generation APIs at scale (batch or continuous 3D/asset generation) or changing generation budget caps — anything that materially affects spend.
+12. Changes to the asset QA / safety / brand gate for AI-generated 3D content.
 
 When a task touches one of these, open the PR with a `human-review-required` label, a clear summary of the impact, and stop.
 
@@ -65,6 +67,7 @@ make lint                  # All linters
 make test                  # All unit + integration tests
 make build                 # All build targets for current platform
 make validate-content      # tools/content-validator over content/
+make validate-assets       # 3D asset manifests against the asset schema
 ```
 
 All four must exit zero before claiming a task complete.

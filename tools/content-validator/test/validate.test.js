@@ -25,4 +25,12 @@ test("validator passes against repo content/", () => {
     encoding: "utf-8",
   });
   assert.match(out, /season\(s\) and \d+ reflection template\(s\) validated/);
+  assert.match(out, /asset manifest\(s\) validated/);
+});
+
+test("validator validates 3D asset manifests (--only assets)", () => {
+  const out = execFileSync("node", [validator, "--only", "assets"], {
+    encoding: "utf-8",
+  });
+  assert.match(out, /asset manifest\(s\) validated/);
 });

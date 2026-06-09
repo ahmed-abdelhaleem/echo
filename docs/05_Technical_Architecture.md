@@ -225,6 +225,58 @@ This is the ML/content-critical path. End-to-end target latency at p95: **under 
 
 ---
 
+## Continuous background asset generation
+
+Echo's vignettes are set in atmospheric 3D environments and populated with 3D props. These assets are produced by AI generation — text-to-3D and image-to-3D (see `06_Tech_Stack`) — but generation is **slow and costs money per asset**, so it can never run inline during a playthrough. Instead, assets are produced by an always-on **continuous background generation pipeline** that works ahead of demand. By the time any player reaches a vignette, the finished, optimized asset is already sitting on the CDN.
+
+> **Boundary.** This pipeline generates the *world* — vignette scenery and props. It is deliberately separate from the player **Portrait**, which stays a deterministic, parametric, dependency-free render (see the Portrait pipeline above). Putting a brand-critical, must-be-reproducible artifact behind a non-deterministic external API would violate principle 5. We don't.
+
+### Desired-state model
+
+Content authors do not call a generator. They **declare** the assets a Season needs in an asset manifest (`AssetManifest`, validated against `content-schema`): for each asset, a prompt, optional reference images, generation parameters, a license note, and a **content-address** — a stable hash of all generation inputs (prompt + params + provider + pipeline version). The content-address is the asset's identity: identical inputs always map to the same address, which makes generation idempotent, cacheable, and reproducible, and lets one asset be reused across vignettes without regeneration.
+
+### Pipeline stages
+
+```
+asset manifest (desired)        reconciler
+        │                            │  diff desired vs ready
+        ▼                            ▼
+   content-address  ──────►  enqueue job (NATS JetStream)
+                                     │
+                                     ▼
+                         ┌────────────────────────┐
+                         │  generation worker     │
+                         │  1. submit to provider │  ← Meshy primary,
+                         │  2. poll to completion │     open-model fallback
+                         │  3. post-process       │  ← decimate, Draco/meshopt,
+                         │     (optimize, LODs,    │     LODs, thumbnail
+                         │      thumbnail)         │
+                         │  4. QA + safety/brand   │  ← automated gate + human
+                         │     gate                │     curation for new sets
+                         │  5. store + register    │  ← R2 (binary) + Postgres
+                         └───────────┬────────────┘     (metadata, version)
+                                     ▼
+                            asset marked READY  ──►  Cloudflare CDN
+```
+
+### Continuous reconciliation
+
+A scheduler runs the loop continuously: it diffs the set of *desired* assets (everything referenced by current and upcoming asset manifests) against the set of *ready* assets, and enqueues whatever is missing or stale. This is the converge-to-desired-state pattern of GitOps, applied to content. It naturally supports **pre-warming** — assets for a Season still in authoring are generated quietly long before release — and **self-healing** — if an asset is invalidated (prompt changed, pipeline upgraded), its content-address changes and the reconciler regenerates it.
+
+### Cost and safety controls
+
+- **Budget caps.** Generation spend is bounded by a configurable per-period cap per environment. Hitting the cap pauses generation and alerts; it never spends unbounded. Large or first-time batch runs require human approval (an escalation item in `07_AI_Agent_Implementation_Guide`).
+- **Dedup by content-address.** Nothing is generated twice; cache hits are free.
+- **Provider routing.** A multi-provider abstraction (mirroring the LLM router) routes to the cheapest acceptable provider and fails over to a self-hosted open model.
+- **QA / safety / brand gate.** Every generated asset passes an automated check (geometry sanity, size/poly budget, texture sanity) plus a safety/brand review; new asset *sets* get human curation before they ship. Changes to this gate are an escalation item.
+- **Data residency.** Binaries are stored in EU R2. Generated scenery contains no personal data, so third-party generation providers stay outside the personal-data boundary — a deliberate reason this pipeline is for the world and not the Portrait.
+
+### Where it runs
+
+The generator lives inside the Python ML/content service as an `asset_gen` module plus a long-running **background worker** (a separate process/replica from the request-serving path), consuming from NATS JetStream and writing to R2 + Postgres. It is stateless and horizontally scalable; the queue absorbs bursts. The Flutter client never generates anything — it only downloads ready, optimized GLBs from the CDN and caches them locally (offline-first, like all other content).
+
+---
+
 ## Authentication and authorization
 
 ### Auth approach
