@@ -1,1 +1,73 @@
+# OS
 .DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Tooling
+.mise.local.toml
+.direnv/
+
+# Go
+/services/core-go/bin/
+/services/core-go/tmp/
+*.test
+*.out
+coverage.out
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+.uv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/
+
+# Node / web
+node_modules/
+.next/
+.svelte-kit/
+.turbo/
+dist/
+
+# Dart / Flutter
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+*.iml
+ios/Pods/
+ios/.symlinks/
+android/.gradle/
+android/local.properties
+android/captures/
+android/key.properties
+
+# Build outputs
+build/
+out/
+
+# Logs
+*.log
+logs/
+
+# Local databases / volumes
+*.sqlite
+*.db
+/data/
