@@ -1,0 +1,61 @@
+{
+  "id": "low-power",
+  "version": 1,
+  "summary": "A day in which you took up just enough room.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-POWER",
+            "direction": "low",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "weak",
+      "submissive",
+      "doormat",
+      "wallflower"
+    ],
+    "notes": "Low power reads as a deliberate restraint on the room you take up. Never frame this as weakness or being walked on. It is a choice about scale."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the meeting you let someone else lead",
+        "the credit you let slide past you"
+      ],
+      "output": "You let someone else lead the meeting that you could have led. The credit that came around the table, you let it pass you by without correcting where it landed. Those are not abdications. They are the size you prefer to be, and the size is yours, not something the room talked you into.",
+      "notes": "Reclaims low power as a preference rather than a deficit."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

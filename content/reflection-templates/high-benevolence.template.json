@@ -1,0 +1,60 @@
+{
+  "id": "high-benevolence",
+  "version": 1,
+  "summary": "A day spent keeping the people near you warm.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-BENEVOLENCE",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "small_image_close"
+    ],
+    "avoid": [
+      "selfless",
+      "saint",
+      "you are kind"
+    ],
+    "notes": "High benevolence reads as attention paid to the people in your inner ring. Never call this kindness; describe the specific attention."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the second helping you served before they asked",
+        "the message you sent at the right moment"
+      ],
+      "output": "You served the second helping before it was asked for. The message you sent landed at the right moment, which was not by accident. The people near you today were a little warmer because of how you arranged the small things, and you did not need that to be visible to anyone but the people it was for.",
+      "notes": "Specific, invisible attention as the texture of benevolence; refuses 'kind' as a label."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

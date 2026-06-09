@@ -1,0 +1,71 @@
+{
+  "id": "tending-circle",
+  "version": 1,
+  "summary": "Benevolence, universalism, and security all prominent: you held both the near ring and the far one.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-BENEVOLENCE",
+            "direction": "high",
+            "min_magnitude": 0.35
+          },
+          {
+            "dimension": "SCH-UNIVERSALISM",
+            "direction": "high",
+            "min_magnitude": 0.35
+          },
+          {
+            "dimension": "SCH-SECURITY",
+            "direction": "high",
+            "min_magnitude": 0.3
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 75,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "saint",
+      "do-gooder",
+      "bleeding heart"
+    ],
+    "notes": "Benevolence plus universalism plus security reads as care for both the near ring and the far ring, conducted from a stable base. Never the do-gooder caricature."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the friend you checked on without prompting",
+        "the small donation you made that no one knew about",
+        "the door you locked because the day was already enough"
+      ],
+      "output": "You checked on a friend without being prompted, and made a small donation today that no one in the house knew about. The door at the end of the day, you locked, because the day had already been enough. The care you carry reaches both near and far, and you tend it from a steady place; that is the shape you keep.",
+      "notes": "All three signals as one continuous practice; closes on the steady base."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

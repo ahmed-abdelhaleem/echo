@@ -1,0 +1,18 @@
+{
+  "name": "@echo/content-validator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "echo-validate-content": "./bin/validate.js"
+  },
+  "scripts": {
+    "validate": "node bin/validate.js",
+    "test": "node --test test/validate.test.js",
+    "lint": "node bin/validate.js --self-check"
+  },
+  "dependencies": {
+    "@echo/content-schema": "workspace:*",
+    "ajv": "^8.17.1"
+  }
+}

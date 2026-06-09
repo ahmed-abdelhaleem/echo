@@ -2,46 +2,90 @@
 
 > *A game that plays you back.*
 
-Echo is a cross-platform personality-discovery game for adolescents and young adults, with a layered SaaS / B2B revenue model. Players live one fictional day in a stranger's life; their micro-decisions are silently mapped to validated psychological dimensions (Big Five, Schwartz values, attachment style), and at the end the game generates a unique visual Portrait and short prose reflection of who the player actually is.
+Echo is a cross-platform personality-discovery game. Players live one fictional day in a stranger's life and the decisions they make are silently mapped to validated psychological dimensions (Big Five, Schwartz values, attachment proxies). The output is a beautiful, shareable visual Portrait + a short prose reflection.
 
-This repository is a monorepo containing the Flutter client (iOS / Android / Windows / macOS), the Go and Python backend services, infrastructure, and the curated content that drives the experience.
+Founding documentation lives in [`docs/`](./docs/). Start with [`docs/00_README.md`](./docs/00_README.md) and read in order.
 
-## Documentation
-
-All founding documents live in [`docs/`](./docs). Start with [`docs/00_README.md`](./docs/00_README.md) for the index and reading order.
-
-If you only have time for three:
-
-1. [`docs/01_Product_Vision.md`](./docs/01_Product_Vision.md) — what Echo is and why
-2. [`docs/06_Tech_Stack.md`](./docs/06_Tech_Stack.md) — exact technologies and rationale
-3. [`docs/10_Roadmap_Milestones.md`](./docs/10_Roadmap_Milestones.md) — phased plan from day 0 to Series A
-
-AI coding agents should additionally read [`docs/07_AI_Agent_Implementation_Guide.md`](./docs/07_AI_Agent_Implementation_Guide.md) before starting any task.
-
-## Repository layout
-
-```
-apps/         Flutter client and web surfaces
-services/    Go core service and Python ML service
-packages/    Shared schemas, protobufs, design tokens
-infra/        Docker, Kubernetes, Fly.io, Terraform, ArgoCD
-content/     Seasons, reflection templates, art tokens
-tools/        Content validator, playthrough simulator, trait replay
-docs/         Founding documentation
-```
-
-The full layout and conventions are documented in [`docs/07_AI_Agent_Implementation_Guide.md`](./docs/07_AI_Agent_Implementation_Guide.md).
-
-## Getting started
-
-The toolchain is pinned via [`.tool-versions`](./.tool-versions) (managed by [`mise`](https://mise.jdx.dev) or `asdf`):
-
-```bash
-mise install
-```
-
-Service-level setup, build, and test instructions will be added per service as they land in milestone M0.
+---
 
 ## Status
 
-Pre-build, founding documentation phase. The repository is being initialized against milestone **M0 — Foundation** (see [`docs/10_Roadmap_Milestones.md`](./docs/10_Roadmap_Milestones.md)).
+- **Stage.** M0 (Foundation) — backend scaffolding, content schema, CI in place.
+- **Next milestones.** M1 (vertical-slice playthrough), M2 (MVP closed beta on iOS+Android). See [`docs/10_Roadmap_Milestones.md`](./docs/10_Roadmap_Milestones.md).
+- **Repo layout.** Defined in [`docs/07_AI_Agent_Implementation_Guide.md`](./docs/07_AI_Agent_Implementation_Guide.md) §"Monorepo layout".
+
+---
+
+## Quick start
+
+You need the versions pinned in [`.tool-versions`](./.tool-versions). The easiest way is `mise` or `asdf`:
+
+```bash
+mise install      # installs Go, Python, Node at pinned versions
+make bootstrap    # installs per-language deps (Go modules, uv venv, pnpm)
+cp -n .env.example .env   # local env for core-go (gitignored)
+docker compose up -d   # Postgres 16 + Redis 7 + NATS 2.10 + Kratos
+make migrate      # runs Postgres migrations
+make test         # run all tests
+```
+
+Once that is green you can run:
+
+```bash
+make dev          # prints the three-terminal local workflow
+make dev-core     # terminal 1 — core-go on :8081 (see .env.example)
+make client       # terminal 2 — Flutter (PLATFORM=macos|ios|chrome|...)
+```
+
+For full setup details see [`docs/07_AI_Agent_Implementation_Guide.md`](./docs/07_AI_Agent_Implementation_Guide.md) §"Setup — first run from clean machine".
+
+---
+
+## Top-level layout
+
+```
+echo/
+├── apps/
+│   ├── client/              # Flutter — iOS, Android, Windows, macOS, web, Linux
+│   ├── share-web/           # Public Portrait sharing pages (M2)
+│   └── b2b-dashboard/       # Institutional web dashboard (V2)
+├── services/
+│   ├── core-go/             # Modular monolith: auth, users, playthroughs, events, sharing, org
+│   └── ml-py/               # Trait scoring, Portrait gen, reflection gen, safety classify
+├── packages/
+│   ├── proto/               # Protobuf + GraphQL schemas
+│   ├── design-tokens/       # Shared design tokens (M2)
+│   └── content-schema/      # JSON Schemas for Seasons/Vignettes/Choices/Weights
+├── infra/
+│   ├── docker/              # Dockerfiles, local-dev compose
+│   ├── k8s/                 # Kubernetes manifests (M3+)
+│   ├── flyio/               # Fly.io configs (phase-0 hosting)
+│   ├── terraform/           # Cloud resources (M3+)
+│   └── argocd/              # GitOps manifests (M3+)
+├── content/                 # Season JSON, reflection templates, art tokens
+├── tools/                   # CLIs: content-validator, playthrough-sim, trait-replay
+├── docs/                    # Founding documentation (read in numerical order)
+├── .github/workflows/       # CI
+├── .tool-versions           # Pinned toolchain (mise/asdf)
+├── docker-compose.yml       # One-command local stack
+├── Makefile                 # Standard entry points
+└── AGENTS.md                # Conventions binding on AI agents and humans
+```
+
+---
+
+## Conventions
+
+See [`AGENTS.md`](./AGENTS.md) and [`docs/07_AI_Agent_Implementation_Guide.md`](./docs/07_AI_Agent_Implementation_Guide.md). Highlights:
+
+- **Branch naming:** `<type>/<task-id>-<short-slug>`, e.g. `feat/T-CLIENT-014-vignette-renderer`.
+- **Conventional Commits:** `feat(client): ...`, `fix(core-go): ...`, `chore(infra): ...`.
+- **Tests required for new behavior.** Targets: ≥75% line coverage for Go and Python packages.
+- **Migrations are additive only.** Drops happen in separate deploys after observability confirms.
+- **Auth, age-gating, consent, trait engine, safety classifiers, content templates, billing, data residency** — all require human review (see [`AGENTS.md`](./AGENTS.md) §"What AI agents should escalate to humans").
+
+---
+
+## License
+
+To be decided. See the build plan attached to PR #1.

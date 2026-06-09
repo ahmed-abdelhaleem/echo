@@ -1,0 +1,60 @@
+{
+  "id": "low-neuroticism",
+  "version": 1,
+  "summary": "A day whose weight you set down quickly.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-N",
+            "direction": "low",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate"
+    ],
+    "avoid": [
+      "unemotional",
+      "you are calm",
+      "stable",
+      "level-headed"
+    ],
+    "notes": "Low neuroticism reads as a fast metabolism for feeling. Never call this calm or stable (both are reductive). Describe what 'fast metabolism' looks like in the body and the day."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the bad news you absorbed and moved past in an hour",
+        "the room you closed up behind you without ceremony"
+      ],
+      "output": "Some bad news arrived in the morning and by lunch it had already taken its place beside the older things. You closed up the room behind you without ceremony and went on. That was not a refusal to feel the weight. It was the speed at which feeling moves through you, and the day was easier because of it.",
+      "notes": "Acknowledges what fast metabolism for feeling does without flattening it into 'calm'."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

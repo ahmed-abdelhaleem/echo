@@ -1,0 +1,61 @@
+{
+  "id": "high-neuroticism",
+  "version": 1,
+  "summary": "A day that the weather of feeling moved through.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-N",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_clinical_term"
+    ],
+    "avoid": [
+      "anxious",
+      "you are emotional",
+      "moody",
+      "overthinker"
+    ],
+    "notes": "High neuroticism reads as moods that arrive with weight and stay until something else moves them. We are extremely careful with the safety frame here: never clinical, never alarming, never a problem to solve. Describe the weather."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the message you reread three times",
+        "the way the afternoon felt heavier than the morning"
+      ],
+      "output": "There was a message you reread three times before you set it down. The afternoon arrived heavier than the morning, and you did not pretend it had not. You moved through the rest of the day at the pace the weight allowed, which was a slower pace than you would have chosen and a more honest one.",
+      "notes": "Frames neuroticism as weather rather than pathology; closes on the honesty of moving at the weight's pace."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

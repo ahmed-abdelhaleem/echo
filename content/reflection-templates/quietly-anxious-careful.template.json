@@ -1,0 +1,72 @@
+{
+  "id": "quietly-anxious-careful",
+  "version": 1,
+  "summary": "Conscientiousness, security, and anxious attachment all prominent: today's plans had small redundancies.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-C",
+            "direction": "high",
+            "min_magnitude": 0.35
+          },
+          {
+            "dimension": "SCH-SECURITY",
+            "direction": "high",
+            "min_magnitude": 0.3
+          },
+          {
+            "dimension": "ATT-ANXIOUS",
+            "direction": "high",
+            "min_magnitude": 0.3
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 75,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_clinical_term"
+    ],
+    "avoid": [
+      "anxious",
+      "neurotic",
+      "controlling",
+      "obsessive"
+    ],
+    "notes": "Three-axis carefulness paired with door-watching. CRITICAL: never clinical; never alarming. The redundancies are real. Describe them."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the route you double-checked the night before",
+        "the bag you re-packed in the morning",
+        "the message you confirmed twice"
+      ],
+      "output": "The route, you double-checked the night before, and the bag you re-packed once in the morning, and the small confirmation you sent twice was you handling something that was already handled. None of those was wasted. The day arrived prepared and the preparing was the cost you knew you would pay, and the cost was tolerable.",
+      "notes": "Three redundant acts described without alarm; closes on tolerability."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

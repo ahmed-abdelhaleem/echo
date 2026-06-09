@@ -1,0 +1,801 @@
+id: "season-001"
+title: "The Day of the Quiet Person"
+tagline: "You are living one day in the life of someone who keeps most things to themselves."
+character_note: |
+  The character has no name. They live alone in a mid-size city. They have a job they are competent at but
+  not passionate about. They have people who care about them and people they care about.
+  They are not in a crisis. This is simply a day.
+protagonist_description: |
+  A person in their late twenties. Works in data analysis at a company they don't fully believe in.
+  Has a close friend named Mara, a complicated relationship with a parent (the Mother), and a neighbor named Berk
+  who is louder than they would choose. Lives on the third floor of a building where the lift is usually broken.
+  Has plants that are doing fine.
+
+acts:
+  - id: "act-morning"
+    title: "Morning"
+    theme: "Setup and instinct"
+    intro: |
+      The alarm doesn't wake you. You were already awake, watching the ceiling develop its slow pattern of
+      grey light. Somewhere below, a door closes. The city starts without you.
+
+  - id: "act-midday"
+    title: "Midday"
+    theme: "Social texture"
+    intro: |
+      The morning is over. Other people have entered the day.
+
+  - id: "act-afternoon"
+    title: "Afternoon"
+    theme: "Pressure and ambiguity"
+    intro: |
+      Something has shifted. The easy part is done.
+
+  - id: "act-evening"
+    title: "Evening"
+    theme: "Resolution and reflection"
+    intro: |
+      The day is ending. You get to decide what you carry.
+
+vignettes:
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # MORNING — 5 vignettes
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: "v-001"
+    act: "act-morning"
+    sequence: 1
+    setting: |
+      The alarm was set for 7:15. You woke up at 6:52. The phone is face-down on the nightstand.
+      You know there are messages. You can feel them there, waiting. The light through the curtain
+      is not quite right for going back to sleep.
+    choices:
+      - id: "v-001-a"
+        text: "Pick up the phone. Go through it before getting up."
+        resolution: "The messages are mostly unremarkable. One from your mother. You'll answer later."
+        trait_weights:
+          openness: -0.1
+          conscientiousness: -0.1
+          extraversion: +0.2
+          agreeableness: +0.1
+          emotional_reactivity: +0.1
+          schwartz_stimulation: +0.2
+          schwartz_security: -0.1
+      - id: "v-001-b"
+        text: "Leave the phone face-down. Get up first."
+        resolution: "You make coffee before you check anything. The messages will be exactly what they are whether you read them now or in ten minutes."
+        trait_weights:
+          openness: +0.1
+          conscientiousness: +0.2
+          extraversion: -0.1
+          emotional_reactivity: -0.2
+          schwartz_self_direction: +0.3
+          schwartz_security: +0.1
+      - id: "v-001-c"
+        text: "Stay in bed a little longer. Not sleeping, just not starting yet."
+        resolution: "Fourteen minutes pass. They are not wasted."
+        trait_weights:
+          openness: +0.2
+          conscientiousness: -0.2
+          extraversion: -0.2
+          emotional_reactivity: +0.1
+          schwartz_hedonism: +0.2
+          schwartz_stimulation: -0.1
+
+  - id: "v-002"
+    act: "act-morning"
+    sequence: 2
+    setting: |
+      In the kitchen, while the coffee brews, you notice the plant on the windowsill is leaning
+      hard toward the light. Not dying — just tilted, reaching. You've been meaning to rotate it
+      for at least a week.
+    choices:
+      - id: "v-002-a"
+        text: "Rotate it now. You're already here."
+        resolution: "Done. It takes four seconds."
+        trait_weights:
+          conscientiousness: +0.3
+          extraversion: -0.1
+          schwartz_self_direction: +0.1
+          attachment_secure: +0.1
+      - id: "v-002-b"
+        text: "Make a mental note. Rotate it this evening."
+        resolution: "You probably will. You probably won't."
+        trait_weights:
+          conscientiousness: -0.1
+          openness: +0.1
+          emotional_reactivity: +0.1
+          schwartz_self_direction: -0.1
+      - id: "v-002-c"
+        text: "Leave it. The leaning is actually kind of nice."
+        resolution: "It has figured out the window on its own. Maybe that's enough."
+        trait_weights:
+          openness: +0.3
+          conscientiousness: -0.2
+          agreeableness: +0.1
+          schwartz_universalism: +0.2
+
+  - id: "v-003"
+    act: "act-morning"
+    sequence: 3
+    setting: |
+      You pass by your neighbor Berk in the stairwell. He is carrying three reusable bags of groceries
+      and has clearly had a good morning. He starts talking before you've made eye contact. Something
+      about a sale at the market. Something about his weekend. He is not asking you anything,
+      but he has not stopped talking and is now at your door.
+    choices:
+      - id: "v-003-a"
+        text: "Listen. Let him finish. Respond warmly when he pauses."
+        resolution: "He wraps up in about four minutes. You genuinely don't mind."
+        trait_weights:
+          extraversion: +0.2
+          agreeableness: +0.3
+          emotional_reactivity: -0.1
+          schwartz_benevolence: +0.2
+          attachment_secure: +0.2
+      - id: "v-003-b"
+        text: "Listen while slowly indicating you have to get somewhere."
+        resolution: "You extract yourself politely. He doesn't seem to notice or mind."
+        trait_weights:
+          extraversion: -0.1
+          agreeableness: +0.1
+          conscientiousness: +0.1
+          schwartz_conformity: +0.1
+          attachment_secure: +0.1
+      - id: "v-003-c"
+        text: "Give him a friendly but firm 'I'm running late' before he gets going."
+        resolution: "He takes it in stride. You're inside before the guilt gets too loud."
+        trait_weights:
+          extraversion: -0.2
+          agreeableness: -0.1
+          conscientiousness: +0.2
+          schwartz_self_direction: +0.2
+          emotional_reactivity: +0.1
+      - id: "v-003-d"
+        text: "Stay and listen — he is clearly in a good mood and that's worth something."
+        resolution: "He tells you about his sister's new dog. You didn't know he had a sister."
+        trait_weights:
+          extraversion: +0.1
+          agreeableness: +0.4
+          openness: +0.2
+          schwartz_benevolence: +0.3
+          attachment_secure: +0.3
+
+  - id: "v-004"
+    act: "act-morning"
+    sequence: 4
+    setting: |
+      On the bus to work, a seat opens up next to someone reading a book you loved three years ago.
+      The cover is visible. They are near the end. You remember how that last section hit you.
+    choices:
+      - id: "v-004-a"
+        text: "Say something. Just: 'That ending is something.'"
+        resolution: "They look up. 'You've read it?' The next twelve minutes are the best conversation you'll have this week."
+        trait_weights:
+          extraversion: +0.3
+          openness: +0.2
+          agreeableness: +0.1
+          schwartz_stimulation: +0.2
+          attachment_secure: +0.2
+      - id: "v-004-b"
+        text: "Don't say anything. The moment exists whether or not you acknowledge it."
+        resolution: "You sit with the memory of the book instead. It's still yours."
+        trait_weights:
+          extraversion: -0.2
+          openness: +0.3
+          schwartz_self_direction: +0.2
+          emotional_reactivity: -0.1
+          attachment_avoidant: +0.1
+      - id: "v-004-c"
+        text: "Almost say something, then decide against it when they seem very absorbed."
+        resolution: "You watch them reach a passage you remember. Their expression changes slightly. That's enough."
+        trait_weights:
+          extraversion: -0.1
+          openness: +0.2
+          agreeableness: +0.2
+          emotional_reactivity: +0.1
+          attachment_anxious: +0.1
+
+  - id: "v-005"
+    act: "act-morning"
+    sequence: 5
+    setting: |
+      You arrive at the office eight minutes early. No one else on your team is in yet.
+      There is coffee in the kitchen, but it was made by the people who come in at 7
+      and it's been sitting for a while. Your desk is where you left it.
+    choices:
+      - id: "v-005-a"
+        text: "Get the old coffee. It's fine."
+        resolution: "It's not fine. You drink it anyway."
+        trait_weights:
+          conscientiousness: +0.1
+          agreeableness: +0.1
+          schwartz_conformity: +0.2
+          schwartz_self_direction: -0.1
+      - id: "v-005-b"
+        text: "Make fresh coffee. You have eight minutes."
+        resolution: "You throw out the old batch, rinse the pot, start a new one. The office smells better."
+        trait_weights:
+          conscientiousness: +0.3
+          schwartz_self_direction: +0.2
+          schwartz_benevolence: +0.1
+          agreeableness: +0.1
+      - id: "v-005-c"
+        text: "Sit at your desk and start working. Forget the coffee for now."
+        resolution: "The first hour is the quietest. You use it."
+        trait_weights:
+          conscientiousness: +0.3
+          extraversion: -0.2
+          schwartz_achievement: +0.2
+          schwartz_self_direction: +0.1
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # MIDDAY — 5 vignettes
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: "v-006"
+    act: "act-midday"
+    sequence: 6
+    setting: |
+      Your colleague Daria leans over the partition at 11:40. She's been working on the
+      quarterly report that you had a hand in two weeks ago. She found something. Not an error — more
+      like a choice that could have gone differently. She isn't accusatory. She is asking, genuinely,
+      why you weighted the data that way.
+    choices:
+      - id: "v-006-a"
+        text: "Explain your reasoning clearly. It was a defensible choice."
+        resolution: "She nods. 'That makes sense. I would have done it differently, but yours works.'"
+        trait_weights:
+          conscientiousness: +0.2
+          agreeableness: +0.1
+          openness: +0.1
+          schwartz_self_direction: +0.2
+          schwartz_achievement: +0.1
+      - id: "v-006-b"
+        text: "Hear her out first. Maybe she's right."
+        resolution: "Her version is actually cleaner. You tell her so. You'll update the methodology next cycle."
+        trait_weights:
+          agreeableness: +0.3
+          openness: +0.3
+          conscientiousness: +0.1
+          schwartz_universalism: +0.2
+          emotional_reactivity: -0.1
+      - id: "v-006-c"
+        text: "Agree it could have been done differently and offer to fix it."
+        resolution: "The fix takes twenty minutes and makes the report stronger. She sends you a thank-you in the chat."
+        trait_weights:
+          agreeableness: +0.2
+          conscientiousness: +0.3
+          schwartz_benevolence: +0.2
+          attachment_secure: +0.2
+      - id: "v-006-d"
+        text: "Stand by the choice. The report has already been circulated."
+        resolution: "She shrugs, unbothered. You spend the next hour quietly unsure."
+        trait_weights:
+          conscientiousness: +0.1
+          agreeableness: -0.1
+          schwartz_security: +0.2
+          emotional_reactivity: +0.2
+
+  - id: "v-007"
+    act: "act-midday"
+    sequence: 7
+    setting: |
+      Lunch. You are at the place around the corner that you always go to when you want to eat alone
+      and not feel strange about it. You have your phone. The food is good. Across the room, you notice
+      a couple having what is clearly a difficult conversation. Not a fight — something quieter than that.
+      The woman is not crying, but she looks like someone who cried this morning.
+    choices:
+      - id: "v-007-a"
+        text: "Look away. It's not yours to observe."
+        resolution: "You eat your lunch and watch the street instead."
+        trait_weights:
+          agreeableness: +0.2
+          openness: -0.1
+          schwartz_conformity: +0.1
+          schwartz_security: +0.1
+      - id: "v-007-b"
+        text: "Find yourself watching. You can't entirely help it."
+        resolution: "Nothing is resolved while you are there. They leave before you do, still talking."
+        trait_weights:
+          openness: +0.2
+          extraversion: -0.1
+          emotional_reactivity: +0.2
+          schwartz_stimulation: +0.1
+          attachment_anxious: +0.1
+      - id: "v-007-c"
+        text: "Focus on your food. Think about something else entirely."
+        resolution: "You plan your afternoon. It works."
+        trait_weights:
+          conscientiousness: +0.2
+          extraversion: -0.1
+          emotional_reactivity: -0.2
+          schwartz_self_direction: +0.2
+
+  - id: "v-008"
+    act: "act-midday"
+    sequence: 8
+    setting: |
+      Back at the office, you check your phone. There's a message from Mara:
+      "Are we still on for Thursday? Also can I bring someone? It's kind of new."
+      You've been looking forward to Thursday. You were looking forward to it being just you two.
+    choices:
+      - id: "v-008-a"
+        text: "Yes to both. Mean it."
+        resolution: "You type 'of course, yes!' and you actually do mean it. Mostly."
+        trait_weights:
+          agreeableness: +0.3
+          extraversion: +0.1
+          schwartz_benevolence: +0.3
+          emotional_reactivity: -0.1
+          attachment_secure: +0.3
+      - id: "v-008-b"
+        text: "Yes, but mention that you were looking forward to catching up properly."
+        resolution: "She sends back a heart. 'Next week just us, promise.'"
+        trait_weights:
+          agreeableness: +0.1
+          extraversion: -0.1
+          schwartz_benevolence: +0.2
+          emotional_reactivity: +0.1
+          attachment_anxious: +0.2
+      - id: "v-008-c"
+        text: "Yes to Thursday. Gently no to the addition — 'maybe next time?'"
+        resolution: "She says 'totally get it.' You feel protective of the evening and mildly guilty about it."
+        trait_weights:
+          agreeableness: -0.1
+          extraversion: -0.2
+          schwartz_self_direction: +0.2
+          schwartz_benevolence: -0.1
+          emotional_reactivity: +0.2
+          attachment_avoidant: +0.1
+      - id: "v-008-d"
+        text: "Answer later. You need a minute to figure out how you feel about it."
+        resolution: "The message sits unread for two hours. By then it's easy: yes to both."
+        trait_weights:
+          agreeableness: +0.1
+          extraversion: -0.1
+          emotional_reactivity: +0.2
+          attachment_anxious: +0.2
+          schwartz_self_direction: +0.1
+
+  - id: "v-009"
+    act: "act-midday"
+    sequence: 9
+    setting: |
+      A meeting that was supposed to end at 2:30 goes until 3:15. Your manager, who called the meeting,
+      does not apologize for this when it ends. No one else seems to particularly notice. You had planned
+      to finish something this afternoon that will now have to wait.
+    choices:
+      - id: "v-009-a"
+        text: "Let it go. Meetings run over. Adjust the plan."
+        resolution: "You reset your afternoon without resentment. The thing you planned gets pushed to tomorrow."
+        trait_weights:
+          agreeableness: +0.2
+          emotional_reactivity: -0.2
+          conscientiousness: +0.1
+          schwartz_conformity: +0.2
+          schwartz_security: +0.1
+      - id: "v-009-b"
+        text: "Stay afterward and mention to your manager that you had something time-sensitive."
+        resolution: "She apologizes sincerely. It doesn't fix the afternoon, but it matters anyway."
+        trait_weights:
+          conscientiousness: +0.2
+          agreeableness: -0.1
+          schwartz_self_direction: +0.2
+          schwartz_achievement: +0.1
+          emotional_reactivity: +0.1
+      - id: "v-009-c"
+        text: "Say nothing but work late to catch up."
+        resolution: "You leave at 7. The work is done. No one knows."
+        trait_weights:
+          conscientiousness: +0.3
+          agreeableness: +0.1
+          schwartz_achievement: +0.3
+          schwartz_conformity: +0.1
+          emotional_reactivity: +0.1
+
+  - id: "v-010"
+    act: "act-midday"
+    sequence: 10
+    setting: |
+      In the afternoon, a junior colleague asks you to look over something she's written.
+      She is newer. She is clearly nervous about the ask. The document has problems — not
+      catastrophic ones, but real ones. She is waiting across the desk.
+    choices:
+      - id: "v-010-a"
+        text: "Be honest about the issues. Explain what should change and why."
+        resolution: "She takes notes. By the time you're done she looks less nervous, not more. She comes back to say thank you an hour later."
+        trait_weights:
+          agreeableness: +0.2
+          conscientiousness: +0.2
+          openness: +0.1
+          schwartz_benevolence: +0.3
+          schwartz_achievement: +0.1
+          attachment_secure: +0.2
+      - id: "v-010-b"
+        text: "Point out the main issues gently. Leave the smaller things for her to discover."
+        resolution: "She fixes the main issues. Two smaller problems stay in. The document is better."
+        trait_weights:
+          agreeableness: +0.3
+          conscientiousness: +0.1
+          schwartz_benevolence: +0.2
+          schwartz_conformity: +0.1
+      - id: "v-010-c"
+        text: "Tell her it looks good. She'll figure the rest out over time."
+        resolution: "She thanks you warmly. The document goes forward with its problems intact."
+        trait_weights:
+          agreeableness: +0.1
+          conscientiousness: -0.2
+          schwartz_benevolence: -0.1
+          emotional_reactivity: -0.1
+          attachment_avoidant: +0.1
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # AFTERNOON — 5 vignettes
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: "v-011"
+    act: "act-afternoon"
+    sequence: 11
+    setting: |
+      At 4:20 your phone rings. It's your mother. You haven't called her back from this morning.
+      She does not open with that. She opens with: "I have something to tell you and I don't
+      want you to be alarmed." She is fine. It's about a test result that came back fine,
+      but that she waited two weeks to tell you about because she didn't want you to worry.
+    choices:
+      - id: "v-011-a"
+        text: "Listen. Let her explain. Keep the worry off your voice."
+        resolution: "She tells the whole story. You tell her you're glad she's okay. You don't say the part about wanting to know sooner."
+        trait_weights:
+          agreeableness: +0.3
+          emotional_reactivity: +0.1
+          schwartz_benevolence: +0.3
+          schwartz_security: +0.1
+          attachment_anxious: +0.1
+      - id: "v-011-b"
+        text: "Let her finish, then tell her honestly that you wish she'd told you sooner."
+        resolution: "'I know,' she says. 'I didn't want to make it bigger than it was.' You sit with that."
+        trait_weights:
+          agreeableness: +0.1
+          conscientiousness: +0.1
+          schwartz_self_direction: +0.2
+          emotional_reactivity: +0.2
+          attachment_secure: +0.2
+      - id: "v-011-c"
+        text: "Be relieved first. Come back to the 'why didn't you tell me' part later."
+        resolution: "You end the call warm. The other thing can wait."
+        trait_weights:
+          agreeableness: +0.2
+          emotional_reactivity: -0.1
+          schwartz_benevolence: +0.2
+          schwartz_security: +0.2
+          attachment_secure: +0.3
+      - id: "v-011-d"
+        text: "Tell her you're relieved, but also that hiding it was harder on you than knowing would have been."
+        resolution: "A short silence. Then: 'You're right. I'm sorry.' The apology feels real."
+        trait_weights:
+          agreeableness: +0.1
+          openness: +0.2
+          schwartz_self_direction: +0.3
+          emotional_reactivity: +0.2
+          attachment_secure: +0.3
+
+  - id: "v-012"
+    act: "act-afternoon"
+    sequence: 12
+    setting: |
+      After the call, you go to the kitchen for water. Your colleague Fen is there.
+      Fen is someone you've always found hard to read — not unfriendly, just opaque.
+      Today he asks, unprompted: "Are you okay? You looked like you just got some news."
+    choices:
+      - id: "v-012-a"
+        text: "'I'm fine, thank you.' Keep it closed."
+        resolution: "He nods. The moment passes without incident."
+        trait_weights:
+          extraversion: -0.2
+          agreeableness: +0.1
+          schwartz_security: +0.2
+          attachment_avoidant: +0.2
+      - id: "v-012-b"
+        text: "Tell him something true but brief. 'Family stuff. Fine now.'"
+        resolution: "He says 'those calls are the worst' and gets his coffee. Something opened and closed neatly."
+        trait_weights:
+          extraversion: +0.1
+          agreeableness: +0.2
+          openness: +0.1
+          attachment_secure: +0.2
+      - id: "v-012-c"
+        text: "Tell him more than you expected to."
+        resolution: "He listens without trying to fix it. You didn't know he was like that."
+        trait_weights:
+          extraversion: +0.2
+          openness: +0.3
+          agreeableness: +0.2
+          schwartz_stimulation: +0.1
+          attachment_secure: +0.3
+
+  - id: "v-013"
+    act: "act-afternoon"
+    sequence: 13
+    setting: |
+      On the way back to your desk, you pass the announcement board. Someone has posted a sign-up
+      sheet for a company volunteer day next month — a Saturday, planting trees in a park
+      outside the city. There are six names on it. You don't particularly want to go.
+      You also don't particularly not want to go.
+    choices:
+      - id: "v-013-a"
+        text: "Sign up. It's probably good."
+        resolution: "Your name is the seventh. You'll probably not regret this."
+        trait_weights:
+          agreeableness: +0.2
+          conscientiousness: +0.1
+          schwartz_universalism: +0.3
+          schwartz_benevolence: +0.2
+          attachment_secure: +0.1
+      - id: "v-013-b"
+        text: "Keep walking. You don't have to decide right now."
+        resolution: "The sheet will be there until Friday."
+        trait_weights:
+          conscientiousness: -0.1
+          schwartz_self_direction: +0.1
+          emotional_reactivity: +0.1
+      - id: "v-013-c"
+        text: "Don't sign up. Your Saturdays are for you."
+        resolution: "You feel fine about this."
+        trait_weights:
+          agreeableness: -0.1
+          schwartz_self_direction: +0.3
+          schwartz_hedonism: +0.1
+          extraversion: -0.1
+
+  - id: "v-014"
+    act: "act-afternoon"
+    sequence: 14
+    setting: |
+      An email arrives from a project you're not officially part of. The lead, someone you respect,
+      is asking if you'd be interested in joining. It would mean extra work. It would also mean
+      learning something new. The project is genuinely interesting. You have until end of day.
+    choices:
+      - id: "v-014-a"
+        text: "Say yes immediately."
+        resolution: "Done. You'll figure out the time somewhere."
+        trait_weights:
+          openness: +0.3
+          conscientiousness: +0.1
+          extraversion: +0.1
+          schwartz_stimulation: +0.3
+          schwartz_achievement: +0.2
+      - id: "v-014-b"
+        text: "Ask one question about scope before deciding."
+        resolution: "His reply is clear. The scope is manageable. You say yes."
+        trait_weights:
+          openness: +0.2
+          conscientiousness: +0.3
+          schwartz_self_direction: +0.2
+          schwartz_achievement: +0.2
+          attachment_secure: +0.1
+      - id: "v-014-c"
+        text: "Decline. You know your limits right now."
+        resolution: "You write a genuine 'not right now' and mean it. No guilt follows."
+        trait_weights:
+          conscientiousness: +0.3
+          schwartz_self_direction: +0.3
+          schwartz_security: +0.2
+          openness: -0.1
+          emotional_reactivity: -0.2
+      - id: "v-014-d"
+        text: "Sit with it until just before end of day. Decide at the last moment."
+        resolution: "You say yes, right at 5:55. It still counts."
+        trait_weights:
+          openness: +0.1
+          emotional_reactivity: +0.2
+          schwartz_stimulation: +0.1
+          attachment_anxious: +0.2
+
+  - id: "v-015"
+    act: "act-afternoon"
+    sequence: 15
+    setting: |
+      Walking home, you pass a busker playing something you don't recognize.
+      He is good — not showing-off good, just genuinely good. He has a small crowd. You have nowhere
+      to be. The day is not quite over.
+    choices:
+      - id: "v-015-a"
+        text: "Stop. Listen for a few minutes."
+        resolution: "He plays two more songs. You stay for both."
+        trait_weights:
+          openness: +0.3
+          extraversion: +0.1
+          schwartz_hedonism: +0.3
+          schwartz_stimulation: +0.2
+          schwartz_self_direction: +0.1
+      - id: "v-015-b"
+        text: "Slow down, leave some money, keep walking."
+        resolution: "A good exchange. Brief and real."
+        trait_weights:
+          openness: +0.1
+          agreeableness: +0.2
+          schwartz_benevolence: +0.2
+          conscientiousness: +0.1
+      - id: "v-015-c"
+        text: "Keep your pace. You need to decompress before you can take anything else in."
+        resolution: "You hear the music fade as you walk. There will be other buskers."
+        trait_weights:
+          extraversion: -0.2
+          emotional_reactivity: +0.1
+          schwartz_self_direction: +0.2
+          schwartz_security: +0.1
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # EVENING — 5 vignettes
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - id: "v-016"
+    act: "act-evening"
+    sequence: 16
+    setting: |
+      Home. Your shoes are off. The city noise has receded to something manageable.
+      You open the fridge and realize you have two good options for dinner: something
+      you planned, and leftovers that are somehow better than what you made on purpose.
+    choices:
+      - id: "v-016-a"
+        text: "Make the thing you planned. Follow through."
+        resolution: "It comes out well. You eat it at the table."
+        trait_weights:
+          conscientiousness: +0.3
+          schwartz_self_direction: +0.2
+          schwartz_achievement: +0.1
+      - id: "v-016-b"
+        text: "Eat the leftovers. Don't overcomplicate it."
+        resolution: "They are in fact better. This was the right call."
+        trait_weights:
+          openness: +0.1
+          conscientiousness: -0.1
+          schwartz_hedonism: +0.2
+          schwartz_stimulation: +0.1
+
+  - id: "v-017"
+    act: "act-evening"
+    sequence: 17
+    setting: |
+      After dinner, Mara texts — not about Thursday, just a voice note. Something funny
+      that happened at her job. You can tell she wants you to respond in kind.
+      You had been about to do something else. You can't quite remember what.
+    choices:
+      - id: "v-017-a"
+        text: "Send back a voice note. Match her energy."
+        resolution: "The thing you were going to do doesn't matter. This does."
+        trait_weights:
+          extraversion: +0.2
+          agreeableness: +0.3
+          schwartz_benevolence: +0.3
+          attachment_secure: +0.3
+      - id: "v-017-b"
+        text: "Send a text reply. Warm but brief."
+        resolution: "She sends a laughing emoji. Connection made, different shape."
+        trait_weights:
+          extraversion: -0.1
+          agreeableness: +0.2
+          schwartz_benevolence: +0.2
+          attachment_secure: +0.1
+      - id: "v-017-c"
+        text: "Send her a voice note later — you want to give it proper attention."
+        resolution: "You do send it. Three hours later, she's already asleep."
+        trait_weights:
+          conscientiousness: +0.1
+          agreeableness: +0.1
+          schwartz_self_direction: +0.2
+          emotional_reactivity: +0.1
+          attachment_anxious: +0.1
+
+  - id: "v-018"
+    act: "act-evening"
+    sequence: 18
+    setting: |
+      You think about calling your mother back — not to continue the earlier conversation,
+      just to check in. To say goodnight. It's something she would like. You're not sure
+      you have the energy for another conversation, but you're not sure you don't.
+    choices:
+      - id: "v-018-a"
+        text: "Call her. It doesn't have to be long."
+        resolution: "It isn't long. She sounds happy to hear from you. That was the right call."
+        trait_weights:
+          agreeableness: +0.3
+          extraversion: +0.1
+          schwartz_benevolence: +0.3
+          attachment_secure: +0.3
+          emotional_reactivity: -0.1
+      - id: "v-018-b"
+        text: "Text her instead. Something brief and warm."
+        resolution: "She texts back a picture of the cat. This is also fine."
+        trait_weights:
+          agreeableness: +0.2
+          extraversion: -0.1
+          schwartz_benevolence: +0.2
+          attachment_secure: +0.2
+      - id: "v-018-c"
+        text: "Leave it. You'll call tomorrow."
+        resolution: "You will. You think about her more than she knows."
+        trait_weights:
+          agreeableness: +0.1
+          extraversion: -0.2
+          schwartz_self_direction: +0.1
+          emotional_reactivity: +0.1
+          attachment_avoidant: +0.2
+
+  - id: "v-019"
+    act: "act-evening"
+    sequence: 19
+    setting: |
+      Before bed, you find the book you've been reading is gone — not gone, you realize,
+      just moved. In looking for it, you find an old letter. Not a sad letter. Not a
+      significant letter. A birthday card from someone you don't see anymore, from some years ago.
+      It's cheerful. It doesn't hurt to read.
+    choices:
+      - id: "v-019-a"
+        text: "Read it properly. Sit with it for a moment."
+        resolution: "You remember the person. Warmly, cleanly. Then you put it back."
+        trait_weights:
+          openness: +0.3
+          emotional_reactivity: +0.1
+          schwartz_universalism: +0.2
+          schwartz_benevolence: +0.1
+      - id: "v-019-b"
+        text: "Glance at it, put it back. Find the book."
+        resolution: "The book is behind the lamp. The card goes back in the drawer."
+        trait_weights:
+          openness: -0.1
+          conscientiousness: +0.1
+          emotional_reactivity: -0.1
+          schwartz_self_direction: +0.1
+      - id: "v-019-c"
+        text: "Read it, then think for a bit about the person who sent it."
+        resolution: "You wonder how they're doing. You don't contact them. The wondering is enough."
+        trait_weights:
+          openness: +0.2
+          agreeableness: +0.1
+          emotional_reactivity: +0.2
+          schwartz_benevolence: +0.2
+          attachment_avoidant: +0.1
+
+  - id: "v-020"
+    act: "act-evening"
+    sequence: 20
+    setting: |
+      The day is done. The light is off. You are lying in the same position you were in this morning,
+      watching the ceiling. The day had things in it. Not an extraordinary day. Just a day.
+      One more small thought before sleep: what do you want to remember about today?
+    choices:
+      - id: "v-020-a"
+        text: "The conversation on the bus. The one about the book."
+        resolution: "You hold that for a moment. Then you sleep."
+        trait_weights:
+          openness: +0.2
+          extraversion: +0.1
+          schwartz_stimulation: +0.2
+          schwartz_benevolence: +0.1
+      - id: "v-020-b"
+        text: "The phone call with your mother. That she's okay."
+        resolution: "Relief that settled into something quieter. Good."
+        trait_weights:
+          agreeableness: +0.2
+          emotional_reactivity: -0.1
+          schwartz_benevolence: +0.3
+          schwartz_security: +0.2
+      - id: "v-020-c"
+        text: "The busker. That exact moment."
+        resolution: "Something small that cost nothing and meant something. Yes."
+        trait_weights:
+          openness: +0.3
+          schwartz_hedonism: +0.2
+          schwartz_stimulation: +0.3
+          schwartz_universalism: +0.1
+      - id: "v-020-d"
+        text: "Nothing in particular. It was just a day, and that's okay."
+        resolution: "You sleep without drama."
+        trait_weights:
+          conscientiousness: -0.1
+          emotional_reactivity: -0.3
+          schwartz_self_direction: +0.2
+          schwartz_security: +0.3

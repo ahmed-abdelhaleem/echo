@@ -1,0 +1,60 @@
+{
+  "id": "high-universalism",
+  "version": 1,
+  "summary": "A day in which you kept the people far from you in mind.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-UNIVERSALISM",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "bleeding heart",
+      "preachy",
+      "save the world"
+    ],
+    "notes": "High universalism reads as attention paid to people outside the player's immediate ring. Never frame as virtue-signalling; the caring is real and unannounced."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the article you read carefully even though it was not about you",
+        "the small donation you made without telling anyone"
+      ],
+      "output": "You read the article carefully even though none of it was about you, and the small donation you made today, no one in the house heard about. The people you held in mind today included people you will never meet. That is a quiet weight to carry, and you carried it.",
+      "notes": "Refuses the performative frame; centres the unseen weight."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

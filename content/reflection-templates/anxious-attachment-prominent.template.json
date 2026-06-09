@@ -1,0 +1,61 @@
+{
+  "id": "anxious-attachment-prominent",
+  "version": 1,
+  "summary": "A day on which you watched the door even when no one was at it.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "ATT-ANXIOUS",
+            "direction": "high",
+            "min_magnitude": 0.35
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 55,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_clinical_term"
+    ],
+    "avoid": [
+      "anxious",
+      "needy",
+      "clingy",
+      "insecure"
+    ],
+    "notes": "Anxious attachment reads as attention to whether the people are still there. CRITICAL: do not pathologise; do not call it anxious; do not call it needy. Describe the watching plainly."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the message you reread to check the tone",
+        "the small gap in a reply that you filled with possibilities"
+      ],
+      "output": "You reread a message to check the tone, more than once, and the small gap in a reply you filled with possibilities the message had not invited. None of the possibilities were the one that turned out to be true. You watched the door even when no one was at it. That watching is a habit you know the weight of.",
+      "notes": "Anxious attachment as habit, not pathology; names the weight without alarming."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

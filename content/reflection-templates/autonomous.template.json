@@ -1,0 +1,65 @@
+{
+  "id": "autonomous",
+  "version": 1,
+  "summary": "High self-direction, low conformity: the day was yours to draw.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-SELF_DIRECTION",
+            "direction": "high",
+            "min_magnitude": 0.4
+          },
+          {
+            "dimension": "SCH-CONFORMITY",
+            "direction": "low",
+            "min_magnitude": 0.3
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 65,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "rebel",
+      "lone wolf",
+      "maverick"
+    ],
+    "notes": "High self-direction plus low conformity reads as setting your own shape and not asking the room about it. Never the lone-wolf trope."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the path you took that no one would have suggested",
+        "the social rule you politely ignored"
+      ],
+      "output": "There was a path you took that no one in the room would have suggested, and a small social rule you politely ignored on the way through. You did not feel obliged to explain either move. The day's shape is one you drew yourself, and you did not draw it against anyone, you drew it for you.",
+      "notes": "Refuses the oppositional framing; centres self-direction as constructive."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

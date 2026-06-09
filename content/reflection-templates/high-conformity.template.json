@@ -1,0 +1,61 @@
+{
+  "id": "high-conformity",
+  "version": 1,
+  "summary": "A day spent inside the lines that others drew.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-CONFORMITY",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "conformist",
+      "follower",
+      "sheep",
+      "uncritical"
+    ],
+    "notes": "High conformity reads as agreement with the existing arrangement of the room. Never frame this as weak or unthinking; staying inside the lines can be a real choice."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the rule you kept even when no one would have noticed you broke it",
+        "the courtesy you offered out of long habit"
+      ],
+      "output": "There was a rule you kept today that you would not have been caught breaking. The courtesy you offered at the end of the conversation, you offered out of long habit, and the habit was a good one. The lines you stayed inside today were lines other people drew, and you stayed inside them on purpose.",
+      "notes": "Reframes conformity as principled rather than passive."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

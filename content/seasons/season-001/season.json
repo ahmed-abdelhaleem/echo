@@ -1,0 +1,988 @@
+{
+  "id": "season-001",
+  "title": "The Day of the Quiet Person",
+  "locale": "en-GB",
+  "version": 2,
+  "description": "You are living one day in the life of someone who keeps most things to themselves. A person in their late twenties, competent but uncommitted, careful but not closed. This is simply a day.",
+  "acts": [
+    {
+      "id": "act-01",
+      "name": "Morning",
+      "vignettes": [
+        {
+          "id": "vignette-001",
+          "setting_beat": "The alarm was set for 7:15. You woke up at 6:52. The phone is face-down on the nightstand. You know there are messages. You can feel them there, waiting. The light through the curtain is not quite right for going back to sleep.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Pick up the phone. Go through it before getting up.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": -0.1 },
+                { "dimension": "OCEAN-C", "delta": -0.1 },
+                { "dimension": "OCEAN-E", "delta": 0.2 },
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "OCEAN-N", "delta": 0.1 },
+                { "dimension": "SCH-STIMULATION", "delta": 0.2 },
+                { "dimension": "SCH-SECURITY", "delta": -0.1 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Leave the phone face-down. Get up first.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": 0.1 },
+                { "dimension": "OCEAN-C", "delta": 0.2 },
+                { "dimension": "OCEAN-E", "delta": -0.1 },
+                { "dimension": "OCEAN-N", "delta": -0.2 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.3 },
+                { "dimension": "SCH-SECURITY", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Stay in bed a little longer. Not sleeping, just not starting yet.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": 0.2 },
+                { "dimension": "OCEAN-C", "delta": -0.2 },
+                { "dimension": "OCEAN-E", "delta": -0.2 },
+                { "dimension": "OCEAN-N", "delta": 0.1 },
+                { "dimension": "SCH-HEDONISM", "delta": 0.2 },
+                { "dimension": "SCH-STIMULATION", "delta": -0.1 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "The messages are mostly unremarkable. One from your mother. You'll answer later.",
+            "choice-2": "You make coffee before you check anything. The messages will be exactly what they are whether you read them now or in ten minutes.",
+            "choice-3": "Fourteen minutes pass. They are not wasted."
+          }
+        },
+        {
+          "id": "vignette-002",
+          "setting_beat": "In the kitchen, while the coffee brews, you notice the plant on the windowsill is leaning hard toward the light. Not dying — just tilted, reaching. You've been meaning to rotate it for at least a week.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Rotate it now. You're already here.",
+              "weights": [
+                { "dimension": "OCEAN-C", "delta": 0.3 },
+                { "dimension": "OCEAN-E", "delta": -0.1 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.1 },
+                { "dimension": "ATT-SECURE", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Make a mental note. Rotate it this evening.",
+              "weights": [
+                { "dimension": "OCEAN-C", "delta": -0.1 },
+                { "dimension": "OCEAN-O", "delta": 0.1 },
+                { "dimension": "OCEAN-N", "delta": 0.1 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": -0.1 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Leave it. The leaning is actually kind of nice.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": 0.3 },
+                { "dimension": "OCEAN-C", "delta": -0.2 },
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "SCH-UNIVERSALISM", "delta": 0.2 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "Done. It takes four seconds.",
+            "choice-2": "You probably will. You probably won't.",
+            "choice-3": "It has figured out the window on its own. Maybe that's enough."
+          }
+        },
+        {
+          "id": "vignette-003",
+          "setting_beat": "You pass by your neighbor Berk in the stairwell. He is carrying three reusable bags of groceries and has clearly had a good morning. He starts talking before you've made eye contact. Something about a sale at the market. Something about his weekend. He is not asking you anything, but he has not stopped talking and is now at your door.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Listen. Let him finish. Respond warmly when he pauses.",
+              "weights": [
+                { "dimension": "OCEAN-E", "delta": 0.2 },
+                { "dimension": "OCEAN-A", "delta": 0.3 },
+                { "dimension": "OCEAN-N", "delta": -0.1 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.2 },
+                { "dimension": "ATT-SECURE", "delta": 0.2 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Listen while slowly indicating you have to get somewhere.",
+              "weights": [
+                { "dimension": "OCEAN-E", "delta": -0.1 },
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "OCEAN-C", "delta": 0.1 },
+                { "dimension": "SCH-CONFORMITY", "delta": 0.1 },
+                { "dimension": "ATT-SECURE", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Give him a friendly but firm 'I'm running late' before he gets going.",
+              "weights": [
+                { "dimension": "OCEAN-E", "delta": -0.2 },
+                { "dimension": "OCEAN-A", "delta": -0.1 },
+                { "dimension": "OCEAN-C", "delta": 0.2 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.2 },
+                { "dimension": "OCEAN-N", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-4",
+              "label": "Stay and listen — he is clearly in a good mood and that's worth something.",
+              "weights": [
+                { "dimension": "OCEAN-E", "delta": 0.1 },
+                { "dimension": "OCEAN-A", "delta": 0.4 },
+                { "dimension": "OCEAN-O", "delta": 0.2 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.3 },
+                { "dimension": "ATT-SECURE", "delta": 0.3 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "He wraps up in about four minutes. You genuinely don't mind.",
+            "choice-2": "You extract yourself politely. He doesn't seem to notice or mind.",
+            "choice-3": "He takes it in stride. You're inside before the guilt gets too loud.",
+            "choice-4": "He tells you about his sister's new dog. You didn't know he had a sister."
+          }
+        },
+        {
+          "id": "vignette-004",
+          "setting_beat": "On the bus to work, a seat opens up next to someone reading a book you loved three years ago. The cover is visible. They are near the end. You remember how that last section hit you.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Say something. Just: 'That ending is something.'",
+              "weights": [
+                { "dimension": "OCEAN-E", "delta": 0.3 },
+                { "dimension": "OCEAN-O", "delta": 0.2 },
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "SCH-STIMULATION", "delta": 0.2 },
+                { "dimension": "ATT-SECURE", "delta": 0.2 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Don't say anything. The moment exists whether or not you acknowledge it.",
+              "weights": [
+                { "dimension": "OCEAN-E", "delta": -0.2 },
+                { "dimension": "OCEAN-O", "delta": 0.3 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.2 },
+                { "dimension": "OCEAN-N", "delta": -0.1 },
+                { "dimension": "ATT-AVOIDANT", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Almost say something, then decide against it when they seem very absorbed.",
+              "weights": [
+                { "dimension": "OCEAN-E", "delta": -0.1 },
+                { "dimension": "OCEAN-O", "delta": 0.2 },
+                { "dimension": "OCEAN-A", "delta": 0.2 },
+                { "dimension": "OCEAN-N", "delta": 0.1 },
+                { "dimension": "ATT-ANXIOUS", "delta": 0.1 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "They look up. 'You've read it?' The next twelve minutes are the best conversation you'll have this week.",
+            "choice-2": "You sit with the memory of the book instead. It's still yours.",
+            "choice-3": "You watch them reach a passage you remember. Their expression changes slightly. That's enough."
+          }
+        },
+        {
+          "id": "vignette-005",
+          "setting_beat": "You arrive at the office eight minutes early. No one else on your team is in yet. There is coffee in the kitchen, but it was made by the people who come in at 7 and it's been sitting for a while. Your desk is where you left it.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Get the old coffee. It's fine.",
+              "weights": [
+                { "dimension": "OCEAN-C", "delta": 0.1 },
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "SCH-CONFORMITY", "delta": 0.2 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": -0.1 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Make fresh coffee. You have eight minutes.",
+              "weights": [
+                { "dimension": "OCEAN-C", "delta": 0.3 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.2 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.1 },
+                { "dimension": "OCEAN-A", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Sit at your desk and start working. Forget the coffee for now.",
+              "weights": [
+                { "dimension": "OCEAN-C", "delta": 0.3 },
+                { "dimension": "OCEAN-E", "delta": -0.2 },
+                { "dimension": "SCH-ACHIEVEMENT", "delta": 0.2 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.1 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "It's not fine. You drink it anyway.",
+            "choice-2": "You throw out the old batch, rinse the pot, start a new one. The office smells better.",
+            "choice-3": "The first hour is the quietest. You use it."
+          }
+        }
+      ]
+    },
+    {
+      "id": "act-02",
+      "name": "Midday",
+      "vignettes": [
+        {
+          "id": "vignette-006",
+          "setting_beat": "Your colleague Daria leans over the partition at 11:40. She's been working on the quarterly report that you had a hand in two weeks ago. She found something. Not an error — more like a choice that could have gone differently. She isn't accusatory. She is asking, genuinely, why you weighted the data that way.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Explain your reasoning clearly. It was a defensible choice.",
+              "weights": [
+                { "dimension": "OCEAN-C", "delta": 0.2 },
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "OCEAN-O", "delta": 0.1 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.2 },
+                { "dimension": "SCH-ACHIEVEMENT", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Hear her out first. Maybe she's right.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.3 },
+                { "dimension": "OCEAN-O", "delta": 0.3 },
+                { "dimension": "OCEAN-C", "delta": 0.1 },
+                { "dimension": "SCH-UNIVERSALISM", "delta": 0.2 },
+                { "dimension": "OCEAN-N", "delta": -0.1 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Agree it could have been done differently and offer to fix it.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.2 },
+                { "dimension": "OCEAN-C", "delta": 0.3 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.2 },
+                { "dimension": "ATT-SECURE", "delta": 0.2 }
+              ]
+            },
+            {
+              "id": "choice-4",
+              "label": "Stand by the choice. The report has already been circulated.",
+              "weights": [
+                { "dimension": "OCEAN-C", "delta": 0.1 },
+                { "dimension": "OCEAN-A", "delta": -0.1 },
+                { "dimension": "SCH-SECURITY", "delta": 0.2 },
+                { "dimension": "OCEAN-N", "delta": 0.2 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "She nods. 'That makes sense. I would have done it differently, but yours works.'",
+            "choice-2": "Her version is actually cleaner. You tell her so. You'll update the methodology next cycle.",
+            "choice-3": "The fix takes twenty minutes and makes the report stronger. She sends you a thank-you in the chat.",
+            "choice-4": "She shrugs, unbothered. You spend the next hour quietly unsure."
+          }
+        },
+        {
+          "id": "vignette-007",
+          "setting_beat": "Lunch. You are at the place around the corner that you always go to when you want to eat alone and not feel strange about it. You have your phone. The food is good. Across the room, you notice a couple having what is clearly a difficult conversation. Not a fight — something quieter than that. The woman is not crying, but she looks like someone who cried this morning.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Look away. It's not yours to observe.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.2 },
+                { "dimension": "OCEAN-O", "delta": -0.1 },
+                { "dimension": "SCH-CONFORMITY", "delta": 0.1 },
+                { "dimension": "SCH-SECURITY", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Find yourself watching. You can't entirely help it.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": 0.2 },
+                { "dimension": "OCEAN-E", "delta": -0.1 },
+                { "dimension": "OCEAN-N", "delta": 0.2 },
+                { "dimension": "SCH-STIMULATION", "delta": 0.1 },
+                { "dimension": "ATT-ANXIOUS", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Focus on your food. Think about something else entirely.",
+              "weights": [
+                { "dimension": "OCEAN-C", "delta": 0.2 },
+                { "dimension": "OCEAN-E", "delta": -0.1 },
+                { "dimension": "OCEAN-N", "delta": -0.2 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.2 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "You eat your lunch and watch the street instead.",
+            "choice-2": "Nothing is resolved while you are there. They leave before you do, still talking.",
+            "choice-3": "You plan your afternoon. It works."
+          }
+        },
+        {
+          "id": "vignette-008",
+          "setting_beat": "Back at the office, you check your phone. There's a message from Mara: \"Are we still on for Thursday? Also can I bring someone? It's kind of new.\" You've been looking forward to Thursday. You were looking forward to it being just you two.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Yes to both. Mean it.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.3 },
+                { "dimension": "OCEAN-E", "delta": 0.1 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.3 },
+                { "dimension": "OCEAN-N", "delta": -0.1 },
+                { "dimension": "ATT-SECURE", "delta": 0.3 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Yes, but mention that you were looking forward to catching up properly.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "OCEAN-E", "delta": -0.1 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.2 },
+                { "dimension": "OCEAN-N", "delta": 0.1 },
+                { "dimension": "ATT-ANXIOUS", "delta": 0.2 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Yes to Thursday. Gently no to the addition — 'maybe next time?'",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": -0.1 },
+                { "dimension": "OCEAN-E", "delta": -0.2 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.2 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": -0.1 },
+                { "dimension": "OCEAN-N", "delta": 0.2 },
+                { "dimension": "ATT-AVOIDANT", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-4",
+              "label": "Answer later. You need a minute to figure out how you feel about it.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "OCEAN-E", "delta": -0.1 },
+                { "dimension": "OCEAN-N", "delta": 0.2 },
+                { "dimension": "ATT-ANXIOUS", "delta": 0.2 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.1 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "You type 'of course, yes!' and you actually do mean it. Mostly.",
+            "choice-2": "She sends back a heart. 'Next week just us, promise.'",
+            "choice-3": "She says 'totally get it.' You feel protective of the evening and mildly guilty about it.",
+            "choice-4": "The message sits unread for two hours. By then it's easy: yes to both."
+          }
+        },
+        {
+          "id": "vignette-009",
+          "setting_beat": "A meeting that was supposed to end at 2:30 goes until 3:15. Your manager, who called the meeting, does not apologize for this when it ends. No one else seems to particularly notice. You had planned to finish something this afternoon that will now have to wait.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Let it go. Meetings run over. Adjust the plan.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.2 },
+                { "dimension": "OCEAN-N", "delta": -0.2 },
+                { "dimension": "OCEAN-C", "delta": 0.1 },
+                { "dimension": "SCH-CONFORMITY", "delta": 0.2 },
+                { "dimension": "SCH-SECURITY", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Stay afterward and mention to your manager that you had something time-sensitive.",
+              "weights": [
+                { "dimension": "OCEAN-C", "delta": 0.2 },
+                { "dimension": "OCEAN-A", "delta": -0.1 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.2 },
+                { "dimension": "SCH-ACHIEVEMENT", "delta": 0.1 },
+                { "dimension": "OCEAN-N", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Say nothing but work late to catch up.",
+              "weights": [
+                { "dimension": "OCEAN-C", "delta": 0.3 },
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "SCH-ACHIEVEMENT", "delta": 0.3 },
+                { "dimension": "SCH-CONFORMITY", "delta": 0.1 },
+                { "dimension": "OCEAN-N", "delta": 0.1 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "You reset your afternoon without resentment. The thing you planned gets pushed to tomorrow.",
+            "choice-2": "She apologizes sincerely. It doesn't fix the afternoon, but it matters anyway.",
+            "choice-3": "You leave at 7. The work is done. No one knows."
+          }
+        },
+        {
+          "id": "vignette-010",
+          "setting_beat": "In the afternoon, a junior colleague asks you to look over something she's written. She is newer. She is clearly nervous about the ask. The document has problems — not catastrophic ones, but real ones. She is waiting across the desk.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Be honest about the issues. Explain what should change and why.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.2 },
+                { "dimension": "OCEAN-C", "delta": 0.2 },
+                { "dimension": "OCEAN-O", "delta": 0.1 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.3 },
+                { "dimension": "SCH-ACHIEVEMENT", "delta": 0.1 },
+                { "dimension": "ATT-SECURE", "delta": 0.2 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Point out the main issues gently. Leave the smaller things for her to discover.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.3 },
+                { "dimension": "OCEAN-C", "delta": 0.1 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.2 },
+                { "dimension": "SCH-CONFORMITY", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Tell her it looks good. She'll figure the rest out over time.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "OCEAN-C", "delta": -0.2 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": -0.1 },
+                { "dimension": "OCEAN-N", "delta": -0.1 },
+                { "dimension": "ATT-AVOIDANT", "delta": 0.1 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "She takes notes. By the time you're done she looks less nervous, not more. She comes back to say thank you an hour later.",
+            "choice-2": "She fixes the main issues. Two smaller problems stay in. The document is better.",
+            "choice-3": "She thanks you warmly. The document goes forward with its problems intact."
+          }
+        }
+      ]
+    },
+    {
+      "id": "act-03",
+      "name": "Afternoon",
+      "vignettes": [
+        {
+          "id": "vignette-011",
+          "setting_beat": "At 4:20 your phone rings. It's your mother. You haven't called her back from this morning. She does not open with that. She opens with: \"I have something to tell you and I don't want you to be alarmed.\" She is fine. It's about a test result that came back fine, but that she waited two weeks to tell you about because she didn't want you to worry.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Listen. Let her explain. Keep the worry off your voice.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.3 },
+                { "dimension": "OCEAN-N", "delta": 0.1 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.3 },
+                { "dimension": "SCH-SECURITY", "delta": 0.1 },
+                { "dimension": "ATT-ANXIOUS", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Let her finish, then tell her honestly that you wish she'd told you sooner.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "OCEAN-C", "delta": 0.1 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.2 },
+                { "dimension": "OCEAN-N", "delta": 0.2 },
+                { "dimension": "ATT-SECURE", "delta": 0.2 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Be relieved first. Come back to the 'why didn't you tell me' part later.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.2 },
+                { "dimension": "OCEAN-N", "delta": -0.1 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.2 },
+                { "dimension": "SCH-SECURITY", "delta": 0.2 },
+                { "dimension": "ATT-SECURE", "delta": 0.3 }
+              ]
+            },
+            {
+              "id": "choice-4",
+              "label": "Tell her you're relieved, but also that hiding it was harder on you than knowing would have been.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "OCEAN-O", "delta": 0.2 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.3 },
+                { "dimension": "OCEAN-N", "delta": 0.2 },
+                { "dimension": "ATT-SECURE", "delta": 0.3 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "She tells the whole story. You tell her you're glad she's okay. You don't say the part about wanting to know sooner.",
+            "choice-2": "'I know,' she says. 'I didn't want to make it bigger than it was.' You sit with that.",
+            "choice-3": "You end the call warm. The other thing can wait.",
+            "choice-4": "A short silence. Then: 'You're right. I'm sorry.' The apology feels real."
+          }
+        },
+        {
+          "id": "vignette-012",
+          "setting_beat": "After the call, you go to the kitchen for water. Your colleague Fen is there. Fen is someone you've always found hard to read — not unfriendly, just opaque. Today he asks, unprompted: \"Are you okay? You looked like you just got some news.\"",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "'I'm fine, thank you.' Keep it closed.",
+              "weights": [
+                { "dimension": "OCEAN-E", "delta": -0.2 },
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "SCH-SECURITY", "delta": 0.2 },
+                { "dimension": "ATT-AVOIDANT", "delta": 0.2 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Tell him something true but brief. 'Family stuff. Fine now.'",
+              "weights": [
+                { "dimension": "OCEAN-E", "delta": 0.1 },
+                { "dimension": "OCEAN-A", "delta": 0.2 },
+                { "dimension": "OCEAN-O", "delta": 0.1 },
+                { "dimension": "ATT-SECURE", "delta": 0.2 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Tell him more than you expected to.",
+              "weights": [
+                { "dimension": "OCEAN-E", "delta": 0.2 },
+                { "dimension": "OCEAN-O", "delta": 0.3 },
+                { "dimension": "OCEAN-A", "delta": 0.2 },
+                { "dimension": "SCH-STIMULATION", "delta": 0.1 },
+                { "dimension": "ATT-SECURE", "delta": 0.3 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "He nods. The moment passes without incident.",
+            "choice-2": "He says 'those calls are the worst' and gets his coffee. Something opened and closed neatly.",
+            "choice-3": "He listens without trying to fix it. You didn't know he was like that."
+          }
+        },
+        {
+          "id": "vignette-013",
+          "setting_beat": "On the way back to your desk, you pass the announcement board. Someone has posted a sign-up sheet for a company volunteer day next month — a Saturday, planting trees in a park outside the city. There are six names on it. You don't particularly want to go. You also don't particularly not want to go.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Sign up. It's probably good.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.2 },
+                { "dimension": "OCEAN-C", "delta": 0.1 },
+                { "dimension": "SCH-UNIVERSALISM", "delta": 0.3 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.2 },
+                { "dimension": "ATT-SECURE", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Keep walking. You don't have to decide right now.",
+              "weights": [
+                { "dimension": "OCEAN-C", "delta": -0.1 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.1 },
+                { "dimension": "OCEAN-N", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Don't sign up. Your Saturdays are for you.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": -0.1 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.3 },
+                { "dimension": "SCH-HEDONISM", "delta": 0.1 },
+                { "dimension": "OCEAN-E", "delta": -0.1 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "Your name is the seventh. You'll probably not regret this.",
+            "choice-2": "The sheet will be there until Friday.",
+            "choice-3": "You feel fine about this."
+          }
+        },
+        {
+          "id": "vignette-014",
+          "setting_beat": "An email arrives from a project you're not officially part of. The lead, someone you respect, is asking if you'd be interested in joining. It would mean extra work. It would also mean learning something new. The project is genuinely interesting. You have until end of day.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Say yes immediately.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": 0.3 },
+                { "dimension": "OCEAN-C", "delta": 0.1 },
+                { "dimension": "OCEAN-E", "delta": 0.1 },
+                { "dimension": "SCH-STIMULATION", "delta": 0.3 },
+                { "dimension": "SCH-ACHIEVEMENT", "delta": 0.2 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Ask one question about scope before deciding.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": 0.2 },
+                { "dimension": "OCEAN-C", "delta": 0.3 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.2 },
+                { "dimension": "SCH-ACHIEVEMENT", "delta": 0.2 },
+                { "dimension": "ATT-SECURE", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Decline. You know your limits right now.",
+              "weights": [
+                { "dimension": "OCEAN-C", "delta": 0.3 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.3 },
+                { "dimension": "SCH-SECURITY", "delta": 0.2 },
+                { "dimension": "OCEAN-O", "delta": -0.1 },
+                { "dimension": "OCEAN-N", "delta": -0.2 }
+              ]
+            },
+            {
+              "id": "choice-4",
+              "label": "Sit with it until just before end of day. Decide at the last moment.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": 0.1 },
+                { "dimension": "OCEAN-N", "delta": 0.2 },
+                { "dimension": "SCH-STIMULATION", "delta": 0.1 },
+                { "dimension": "ATT-ANXIOUS", "delta": 0.2 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "Done. You'll figure out the time somewhere.",
+            "choice-2": "His reply is clear. The scope is manageable. You say yes.",
+            "choice-3": "You write a genuine 'not right now' and mean it. No guilt follows.",
+            "choice-4": "You say yes, right at 5:55. It still counts."
+          }
+        },
+        {
+          "id": "vignette-015",
+          "setting_beat": "Walking home, you pass a busker playing something you don't recognize. He is good — not showing-off good, just genuinely good. He has a small crowd. You have nowhere to be. The day is not quite over.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Stop. Listen for a few minutes.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": 0.3 },
+                { "dimension": "OCEAN-E", "delta": 0.1 },
+                { "dimension": "SCH-HEDONISM", "delta": 0.3 },
+                { "dimension": "SCH-STIMULATION", "delta": 0.2 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Slow down, leave some money, keep walking.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": 0.1 },
+                { "dimension": "OCEAN-A", "delta": 0.2 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.2 },
+                { "dimension": "OCEAN-C", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Keep your pace. You need to decompress before you can take anything else in.",
+              "weights": [
+                { "dimension": "OCEAN-E", "delta": -0.2 },
+                { "dimension": "OCEAN-N", "delta": 0.1 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.2 },
+                { "dimension": "SCH-SECURITY", "delta": 0.1 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "He plays two more songs. You stay for both.",
+            "choice-2": "A good exchange. Brief and real.",
+            "choice-3": "You hear the music fade as you walk. There will be other buskers."
+          }
+        }
+      ]
+    },
+    {
+      "id": "act-04",
+      "name": "Evening",
+      "vignettes": [
+        {
+          "id": "vignette-016",
+          "setting_beat": "Home. Your shoes are off. The city noise has receded to something manageable. You open the fridge and realize you have two good options for dinner: something you planned, and leftovers that are somehow better than what you made on purpose.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Make the thing you planned. Follow through.",
+              "weights": [
+                { "dimension": "OCEAN-C", "delta": 0.3 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.2 },
+                { "dimension": "SCH-ACHIEVEMENT", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Eat the leftovers. Don't overcomplicate it.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": 0.1 },
+                { "dimension": "OCEAN-C", "delta": -0.1 },
+                { "dimension": "SCH-HEDONISM", "delta": 0.2 },
+                { "dimension": "SCH-STIMULATION", "delta": 0.1 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "It comes out well. You eat it at the table.",
+            "choice-2": "They are in fact better. This was the right call."
+          }
+        },
+        {
+          "id": "vignette-017",
+          "setting_beat": "After dinner, Mara texts — not about Thursday, just a voice note. Something funny that happened at her job. You can tell she wants you to respond in kind. You had been about to do something else. You can't quite remember what.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Send back a voice note. Match her energy.",
+              "weights": [
+                { "dimension": "OCEAN-E", "delta": 0.2 },
+                { "dimension": "OCEAN-A", "delta": 0.3 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.3 },
+                { "dimension": "ATT-SECURE", "delta": 0.3 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Send a text reply. Warm but brief.",
+              "weights": [
+                { "dimension": "OCEAN-E", "delta": -0.1 },
+                { "dimension": "OCEAN-A", "delta": 0.2 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.2 },
+                { "dimension": "ATT-SECURE", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Send her a voice note later — you want to give it proper attention.",
+              "weights": [
+                { "dimension": "OCEAN-C", "delta": 0.1 },
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.2 },
+                { "dimension": "OCEAN-N", "delta": 0.1 },
+                { "dimension": "ATT-ANXIOUS", "delta": 0.1 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "The thing you were going to do doesn't matter. This does.",
+            "choice-2": "She sends a laughing emoji. Connection made, different shape.",
+            "choice-3": "You do send it. Three hours later, she's already asleep."
+          }
+        },
+        {
+          "id": "vignette-018",
+          "setting_beat": "You think about calling your mother back — not to continue the earlier conversation, just to check in. To say goodnight. It's something she would like. You're not sure you have the energy for another conversation, but you're not sure you don't.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Call her. It doesn't have to be long.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.3 },
+                { "dimension": "OCEAN-E", "delta": 0.1 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.3 },
+                { "dimension": "ATT-SECURE", "delta": 0.3 },
+                { "dimension": "OCEAN-N", "delta": -0.1 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Text her instead. Something brief and warm.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.2 },
+                { "dimension": "OCEAN-E", "delta": -0.1 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.2 },
+                { "dimension": "ATT-SECURE", "delta": 0.2 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Leave it. You'll call tomorrow.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "OCEAN-E", "delta": -0.2 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.1 },
+                { "dimension": "OCEAN-N", "delta": 0.1 },
+                { "dimension": "ATT-AVOIDANT", "delta": 0.2 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "It isn't long. She sounds happy to hear from you. That was the right call.",
+            "choice-2": "She texts back a picture of the cat. This is also fine.",
+            "choice-3": "You will. You think about her more than she knows."
+          }
+        },
+        {
+          "id": "vignette-019",
+          "setting_beat": "Before bed, you find the book you've been reading is gone — not gone, you realize, just moved. In looking for it, you find an old letter. Not a sad letter. Not a significant letter. A birthday card from someone you don't see anymore, from some years ago. It's cheerful. It doesn't hurt to read.",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "Read it properly. Sit with it for a moment.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": 0.3 },
+                { "dimension": "OCEAN-N", "delta": 0.1 },
+                { "dimension": "SCH-UNIVERSALISM", "delta": 0.2 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "Glance at it, put it back. Find the book.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": -0.1 },
+                { "dimension": "OCEAN-C", "delta": 0.1 },
+                { "dimension": "OCEAN-N", "delta": -0.1 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "Read it, then think for a bit about the person who sent it.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": 0.2 },
+                { "dimension": "OCEAN-A", "delta": 0.1 },
+                { "dimension": "OCEAN-N", "delta": 0.2 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.2 },
+                { "dimension": "ATT-AVOIDANT", "delta": 0.1 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "You remember the person. Warmly, cleanly. Then you put it back.",
+            "choice-2": "The book is behind the lamp. The card goes back in the drawer.",
+            "choice-3": "You wonder how they're doing. You don't contact them. The wondering is enough."
+          }
+        },
+        {
+          "id": "vignette-020",
+          "setting_beat": "The day is done. The light is off. You are lying in the same position you were in this morning, watching the ceiling. The day had things in it. Not an extraordinary day. Just a day. One more small thought before sleep: what do you want to remember about today?",
+          "ambient_audio": null,
+          "ambient_art": null,
+          "choices": [
+            {
+              "id": "choice-1",
+              "label": "The conversation on the bus. The one about the book.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": 0.2 },
+                { "dimension": "OCEAN-E", "delta": 0.1 },
+                { "dimension": "SCH-STIMULATION", "delta": 0.2 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-2",
+              "label": "The phone call with your mother. That she's okay.",
+              "weights": [
+                { "dimension": "OCEAN-A", "delta": 0.2 },
+                { "dimension": "OCEAN-N", "delta": -0.1 },
+                { "dimension": "SCH-BENEVOLENCE", "delta": 0.3 },
+                { "dimension": "SCH-SECURITY", "delta": 0.2 }
+              ]
+            },
+            {
+              "id": "choice-3",
+              "label": "The busker. That exact moment.",
+              "weights": [
+                { "dimension": "OCEAN-O", "delta": 0.3 },
+                { "dimension": "SCH-HEDONISM", "delta": 0.2 },
+                { "dimension": "SCH-STIMULATION", "delta": 0.3 },
+                { "dimension": "SCH-UNIVERSALISM", "delta": 0.1 }
+              ]
+            },
+            {
+              "id": "choice-4",
+              "label": "Nothing in particular. It was just a day, and that's okay.",
+              "weights": [
+                { "dimension": "OCEAN-C", "delta": -0.1 },
+                { "dimension": "OCEAN-N", "delta": -0.3 },
+                { "dimension": "SCH-SELF_DIRECTION", "delta": 0.2 },
+                { "dimension": "SCH-SECURITY", "delta": 0.3 }
+              ]
+            }
+          ],
+          "resolution_beats": {
+            "choice-1": "You hold that for a moment. Then you sleep.",
+            "choice-2": "Relief that settled into something quieter. Good.",
+            "choice-3": "Something small that cost nothing and meant something. Yes.",
+            "choice-4": "You sleep without drama."
+          }
+        }
+      ]
+    }
+  ]
+}

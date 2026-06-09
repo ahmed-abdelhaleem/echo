@@ -1,0 +1,61 @@
+{
+  "id": "low-self-direction",
+  "version": 1,
+  "summary": "A day in which you took the shape the situation handed you.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-SELF_DIRECTION",
+            "direction": "low",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "passive",
+      "follower",
+      "no agency",
+      "spineless"
+    ],
+    "notes": "Low self-direction reads as taking the cue rather than setting it. Never frame this as passivity or weakness. The shape the day handed over may have been the right shape."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the plan you agreed to because someone else had thought it through",
+        "the question you let the room answer for you"
+      ],
+      "output": "Someone else had already thought through the plan and you agreed to it, and the question that came up after dinner you let the room answer for you. Neither of those was an abdication. The day's shape was already a good shape. You took it, and the small ease of that was its own reward.",
+      "notes": "Reframes 'going with the flow' as a competent choice rather than a default."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

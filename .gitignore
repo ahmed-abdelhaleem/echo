@@ -1,73 +1,64 @@
-# OS
+# --- OS / editor ---
 .DS_Store
 Thumbs.db
-
-# Editors
-.vscode/
-.idea/
 *.swp
 *.swo
+.idea/
+.vscode/
+*.log
 
-# Environment / secrets
-.env
-.env.*
-!.env.example
-*.pem
-*.key
-
-# Tooling
-.mise.local.toml
-.direnv/
-
-# Go
+# --- Languages: Go ---
 /services/core-go/bin/
-/services/core-go/tmp/
-*.test
-*.out
-coverage.out
+/services/core-go/cover.out
+vendor/
 
-# Python
+# --- Languages: Python ---
 __pycache__/
 *.py[cod]
 *$py.class
-.venv/
-.uv/
+*.egg-info/
+.pytest_cache/
 .mypy_cache/
 .ruff_cache/
-.pytest_cache/
-*.egg-info/
-
-# Node / web
-node_modules/
-.next/
-.svelte-kit/
-.turbo/
+.coverage
+htmlcov/
+.venv/
 dist/
+build/
+services/ml-py/.python-version
 
-# Dart / Flutter
+# --- Languages: Node ---
+node_modules/
+npm-debug.log*
+.pnpm-store/
+.pnpm-debug.log*
+
+# --- Languages: Dart / Flutter (for apps/client) ---
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
 .pub-cache/
 .pub/
-*.iml
+build/
 ios/Pods/
-ios/.symlinks/
+ios/Podfile.lock
 android/.gradle/
 android/local.properties
-android/captures/
-android/key.properties
+windows/flutter/ephemeral/
+macos/Flutter/ephemeral/
 
-# Build outputs
-build/
-out/
+# --- Generated code ---
+/packages/proto/gen/
 
-# Logs
-*.log
-logs/
+# --- Local dev ---
+*.local
+.env
+.env.local
+.envrc.local
 
-# Local databases / volumes
-*.sqlite
-*.db
-/data/
+# --- Secrets (defense in depth — gitleaks also scans) ---
+*.pem
+*.key
+*.crt
+secrets.*

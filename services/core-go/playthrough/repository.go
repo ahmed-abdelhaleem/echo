@@ -1,0 +1,468 @@
+package playthrough
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+// ErrNotFound is returned when a Playthrough id has no matching row.
+var ErrNotFound = errors.New("playthrough: not found")
+
+// ErrComparisonNotFound is returned when a comparison token has no matching row.
+var ErrComparisonNotFound = errors.New("playthrough: comparison not found")
+
+// ErrTraitVectorNotFound is returned when GetTraitVector has no row for
+// the playthrough — usually because scoring hasn't finished yet.
+var ErrTraitVectorNotFound = errors.New("playthrough: trait vector not found")
+
+// ErrChoiceConflict is returned when RecordChoice is called twice on the
+// same (playthrough, vignette) with *different* choice ids. Clients must
+// treat this as a hard failure — the player cannot change their mind once
+// a choice is committed.
+var ErrChoiceConflict = errors.New("playthrough: choice already recorded with a different value")
+
+// pgUniqueViolation is the SQLSTATE for "unique_violation". Kept as a
+// package constant so the magic string doesn't sprawl.
+const pgUniqueViolation = "23505"
+
+// Repository abstracts the persistence layer. Defined as an interface so
+// tests can fake out the pool without spinning Postgres.
+type Repository interface {
+	CreatePlaythrough(ctx context.Context, userID uuid.UUID, seasonID string, seasonVersion int) (Playthrough, error)
+	GetPlaythrough(ctx context.Context, id uuid.UUID) (Playthrough, error)
+	InsertChoice(ctx context.Context, in RecordChoiceInput) (ChoiceEvent, error)
+	GetChoice(ctx context.Context, playthroughID uuid.UUID, vignetteID string) (ChoiceEvent, error)
+	ListChoices(ctx context.Context, playthroughID uuid.UUID) ([]ChoiceEvent, error)
+	MarkCompleted(ctx context.Context, playthroughID uuid.UUID) (Playthrough, error)
+	UpsertTraitVector(ctx context.Context, playthroughID uuid.UUID, vec TraitVector, scoringVersion, seasonVersion int) (StoredTraitVector, error)
+	GetTraitVector(ctx context.Context, playthroughID uuid.UUID) (StoredTraitVector, error)
+	CreateComparison(ctx context.Context, token string, inviterPlaythroughID uuid.UUID, seasonID string) (Comparison, error)
+	CreateComparisonToken(ctx context.Context, comparisonID uuid.UUID, tokenType ComparisonTokenType, tokenHash string, createdByUserID uuid.UUID, expiresAt time.Time) error
+	GetComparisonByToken(ctx context.Context, tokenHash string, tokenType ComparisonTokenType, now time.Time) (Comparison, error)
+	GetComparisonByTokenAnyState(ctx context.Context, tokenHash string, tokenType ComparisonTokenType) (Comparison, error)
+	GetComparisonByAnyToken(ctx context.Context, tokenHash string) (Comparison, error)
+	AcceptComparison(ctx context.Context, comparisonID uuid.UUID, inviteePlaythroughID uuid.UUID, divergenceVignetteID string) (Comparison, error)
+	EnableComparisonShare(ctx context.Context, comparisonID uuid.UUID, enabledAt time.Time) error
+	RevokeComparison(ctx context.Context, comparisonID uuid.UUID, revokedAt time.Time) error
+	RevokeComparisonTokens(ctx context.Context, comparisonID uuid.UUID, revokedAt time.Time) error
+}
+
+// PgRepository is the pgxpool-backed Repository implementation.
+type PgRepository struct {
+	pool *pgxpool.Pool
+}
+
+// NewPgRepository constructs a PgRepository.
+func NewPgRepository(pool *pgxpool.Pool) *PgRepository {
+	return &PgRepository{pool: pool}
+}
+
+// CreatePlaythrough inserts a fresh playthrough row. The (season_id,
+// season_version) pair is taken on trust here — validation happens in the
+// Service layer where the content.Service is available.
+func (r *PgRepository) CreatePlaythrough(ctx context.Context, userID uuid.UUID, seasonID string, seasonVersion int) (Playthrough, error) {
+	const q = `
+		INSERT INTO playthrough.playthroughs (user_id, season_id, season_version)
+		VALUES ($1, $2, $3)
+		RETURNING id, user_id, season_id, season_version, status, started_at, completed_at, created_at, updated_at
+	`
+	var p Playthrough
+	err := r.pool.QueryRow(ctx, q, userID, seasonID, seasonVersion).Scan(
+		&p.ID, &p.UserID, &p.SeasonID, &p.SeasonVersion, &p.Status,
+		&p.StartedAt, &p.CompletedAt, &p.CreatedAt, &p.UpdatedAt,
+	)
+	if err != nil {
+		return Playthrough{}, fmt.Errorf("playthrough: create: %w", err)
+	}
+	return p, nil
+}
+
+// GetPlaythrough fetches a single playthrough by id.
+func (r *PgRepository) GetPlaythrough(ctx context.Context, id uuid.UUID) (Playthrough, error) {
+	const q = `
+		SELECT id, user_id, season_id, season_version, status, started_at, completed_at, created_at, updated_at
+		FROM playthrough.playthroughs
+		WHERE id = $1
+	`
+	var p Playthrough
+	err := r.pool.QueryRow(ctx, q, id).Scan(
+		&p.ID, &p.UserID, &p.SeasonID, &p.SeasonVersion, &p.Status,
+		&p.StartedAt, &p.CompletedAt, &p.CreatedAt, &p.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Playthrough{}, ErrNotFound
+	}
+	if err != nil {
+		return Playthrough{}, fmt.Errorf("playthrough: get: %w", err)
+	}
+	return p, nil
+}
+
+// InsertChoice writes a choice_event row. If the (playthrough, vignette)
+// pair is already present the unique violation surfaces as a typed error
+// the Service layer can interpret — same choice → idempotent success,
+// different choice → ErrChoiceConflict.
+func (r *PgRepository) InsertChoice(ctx context.Context, in RecordChoiceInput) (ChoiceEvent, error) {
+	const q = `
+		INSERT INTO playthrough.choice_events
+			(playthrough_id, vignette_id, choice_id, client_timestamp, deliberation_ms)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, playthrough_id, vignette_id, choice_id, client_timestamp, server_received_at, deliberation_ms, created_at
+	`
+	var ev ChoiceEvent
+	err := r.pool.QueryRow(ctx, q,
+		in.PlaythroughID, in.VignetteID, in.ChoiceID, in.ClientTimestamp, in.DeliberationMS,
+	).Scan(
+		&ev.ID, &ev.PlaythroughID, &ev.VignetteID, &ev.ChoiceID,
+		&ev.ClientTimestamp, &ev.ServerReceivedAt, &ev.DeliberationMS, &ev.CreatedAt,
+	)
+	if err == nil {
+		return ev, nil
+	}
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == pgUniqueViolation {
+		// The Service layer decides whether the existing row is the same
+		// choice (idempotent) or a different one (conflict). Return a
+		// sentinel to keep this layer dumb about that policy.
+		return ChoiceEvent{}, ErrChoiceConflict
+	}
+	return ChoiceEvent{}, fmt.Errorf("playthrough: insert choice: %w", err)
+}
+
+// GetChoice fetches the recorded choice for a (playthrough, vignette) pair,
+// if any. Returns ErrNotFound when none exists.
+func (r *PgRepository) GetChoice(ctx context.Context, playthroughID uuid.UUID, vignetteID string) (ChoiceEvent, error) {
+	const q = `
+		SELECT id, playthrough_id, vignette_id, choice_id, client_timestamp, server_received_at, deliberation_ms, created_at
+		FROM playthrough.choice_events
+		WHERE playthrough_id = $1 AND vignette_id = $2
+	`
+	var ev ChoiceEvent
+	err := r.pool.QueryRow(ctx, q, playthroughID, vignetteID).Scan(
+		&ev.ID, &ev.PlaythroughID, &ev.VignetteID, &ev.ChoiceID,
+		&ev.ClientTimestamp, &ev.ServerReceivedAt, &ev.DeliberationMS, &ev.CreatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ChoiceEvent{}, ErrNotFound
+	}
+	if err != nil {
+		return ChoiceEvent{}, fmt.Errorf("playthrough: get choice: %w", err)
+	}
+	return ev, nil
+}
+
+// ListChoices returns every choice event for the playthrough in commit
+// order. Used by FinalizeIfComplete to assemble the trait scoring payload.
+func (r *PgRepository) ListChoices(ctx context.Context, playthroughID uuid.UUID) ([]ChoiceEvent, error) {
+	const q = `
+		SELECT id, playthrough_id, vignette_id, choice_id, client_timestamp, server_received_at, deliberation_ms, created_at
+		FROM playthrough.choice_events
+		WHERE playthrough_id = $1
+		ORDER BY server_received_at, id
+	`
+	rows, err := r.pool.Query(ctx, q, playthroughID)
+	if err != nil {
+		return nil, fmt.Errorf("playthrough: list choices: %w", err)
+	}
+	defer rows.Close()
+
+	var out []ChoiceEvent
+	for rows.Next() {
+		var ev ChoiceEvent
+		if err := rows.Scan(
+			&ev.ID, &ev.PlaythroughID, &ev.VignetteID, &ev.ChoiceID,
+			&ev.ClientTimestamp, &ev.ServerReceivedAt, &ev.DeliberationMS, &ev.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("playthrough: scan choice: %w", err)
+		}
+		out = append(out, ev)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("playthrough: iterate choices: %w", err)
+	}
+	return out, nil
+}
+
+// MarkCompleted flips a playthrough's status to 'completed' and stamps
+// completed_at to NOW(). Idempotent: a second call on an already-completed
+// row is a no-op and returns the existing values.
+func (r *PgRepository) MarkCompleted(ctx context.Context, playthroughID uuid.UUID) (Playthrough, error) {
+	const q = `
+		UPDATE playthrough.playthroughs
+		SET status = 'completed',
+		    completed_at = COALESCE(completed_at, NOW()),
+		    updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, user_id, season_id, season_version, status, started_at, completed_at, created_at, updated_at
+	`
+	var p Playthrough
+	err := r.pool.QueryRow(ctx, q, playthroughID).Scan(
+		&p.ID, &p.UserID, &p.SeasonID, &p.SeasonVersion, &p.Status,
+		&p.StartedAt, &p.CompletedAt, &p.CreatedAt, &p.UpdatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Playthrough{}, ErrNotFound
+	}
+	if err != nil {
+		return Playthrough{}, fmt.Errorf("playthrough: mark completed: %w", err)
+	}
+	return p, nil
+}
+
+// UpsertTraitVector writes the scoring result for a playthrough. The
+// (playthrough_id) primary key gives us natural idempotency on retry.
+func (r *PgRepository) UpsertTraitVector(
+	ctx context.Context,
+	playthroughID uuid.UUID,
+	vec TraitVector,
+	scoringVersion, seasonVersion int,
+) (StoredTraitVector, error) {
+	const q = `
+		INSERT INTO playthrough.trait_vectors
+			(playthrough_id, big_five, schwartz, attachment, scoring_version, season_version)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		ON CONFLICT (playthrough_id) DO UPDATE
+		SET big_five = EXCLUDED.big_five,
+		    schwartz = EXCLUDED.schwartz,
+		    attachment = EXCLUDED.attachment,
+		    scoring_version = EXCLUDED.scoring_version,
+		    season_version = EXCLUDED.season_version
+		RETURNING playthrough_id, big_five, schwartz, attachment, scoring_version, season_version, created_at
+	`
+	var out StoredTraitVector
+	err := r.pool.QueryRow(ctx, q,
+		playthroughID, vec.BigFive, vec.Schwartz, vec.Attachment, scoringVersion, seasonVersion,
+	).Scan(
+		&out.PlaythroughID, &out.BigFive, &out.Schwartz, &out.Attachment,
+		&out.ScoringVersion, &out.SeasonVersion, &out.CreatedAt,
+	)
+	if err != nil {
+		return StoredTraitVector{}, fmt.Errorf("playthrough: upsert trait vector: %w", err)
+	}
+	return out, nil
+}
+
+// GetTraitVector fetches the stored trait vector for a playthrough.
+// Returns ErrTraitVectorNotFound when the row is absent (typically
+// because scoring hasn't completed yet).
+func (r *PgRepository) GetTraitVector(ctx context.Context, playthroughID uuid.UUID) (StoredTraitVector, error) {
+	const q = `
+		SELECT playthrough_id, big_five, schwartz, attachment, scoring_version, season_version, created_at
+		FROM playthrough.trait_vectors
+		WHERE playthrough_id = $1
+	`
+	var out StoredTraitVector
+	err := r.pool.QueryRow(ctx, q, playthroughID).Scan(
+		&out.PlaythroughID, &out.BigFive, &out.Schwartz, &out.Attachment,
+		&out.ScoringVersion, &out.SeasonVersion, &out.CreatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return StoredTraitVector{}, ErrTraitVectorNotFound
+	}
+	if err != nil {
+		return StoredTraitVector{}, fmt.Errorf("playthrough: get trait vector: %w", err)
+	}
+	return out, nil
+}
+
+// CreateComparison creates a pending comparison invitation.
+func (r *PgRepository) CreateComparison(ctx context.Context, token string, inviterPlaythroughID uuid.UUID, seasonID string) (Comparison, error) {
+	const q = `
+		INSERT INTO playthrough.comparisons (token, inviter_playthrough_id, season_id, status)
+		VALUES ($1, $2, $3, 'pending')
+		RETURNING id, token, inviter_playthrough_id, invitee_playthrough_id, season_id, status, created_at, accepted_at,
+		       revoked_at, expires_at, share_enabled, share_enabled_at, divergence_vignette_id
+	`
+	var c Comparison
+	err := r.pool.QueryRow(ctx, q, token, inviterPlaythroughID, seasonID).Scan(
+		&c.ID, &c.Token, &c.InviterPlaythroughID, &c.InviteePlaythroughID,
+		&c.SeasonID, &c.Status, &c.CreatedAt, &c.AcceptedAt,
+		&c.RevokedAt, &c.ExpiresAt, &c.ShareEnabled, &c.ShareEnabledAt, &c.DivergenceVignetteID,
+	)
+	if err != nil {
+		return Comparison{}, fmt.Errorf("playthrough: create comparison: %w", err)
+	}
+	return c, nil
+}
+
+// GetComparison retrieves a comparison by its token.
+func (r *PgRepository) CreateComparisonToken(
+	ctx context.Context,
+	comparisonID uuid.UUID,
+	tokenType ComparisonTokenType,
+	tokenHash string,
+	createdByUserID uuid.UUID,
+	expiresAt time.Time,
+) error {
+	const q = `
+		INSERT INTO playthrough.comparison_tokens
+			(comparison_id, token_type, token_hash, created_by_user_id, expires_at)
+		VALUES ($1, $2, $3, $4, $5)
+	`
+	if _, err := r.pool.Exec(ctx, q, comparisonID, tokenType, tokenHash, createdByUserID, expiresAt); err != nil {
+		return fmt.Errorf("playthrough: create comparison token: %w", err)
+	}
+	return nil
+}
+
+// GetComparisonByToken resolves an active comparison token by hash and type.
+func (r *PgRepository) GetComparisonByToken(ctx context.Context, tokenHash string, tokenType ComparisonTokenType, now time.Time) (Comparison, error) {
+	const q = `
+		SELECT c.id, c.token, c.inviter_playthrough_id, c.invitee_playthrough_id, c.season_id, c.status,
+		       c.created_at, c.accepted_at, c.revoked_at, ct.expires_at, c.share_enabled, c.share_enabled_at,
+		       c.divergence_vignette_id
+		FROM playthrough.comparison_tokens ct
+		JOIN playthrough.comparisons c ON c.id = ct.comparison_id
+		WHERE ct.token_hash = $1
+		  AND ct.token_type = $2
+		  AND ct.revoked_at IS NULL
+		  AND ct.expires_at > $3
+		  AND c.status <> 'revoked'
+	`
+	var c Comparison
+	err := r.pool.QueryRow(ctx, q, tokenHash, tokenType, now).Scan(
+		&c.ID, &c.Token, &c.InviterPlaythroughID, &c.InviteePlaythroughID,
+		&c.SeasonID, &c.Status, &c.CreatedAt, &c.AcceptedAt,
+		&c.RevokedAt, &c.ExpiresAt, &c.ShareEnabled, &c.ShareEnabledAt, &c.DivergenceVignetteID,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Comparison{}, ErrComparisonNotFound
+	}
+	if err != nil {
+		return Comparison{}, fmt.Errorf("playthrough: get comparison by token: %w", err)
+	}
+	return c, nil
+}
+
+func (r *PgRepository) GetComparisonByTokenAnyState(ctx context.Context, tokenHash string, tokenType ComparisonTokenType) (Comparison, error) {
+	const q = `
+		SELECT c.id, c.token, c.inviter_playthrough_id, c.invitee_playthrough_id, c.season_id, c.status,
+		       c.created_at, c.accepted_at, c.revoked_at, ct.expires_at, c.share_enabled, c.share_enabled_at,
+		       c.divergence_vignette_id
+		FROM playthrough.comparison_tokens ct
+		JOIN playthrough.comparisons c ON c.id = ct.comparison_id
+		WHERE ct.token_hash = $1
+		  AND ct.token_type = $2
+		LIMIT 1
+	`
+	var c Comparison
+	err := r.pool.QueryRow(ctx, q, tokenHash, tokenType).Scan(
+		&c.ID, &c.Token, &c.InviterPlaythroughID, &c.InviteePlaythroughID,
+		&c.SeasonID, &c.Status, &c.CreatedAt, &c.AcceptedAt,
+		&c.RevokedAt, &c.ExpiresAt, &c.ShareEnabled, &c.ShareEnabledAt, &c.DivergenceVignetteID,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Comparison{}, ErrComparisonNotFound
+	}
+	if err != nil {
+		return Comparison{}, fmt.Errorf("playthrough: get comparison token any state: %w", err)
+	}
+	return c, nil
+}
+
+func (r *PgRepository) GetComparisonByAnyToken(ctx context.Context, tokenHash string) (Comparison, error) {
+	const q = `
+		SELECT c.id, c.token, c.inviter_playthrough_id, c.invitee_playthrough_id, c.season_id, c.status,
+		       c.created_at, c.accepted_at, c.revoked_at, ct.expires_at, c.share_enabled, c.share_enabled_at,
+		       c.divergence_vignette_id
+		FROM playthrough.comparison_tokens ct
+		JOIN playthrough.comparisons c ON c.id = ct.comparison_id
+		WHERE ct.token_hash = $1
+		LIMIT 1
+	`
+	var c Comparison
+	err := r.pool.QueryRow(ctx, q, tokenHash).Scan(
+		&c.ID, &c.Token, &c.InviterPlaythroughID, &c.InviteePlaythroughID,
+		&c.SeasonID, &c.Status, &c.CreatedAt, &c.AcceptedAt,
+		&c.RevokedAt, &c.ExpiresAt, &c.ShareEnabled, &c.ShareEnabledAt, &c.DivergenceVignetteID,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Comparison{}, ErrComparisonNotFound
+	}
+	if err != nil {
+		return Comparison{}, fmt.Errorf("playthrough: get comparison by any token: %w", err)
+	}
+	return c, nil
+}
+
+// AcceptComparison accepts a comparison invite and binds the invitee's playthrough.
+func (r *PgRepository) AcceptComparison(ctx context.Context, comparisonID uuid.UUID, inviteePlaythroughID uuid.UUID, divergenceVignetteID string) (Comparison, error) {
+	const q = `
+		UPDATE playthrough.comparisons
+		SET invitee_playthrough_id = $2,
+		    status = 'accepted',
+		    accepted_at = NOW(),
+		    divergence_vignette_id = $3
+		WHERE id = $1 AND status = 'pending'
+		RETURNING id, token, inviter_playthrough_id, invitee_playthrough_id, season_id, status, created_at, accepted_at,
+		       revoked_at, expires_at, share_enabled, share_enabled_at, divergence_vignette_id
+	`
+	var c Comparison
+	err := r.pool.QueryRow(ctx, q, comparisonID, inviteePlaythroughID, divergenceVignetteID).Scan(
+		&c.ID, &c.Token, &c.InviterPlaythroughID, &c.InviteePlaythroughID,
+		&c.SeasonID, &c.Status, &c.CreatedAt, &c.AcceptedAt,
+		&c.RevokedAt, &c.ExpiresAt, &c.ShareEnabled, &c.ShareEnabledAt, &c.DivergenceVignetteID,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return Comparison{}, ErrComparisonNotFound
+	}
+	if err != nil {
+		return Comparison{}, fmt.Errorf("playthrough: accept comparison: %w", err)
+	}
+	return c, nil
+}
+
+func (r *PgRepository) EnableComparisonShare(ctx context.Context, comparisonID uuid.UUID, enabledAt time.Time) error {
+	const q = `
+		UPDATE playthrough.comparisons
+		SET share_enabled = true,
+		    share_enabled_at = $2
+		WHERE id = $1
+	`
+	tag, err := r.pool.Exec(ctx, q, comparisonID, enabledAt)
+	if err != nil {
+		return fmt.Errorf("playthrough: enable comparison share: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrComparisonNotFound
+	}
+	return nil
+}
+
+// RevokeComparison updates a comparison's status to 'revoked'.
+func (r *PgRepository) RevokeComparison(ctx context.Context, comparisonID uuid.UUID, revokedAt time.Time) error {
+	const q = `
+		UPDATE playthrough.comparisons
+		SET status = 'revoked',
+		    revoked_at = $2
+		WHERE id = $1
+	`
+	tag, err := r.pool.Exec(ctx, q, comparisonID, revokedAt)
+	if err != nil {
+		return fmt.Errorf("playthrough: revoke comparison: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrComparisonNotFound
+	}
+	return nil
+}
+
+func (r *PgRepository) RevokeComparisonTokens(ctx context.Context, comparisonID uuid.UUID, revokedAt time.Time) error {
+	const q = `
+		UPDATE playthrough.comparison_tokens
+		SET revoked_at = $2
+		WHERE comparison_id = $1
+		  AND revoked_at IS NULL
+	`
+	if _, err := r.pool.Exec(ctx, q, comparisonID, revokedAt); err != nil {
+		return fmt.Errorf("playthrough: revoke comparison tokens: %w", err)
+	}
+	return nil
+}

@@ -1,0 +1,60 @@
+{
+  "id": "low-conscientiousness",
+  "version": 1,
+  "summary": "A day in which you let the path unfold one step at a time.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-C",
+            "direction": "low",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_clinical_term"
+    ],
+    "avoid": [
+      "lazy",
+      "disorganised",
+      "you procrastinate"
+    ],
+    "notes": "Low conscientiousness reads as willingness to begin without a plan. We are not scolding; we are describing a player who trusts the next step will appear. Never moralise."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the email you started and did not finish",
+        "the walk that doubled back"
+      ],
+      "output": "You started writing a message, then put it down before you finished, and the walk you went on doubled back twice because you had not decided where you were going. None of this was a failure of intent. The intent simply chose to arrive in pieces.",
+      "notes": "Refuses the moral frame; ends by re-describing the behaviour as a valid mode rather than a flaw."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

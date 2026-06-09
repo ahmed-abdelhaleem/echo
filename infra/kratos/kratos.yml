@@ -1,0 +1,201 @@
+version: v1.3.1
+
+dsn: postgres://echo:echo_dev@postgres:5432/kratos?sslmode=disable
+
+# Kratos serves two HTTP listeners: the public API for clients and the admin
+# API for the application backend. Local dev exposes both via Docker.
+serve:
+  public:
+    base_url: http://localhost:8081/auth/kratos/
+    cors:
+      enabled: true
+      allowed_origins:
+        - http://localhost:8082
+        - http://localhost:8081
+        - http://localhost:3000
+        - http://127.0.0.1:8080
+        - http://127.0.0.1:8081
+      allowed_methods:
+        - POST
+        - GET
+        - PUT
+        - PATCH
+        - DELETE
+      allowed_headers:
+        - Authorization
+        - Cookie
+        - Content-Type
+      exposed_headers:
+        - Content-Type
+        - Set-Cookie
+  admin:
+    base_url: http://localhost:4434/
+
+selfservice:
+  # Default redirect after a successful flow. The Flutter client picks this up
+  # and surfaces the appropriate next-screen; the backend treats it as opaque.
+  default_browser_return_url: http://localhost:8082/auth/return
+  allowed_return_urls:
+    - http://localhost:8082/
+    - http://localhost:8082/auth/callback
+    - http://localhost:8081/
+    - http://localhost:8081/auth/callback
+    - http://localhost:8082/
+    - http://localhost:8082/auth/callback
+    - http://localhost:3000/
+    - http://localhost:3000/auth/callback
+    - http://127.0.0.1:8080/auth/callback
+
+  methods:
+    password:
+      enabled: true
+      config:
+        haveibeenpwned_enabled: true
+        min_password_length: 10
+        identifier_similarity_check_enabled: true
+    oidc:
+      enabled: true
+      config:
+        providers:
+          - id: google
+            provider: google
+            client_id: ${GOOGLE_CLIENT_ID}
+            client_secret: ${GOOGLE_CLIENT_SECRET}
+            mapper_url: file:///etc/config/kratos/oidc.google.mapper.jsonnet
+            scope:
+              - openid
+              - email
+              - profile
+
+  flows:
+    error:
+      ui_url: http://localhost:8082/auth/error
+    settings:
+      ui_url: http://localhost:8082/auth/settings
+      privileged_session_max_age: 15m
+      required_aal: highest_available
+    recovery:
+      enabled: true
+      ui_url: http://localhost:8082/auth/recovery
+      use: code
+    verification:
+      enabled: true
+      ui_url: http://localhost:8082/auth/verification
+      use: code
+      after:
+        default_browser_return_url: http://localhost:8082/auth/return
+    logout:
+      after:
+        default_browser_return_url: http://localhost:8082/
+    login:
+      ui_url: http://localhost:8082/auth/login
+      lifespan: 10m
+    registration:
+      lifespan: 10m
+      ui_url: http://localhost:8082/auth/registration
+      # Age gating (docs/08 §"Age gating and minor protections" + AGENTS.md §10.7).
+      # The hard rule (under-13 rejection) is enforced by the Go backend
+      # at the before-registration web hook. The after-registration hook
+      # provisions the `auth.users` row with the right age band.
+      before:
+        hooks:
+          - hook: web_hook
+            config:
+              # core-go runs on the host in local dev; docker-compose injects
+              # CORE_HOOK_BASE_URL accordingly.
+              url: ${CORE_HOOK_BASE_URL}/auth/hooks/before-registration
+              method: POST
+              body: file:///etc/config/kratos/hooks/before-registration.jsonnet
+              response:
+                ignore: false
+                parse: true
+              auth:
+                type: api_key
+                config:
+                  name: X-Echo-Hook-Secret
+                  value: ${KRATOS_HOOK_SECRET}
+                  in: header
+              can_interrupt: true
+      after:
+        password:
+          hooks:
+            - hook: web_hook
+              config:
+                url: ${CORE_HOOK_BASE_URL}/auth/hooks/after-registration
+                method: POST
+                body: file:///etc/config/kratos/hooks/after-registration.jsonnet
+                response:
+                  ignore: false
+                  parse: false
+                auth:
+                  type: api_key
+                  config:
+                    name: X-Echo-Hook-Secret
+                    value: ${KRATOS_HOOK_SECRET}
+                    in: header
+                can_interrupt: true
+            - hook: session
+        oidc:
+          hooks:
+            - hook: web_hook
+              config:
+                url: ${CORE_HOOK_BASE_URL}/auth/hooks/after-registration
+                method: POST
+                body: file:///etc/config/kratos/hooks/after-registration.jsonnet
+                response:
+                  ignore: false
+                  parse: false
+                auth:
+                  type: api_key
+                  config:
+                    name: X-Echo-Hook-Secret
+                    value: ${KRATOS_HOOK_SECRET}
+                    in: header
+                can_interrupt: true
+            - hook: session
+
+log:
+  level: info
+  format: json
+  leak_sensitive_values: false
+
+secrets:
+  # Local-dev only — Kratos rotates these per env. Production secrets live in
+  # the deployment's secret store. gitleaks ignores this file (configured in
+  # .gitleaks.toml) because all values here are intentionally local.
+  cookie:
+    - echo_dev_cookie_secret_change_me_in_prod
+  cipher:
+    # XChaCha20-Poly1305 keys are exactly 32 bytes. Local-dev placeholder only.
+    - echodev0123456789abcdefghijklmno
+
+ciphers:
+  algorithm: xchacha20-poly1305
+
+hashers:
+  algorithm: bcrypt
+  bcrypt:
+    cost: 8
+
+identity:
+  default_schema_id: default
+  schemas:
+    - id: default
+      url: file:///etc/config/kratos/identity.schema.json
+
+courier:
+  smtp:
+    # MailHog runs in docker-compose alongside Kratos for local dev. The
+    # web UI is at http://localhost:8025 — every recovery / verification
+    # email shows up there. Production wires its own SMTP provider.
+    # Note: the smtp scheme (no TLS, no auth) matches MailHog's listener.
+    connection_uri: smtp://mailhog:1025/?disable_starttls=true
+    from_address: noreply@echo.localhost
+    from_name: Echo (local dev)
+
+session:
+  lifespan: 720h # 30 days — matches the refresh-token policy in docs/05.
+  cookie:
+    domain: ""
+    persistent: true
+    same_site: Lax

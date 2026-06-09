@@ -1,0 +1,60 @@
+{
+  "id": "low-openness",
+  "version": 1,
+  "summary": "A day that pulled you toward what you already knew.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-O",
+            "direction": "low",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "closed-minded",
+      "you are conservative",
+      "you avoid the new"
+    ],
+    "notes": "Low openness reads as keeping close to known things. Never frame this as cautious or closed; frame it as a clear preference for the trustworthy. The reflection should make staying feel chosen, not feared."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the seat you took because you always take it",
+        "the friend you texted first"
+      ],
+      "output": "You sat in the chair you always sit in and texted the same friend first. The day did not ask you to be brave about strangers, and you were not, and the room you went home to was a room you already knew. Some days are for that.",
+      "notes": "Describes a low-openness day without judgement; final sentence keeps the door open without flattering."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

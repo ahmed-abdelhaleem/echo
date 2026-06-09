@@ -1,0 +1,66 @@
+{
+  "id": "curious-impulsive",
+  "version": 1,
+  "summary": "High openness, low conscientiousness: the day reaches forward without sweeping the path first.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-O",
+            "direction": "high",
+            "min_magnitude": 0.35
+          },
+          {
+            "dimension": "OCEAN-C",
+            "direction": "low",
+            "min_magnitude": 0.3
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 65,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "acknowledge_contradiction",
+      "no_archetype"
+    ],
+    "avoid": [
+      "impulsive",
+      "scatterbrained",
+      "the curious one",
+      "ADHD"
+    ],
+    "notes": "High openness with low conscientiousness reads as reaching toward the new without making the new orderly first. The contradiction is the point. Never flatten it."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the new thing you started before you finished the last one",
+        "the door you opened without closing the one behind you"
+      ],
+      "output": "You started the new thing before you had finished the last one, and the door you opened today, you opened without closing the one behind you. That is not a failure of discipline. It is a particular shape, where the reach happens before the cleanup, and the cleanup will happen later or it will not, and either way the reach is what the day was about.",
+      "notes": "Names the contradiction (reach before order) without scolding either side."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "id": "high-power",
+  "version": 1,
+  "summary": "A day in which you took up the room when the room asked for it.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-POWER",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "dominant",
+      "bossy",
+      "alpha",
+      "in charge"
+    ],
+    "notes": "High power reads as willingness to lead the room when leadership was the next move. Never call this dominance; never call it bossy. It is the readiness to be the one."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the decision the table had been circling that you named",
+        "the small instruction you gave that the room followed"
+      ],
+      "output": "There was a decision the table had been circling for a long time and you named it. The small instruction you gave after, the room followed without much discussion, and you did not pretend the following had not happened. That is a kind of weight you carry comfortably enough to set down at the end of the day.",
+      "notes": "Names the leadership without flattering and without apologising."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

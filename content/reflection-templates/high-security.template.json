@@ -1,0 +1,60 @@
+{
+  "id": "high-security",
+  "version": 1,
+  "summary": "A day spent checking the locks.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-SECURITY",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_clinical_term"
+    ],
+    "avoid": [
+      "paranoid",
+      "anxious",
+      "controlling"
+    ],
+    "notes": "High security reads as preferring the world arranged so no one has to be brave today. Never clinical; never alarming. Describe the small protective acts plainly."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the bag you packed the night before",
+        "the message you sent to confirm a small plan"
+      ],
+      "output": "You packed the bag the night before, even though the morning would have been enough. The small plan, you confirmed by message, even though no one had asked. The day's surprises were ones you had already imagined, and the imagining was the cost of the calm that came after.",
+      "notes": "Frames security-seeking as a small ongoing cost willingly paid."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

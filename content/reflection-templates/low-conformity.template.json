@@ -1,0 +1,60 @@
+{
+  "id": "low-conformity",
+  "version": 1,
+  "summary": "A day on which you redrew the lines as you went.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-CONFORMITY",
+            "direction": "low",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "rebel",
+      "contrarian",
+      "you are nonconformist"
+    ],
+    "notes": "Low conformity reads as willingness to redraw the room's lines. Never call this rebellion; the player is not posing."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the meeting you walked out of when the conversation stopped being honest",
+        "the form you filled out wrong on purpose"
+      ],
+      "output": "You walked out of a meeting when the conversation stopped being honest. The form, you filled out wrong on purpose, in a small way that did not change anything important but did not pretend either. The lines around the day were lines you allowed yourself to redraw, and you did not announce the redrawing.",
+      "notes": "Two acts of low conformity, neither performative."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

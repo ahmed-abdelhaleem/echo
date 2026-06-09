@@ -1,0 +1,137 @@
+# Echo — local development stack
+#
+# Phase-0 local environment per docs/05_Technical_Architecture.md and docs/06_Tech_Stack.md.
+# Brings up the three data-layer services the application services need to start.
+#
+# Notes:
+# - Postgres has multiple databases pre-created via the init script in infra/docker/postgres/init/.
+# - NATS runs with JetStream enabled per docs/06_Tech_Stack.md.
+# - Ory Kratos public API listens on :4433, admin API on :4434.
+#   Identity schema + server config live in infra/kratos/.
+# - Values shown here are local-dev defaults only and are documented in plain text per AGENTS.md
+#   (passwords used exclusively for local development are not secrets).
+
+name: echo
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: echo-postgres
+    environment:
+      POSTGRES_USER: echo
+      POSTGRES_PASSWORD: echo_dev
+      POSTGRES_DB: echo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U echo -d echo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: echo-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  nats:
+    image: nats:2.10-alpine
+    container_name: echo-nats
+    command: ["-js", "-sd", "/data", "-m", "8222"]
+    ports:
+      - "4222:4222"  # client
+      - "8222:8222"  # monitoring
+    volumes:
+      - nats_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8222/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Kratos schema migrations — runs once, then exits.
+  kratos-migrate:
+    image: oryd/kratos:v1.3.1
+    container_name: echo-kratos-migrate
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DSN: postgres://echo:echo_dev@postgres:5432/kratos?sslmode=disable
+    command: ["migrate", "sql", "-e", "--yes"]
+    volumes:
+      - ./infra/kratos:/etc/config/kratos:ro
+    restart: on-failure
+
+  kratos:
+    image: oryd/kratos:v1.3.1
+    container_name: echo-kratos
+    depends_on:
+      kratos-migrate:
+        condition: service_completed_successfully
+      mailhog:
+        condition: service_started
+    ports:
+      - "4433:4433"  # public API
+      - "4434:4434"  # admin API
+    environment:
+      DSN: postgres://echo:echo_dev@postgres:5432/kratos?sslmode=disable
+      # Shared secret Kratos sends in `X-Echo-Hook-Secret` when invoking
+      # the registration web hooks served by core-go. Local-dev only —
+      # production wires a real secret from the secret store.
+      KRATOS_HOOK_SECRET: echo_dev_hook_secret_change_me_in_prod
+      # core-go runs on the host (`make dev-core`), not in this compose file.
+      # host.docker.internal reaches the host listener from inside Kratos.
+      CORE_HOOK_BASE_URL: http://host.docker.internal:8081
+      # Google OIDC — set in repo-root .env (see .env.example). Empty values
+      # disable the provider at runtime; password sign-up still works.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      DEV_DISABLE_API_FLOW_ENFORCEMENT: "true"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    entrypoint: ["sh", "-c"]
+    command: >
+      "sed -e 's|$${GOOGLE_CLIENT_ID}|'\"$$GOOGLE_CLIENT_ID\"'|g'
+      -e 's|$${GOOGLE_CLIENT_SECRET}|'\"$$GOOGLE_CLIENT_SECRET\"'|g'
+      -e 's|$${CORE_HOOK_BASE_URL}|'\"$$CORE_HOOK_BASE_URL\"'|g'
+      -e 's|$${KRATOS_HOOK_SECRET}|'\"$$KRATOS_HOOK_SECRET\"'|g'
+      /etc/config/kratos/kratos.yml > /tmp/kratos.yml &&
+      kratos serve -c /tmp/kratos.yml --dev --watch-courier"
+    volumes:
+      - ./infra/kratos:/etc/config/kratos:ro
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4434/admin/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # MailHog catches Kratos's recovery / verification emails in dev so the
+  # password reset and email verification flows are testable end-to-end
+  # without a real SMTP provider. Web UI: http://localhost:8025.
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    container_name: echo-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+
+volumes:
+  postgres_data:
+  redis_data:
+  nats_data:

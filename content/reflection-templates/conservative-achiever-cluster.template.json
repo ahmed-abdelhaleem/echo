@@ -1,0 +1,72 @@
+{
+  "id": "conservative-achiever-cluster",
+  "version": 1,
+  "summary": "Achievement, conformity, and tradition all prominent: the day did the inherited work well.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-ACHIEVEMENT",
+            "direction": "high",
+            "min_magnitude": 0.35
+          },
+          {
+            "dimension": "SCH-CONFORMITY",
+            "direction": "high",
+            "min_magnitude": 0.35
+          },
+          {
+            "dimension": "SCH-TRADITION",
+            "direction": "high",
+            "min_magnitude": 0.35
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 75,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "traditional",
+      "old-school",
+      "stuck in the past",
+      "uptight"
+    ],
+    "notes": "Three-axis investment in inherited work, done inside inherited lines. Never frame as backward. The inheritance is alive in the working."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the task that was your father's kind of task",
+        "the rule you kept that the room would not have minded you breaking",
+        "the small care you gave the work because it deserved it"
+      ],
+      "output": "There was a task today that was your father's kind of task, and you did it the way it would have been done before you. The rule that the room would not have minded you breaking, you kept. You gave the work a small care it would not have asked for, because it deserved the care. The day was inherited and yours at the same time.",
+      "notes": "Holds tradition, conformity, and achievement together as one practice."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

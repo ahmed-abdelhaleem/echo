@@ -1,0 +1,714 @@
+package playthrough_test
+
+import (
+	"context"
+	"errors"
+	"testing"
+	"time"
+
+	"github.com/ahmed-abdelhaleem/echo/services/core-go/content"
+	"github.com/ahmed-abdelhaleem/echo/services/core-go/playthrough"
+	"github.com/google/uuid"
+)
+
+// fakeContentLoader serves a fixed Season for tests. Implements
+// content.Loader so we can wrap it in a content.Service.
+type fakeContentLoader struct {
+	seasons map[string]content.Season
+}
+
+func (l *fakeContentLoader) LoadSeason(_ context.Context, id string) (content.Season, error) {
+	s, ok := l.seasons[id]
+	if !ok {
+		return content.Season{}, content.ErrSeasonNotFound
+	}
+	return s, nil
+}
+
+func (l *fakeContentLoader) ListSeasonIDs(_ context.Context) ([]string, error) {
+	ids := make([]string, 0, len(l.seasons))
+	for id := range l.seasons {
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
+// fakeRepo is an in-memory playthrough repository. Keyed maps mirror the
+// (playthrough_id, vignette_id) unique constraint so the idempotency
+// branch in Service.RecordChoice can be exercised without Postgres.
+type fakeRepo struct {
+	playthroughs map[uuid.UUID]playthrough.Playthrough
+	// choices keyed by composite (playthrough_id, vignette_id).
+	choices map[choiceKey]playthrough.ChoiceEvent
+	// trait vectors keyed by playthrough id.
+	vectors map[uuid.UUID]playthrough.StoredTraitVector
+	// comparisons keyed by token.
+	comparisons map[string]playthrough.Comparison
+}
+
+type choiceKey struct {
+	PlaythroughID uuid.UUID
+	VignetteID    string
+}
+
+func newFakeRepo() *fakeRepo {
+	return &fakeRepo{
+		playthroughs: map[uuid.UUID]playthrough.Playthrough{},
+		choices:      map[choiceKey]playthrough.ChoiceEvent{},
+		vectors:      map[uuid.UUID]playthrough.StoredTraitVector{},
+		comparisons:  map[string]playthrough.Comparison{},
+	}
+}
+
+func (r *fakeRepo) CreatePlaythrough(_ context.Context, userID uuid.UUID, seasonID string, seasonVersion int) (playthrough.Playthrough, error) {
+	p := playthrough.Playthrough{
+		ID:            uuid.New(),
+		UserID:        userID,
+		SeasonID:      seasonID,
+		SeasonVersion: seasonVersion,
+		Status:        playthrough.StatusInProgress,
+		StartedAt:     time.Now(),
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+	r.playthroughs[p.ID] = p
+	return p, nil
+}
+
+func (r *fakeRepo) GetPlaythrough(_ context.Context, id uuid.UUID) (playthrough.Playthrough, error) {
+	p, ok := r.playthroughs[id]
+	if !ok {
+		return playthrough.Playthrough{}, playthrough.ErrNotFound
+	}
+	return p, nil
+}
+
+func (r *fakeRepo) InsertChoice(_ context.Context, in playthrough.RecordChoiceInput) (playthrough.ChoiceEvent, error) {
+	key := choiceKey{PlaythroughID: in.PlaythroughID, VignetteID: in.VignetteID}
+	if _, dup := r.choices[key]; dup {
+		return playthrough.ChoiceEvent{}, playthrough.ErrChoiceConflict
+	}
+	ev := playthrough.ChoiceEvent{
+		ID:               uuid.New(),
+		PlaythroughID:    in.PlaythroughID,
+		VignetteID:       in.VignetteID,
+		ChoiceID:         in.ChoiceID,
+		ClientTimestamp:  in.ClientTimestamp,
+		DeliberationMS:   in.DeliberationMS,
+		ServerReceivedAt: time.Now(),
+		CreatedAt:        time.Now(),
+	}
+	r.choices[key] = ev
+	return ev, nil
+}
+
+func (r *fakeRepo) GetChoice(_ context.Context, playthroughID uuid.UUID, vignetteID string) (playthrough.ChoiceEvent, error) {
+	ev, ok := r.choices[choiceKey{PlaythroughID: playthroughID, VignetteID: vignetteID}]
+	if !ok {
+		return playthrough.ChoiceEvent{}, playthrough.ErrNotFound
+	}
+	return ev, nil
+}
+
+func (r *fakeRepo) ListChoices(_ context.Context, playthroughID uuid.UUID) ([]playthrough.ChoiceEvent, error) {
+	var out []playthrough.ChoiceEvent
+	for key, ev := range r.choices {
+		if key.PlaythroughID == playthroughID {
+			out = append(out, ev)
+		}
+	}
+	return out, nil
+}
+
+func (r *fakeRepo) MarkCompleted(_ context.Context, playthroughID uuid.UUID) (playthrough.Playthrough, error) {
+	p, ok := r.playthroughs[playthroughID]
+	if !ok {
+		return playthrough.Playthrough{}, playthrough.ErrNotFound
+	}
+	now := time.Now()
+	p.Status = playthrough.StatusCompleted
+	if p.CompletedAt == nil {
+		p.CompletedAt = &now
+	}
+	p.UpdatedAt = now
+	r.playthroughs[playthroughID] = p
+	return p, nil
+}
+
+func (r *fakeRepo) UpsertTraitVector(
+	_ context.Context,
+	playthroughID uuid.UUID,
+	vec playthrough.TraitVector,
+	scoringVersion, seasonVersion int,
+) (playthrough.StoredTraitVector, error) {
+	stored := playthrough.StoredTraitVector{
+		PlaythroughID:  playthroughID,
+		BigFive:        vec.BigFive,
+		Schwartz:       vec.Schwartz,
+		Attachment:     vec.Attachment,
+		ScoringVersion: scoringVersion,
+		SeasonVersion:  seasonVersion,
+		CreatedAt:      time.Now(),
+	}
+	r.vectors[playthroughID] = stored
+	return stored, nil
+}
+
+func (r *fakeRepo) GetTraitVector(_ context.Context, playthroughID uuid.UUID) (playthrough.StoredTraitVector, error) {
+	stored, ok := r.vectors[playthroughID]
+	if !ok {
+		return playthrough.StoredTraitVector{}, playthrough.ErrTraitVectorNotFound
+	}
+	return stored, nil
+}
+
+func (r *fakeRepo) CreateComparison(_ context.Context, token string, inviterPlaythroughID uuid.UUID, seasonID string) (playthrough.Comparison, error) {
+	c := playthrough.Comparison{
+		ID:                   uuid.New(),
+		Token:                token,
+		InviterPlaythroughID: inviterPlaythroughID,
+		SeasonID:             seasonID,
+		Status:               playthrough.ComparisonStatusPending,
+		CreatedAt:            time.Now(),
+	}
+	r.comparisons[token] = c
+	return c, nil
+}
+
+func (r *fakeRepo) CreateComparisonToken(_ context.Context, _ uuid.UUID, _ playthrough.ComparisonTokenType, _ string, _ uuid.UUID, _ time.Time) error {
+	return nil
+}
+
+func (r *fakeRepo) GetComparisonByToken(_ context.Context, token string, _ playthrough.ComparisonTokenType, _ time.Time) (playthrough.Comparison, error) {
+	c, ok := r.comparisons[token]
+	if !ok {
+		return playthrough.Comparison{}, playthrough.ErrComparisonNotFound
+	}
+	return c, nil
+}
+
+func (r *fakeRepo) GetComparisonByTokenAnyState(_ context.Context, token string, _ playthrough.ComparisonTokenType) (playthrough.Comparison, error) {
+	return r.GetComparisonByToken(context.Background(), token, playthrough.ComparisonTokenTypeInvite, time.Now())
+}
+
+func (r *fakeRepo) GetComparisonByAnyToken(_ context.Context, token string) (playthrough.Comparison, error) {
+	return r.GetComparisonByToken(context.Background(), token, playthrough.ComparisonTokenTypeInvite, time.Now())
+}
+
+func (r *fakeRepo) AcceptComparison(_ context.Context, comparisonID uuid.UUID, inviteePlaythroughID uuid.UUID, divergenceVignetteID string) (playthrough.Comparison, error) {
+	var c playthrough.Comparison
+	var ok bool
+	for k, candidate := range r.comparisons {
+		if candidate.ID == comparisonID {
+			c = candidate
+			ok = true
+			delete(r.comparisons, k)
+			break
+		}
+	}
+	if !ok {
+		return playthrough.Comparison{}, playthrough.ErrComparisonNotFound
+	}
+	now := time.Now()
+	c.InviteePlaythroughID = &inviteePlaythroughID
+	c.AcceptedAt = &now
+	c.DivergenceVignetteID = &divergenceVignetteID
+	c.Status = playthrough.ComparisonStatusAccepted
+	r.comparisons[c.Token] = c
+	return c, nil
+}
+
+func (r *fakeRepo) EnableComparisonShare(_ context.Context, comparisonID uuid.UUID, enabledAt time.Time) error {
+	for k, candidate := range r.comparisons {
+		if candidate.ID != comparisonID {
+			continue
+		}
+		candidate.ShareEnabled = true
+		candidate.ShareEnabledAt = &enabledAt
+		r.comparisons[k] = candidate
+		return nil
+	}
+	return playthrough.ErrComparisonNotFound
+}
+
+func (r *fakeRepo) RevokeComparison(_ context.Context, comparisonID uuid.UUID, revokedAt time.Time) error {
+	for k, candidate := range r.comparisons {
+		if candidate.ID != comparisonID {
+			continue
+		}
+		candidate.Status = playthrough.ComparisonStatusRevoked
+		candidate.RevokedAt = &revokedAt
+		r.comparisons[k] = candidate
+		return nil
+	}
+	return playthrough.ErrComparisonNotFound
+}
+
+func (r *fakeRepo) RevokeComparisonTokens(_ context.Context, _ uuid.UUID, _ time.Time) error {
+	return nil
+}
+
+func (r *fakeRepo) RevokeComparisonByToken(_ context.Context, token string) error {
+	c, ok := r.comparisons[token]
+	if !ok {
+		return playthrough.ErrComparisonNotFound
+	}
+	c.Status = playthrough.ComparisonStatusRevoked
+	r.comparisons[token] = c
+	return nil
+}
+
+// fakeScorer is a recording TraitScorer for tests. Records the last
+// input and returns a configurable vector / error.
+type fakeScorer struct {
+	called bool
+	in     playthrough.TraitScoringInput
+	out    playthrough.TraitVector
+	err    error
+}
+
+func (f *fakeScorer) Score(_ context.Context, in playthrough.TraitScoringInput) (playthrough.TraitVector, error) {
+	f.called = true
+	f.in = in
+	return f.out, f.err
+}
+
+// fixtureSeason returns a Season with one vignette and three choices.
+func fixtureSeason() content.Season {
+	return content.Season{
+		ID: "season-001", Title: "Test", Locale: "en-GB", Version: 7,
+		Acts: []content.Act{
+			{ID: "act-01", Name: "Morning", Vignettes: []content.Vignette{
+				{
+					ID:          "vignette-001",
+					SettingBeat: "x",
+					Choices: []content.Choice{
+						{ID: "choice-1", Label: "a", Weights: []content.TraitWeight{{Dimension: content.TraitOceanOpenness, Delta: 0.1}}},
+						{ID: "choice-2", Label: "b", Weights: []content.TraitWeight{{Dimension: content.TraitOceanOpenness, Delta: -0.1}}},
+						{ID: "choice-3", Label: "c", Weights: []content.TraitWeight{{Dimension: content.TraitOceanConscientiousness, Delta: 0.1}}},
+					},
+				},
+			}},
+			{ID: "act-02", Name: "Midday", Vignettes: []content.Vignette{}},
+			{ID: "act-03", Name: "Afternoon", Vignettes: []content.Vignette{}},
+			{ID: "act-04", Name: "Evening", Vignettes: []content.Vignette{}},
+		},
+	}
+}
+
+func newServiceFixture(t *testing.T) (*playthrough.Service, *fakeRepo) {
+	t.Helper()
+	loader := &fakeContentLoader{seasons: map[string]content.Season{
+		"season-001": fixtureSeason(),
+	}}
+	contentSvc := content.NewService(loader)
+	repo := newFakeRepo()
+	return playthrough.NewService(repo, contentSvc, nil), repo
+}
+
+func newServiceFixtureWithScorer(t *testing.T, scorer playthrough.TraitScorer) (*playthrough.Service, *fakeRepo) {
+	t.Helper()
+	loader := &fakeContentLoader{seasons: map[string]content.Season{
+		"season-001": fixtureSeason(),
+	}}
+	contentSvc := content.NewService(loader)
+	repo := newFakeRepo()
+	return playthrough.NewService(repo, contentSvc, scorer), repo
+}
+
+func TestService_CreatePlaythrough_LocksSeasonVersion(t *testing.T) {
+	t.Parallel()
+	svc, repo := newServiceFixture(t)
+	got, err := svc.CreatePlaythrough(context.Background(), uuid.New(), "season-001")
+	if err != nil {
+		t.Fatalf("CreatePlaythrough: %v", err)
+	}
+	if got.SeasonVersion != 7 {
+		t.Errorf("season_version: want 7, got %d", got.SeasonVersion)
+	}
+	if got.Status != playthrough.StatusInProgress {
+		t.Errorf("status: want in_progress, got %q", got.Status)
+	}
+	if _, ok := repo.playthroughs[got.ID]; !ok {
+		t.Error("playthrough not persisted in repo")
+	}
+}
+
+func TestService_CreatePlaythrough_UnknownSeason(t *testing.T) {
+	t.Parallel()
+	svc, _ := newServiceFixture(t)
+	_, err := svc.CreatePlaythrough(context.Background(), uuid.New(), "season-missing")
+	if !errors.Is(err, playthrough.ErrInvalidSeason) {
+		t.Errorf("want ErrInvalidSeason, got %v", err)
+	}
+}
+
+func TestService_RecordChoice_HappyPath(t *testing.T) {
+	t.Parallel()
+	svc, _ := newServiceFixture(t)
+	p, _ := svc.CreatePlaythrough(context.Background(), uuid.New(), "season-001")
+
+	ev, err := svc.RecordChoice(context.Background(), playthrough.RecordChoiceInput{
+		PlaythroughID: p.ID, VignetteID: "vignette-001", ChoiceID: "choice-2",
+	})
+	if err != nil {
+		t.Fatalf("RecordChoice: %v", err)
+	}
+	if ev.ChoiceID != "choice-2" || ev.VignetteID != "vignette-001" {
+		t.Errorf("unexpected event: %+v", ev)
+	}
+}
+
+// TestService_RecordChoice_IdempotentSameChoice is the M1 sync story's
+// safety net: the client may retry a RecordChoice (offline → online,
+// flaky network), and the server must return the existing row, not 409.
+func TestService_RecordChoice_IdempotentSameChoice(t *testing.T) {
+	t.Parallel()
+	svc, _ := newServiceFixture(t)
+	p, _ := svc.CreatePlaythrough(context.Background(), uuid.New(), "season-001")
+	in := playthrough.RecordChoiceInput{PlaythroughID: p.ID, VignetteID: "vignette-001", ChoiceID: "choice-1"}
+
+	first, err := svc.RecordChoice(context.Background(), in)
+	if err != nil {
+		t.Fatalf("first call: %v", err)
+	}
+	second, err := svc.RecordChoice(context.Background(), in)
+	if err != nil {
+		t.Fatalf("retry: %v", err)
+	}
+	if first.ID != second.ID {
+		t.Errorf("retry returned a different row: first=%s second=%s", first.ID, second.ID)
+	}
+}
+
+// TestService_RecordChoice_ConflictDifferentChoice is the other half of
+// the idempotency story: the player cannot change their mind once a choice
+// is committed. The application layer must surface this as a hard error,
+// not silently overwrite.
+func TestService_RecordChoice_ConflictDifferentChoice(t *testing.T) {
+	t.Parallel()
+	svc, _ := newServiceFixture(t)
+	p, _ := svc.CreatePlaythrough(context.Background(), uuid.New(), "season-001")
+
+	_, err := svc.RecordChoice(context.Background(), playthrough.RecordChoiceInput{
+		PlaythroughID: p.ID, VignetteID: "vignette-001", ChoiceID: "choice-1",
+	})
+	if err != nil {
+		t.Fatalf("first call: %v", err)
+	}
+	_, err = svc.RecordChoice(context.Background(), playthrough.RecordChoiceInput{
+		PlaythroughID: p.ID, VignetteID: "vignette-001", ChoiceID: "choice-2",
+	})
+	if !errors.Is(err, playthrough.ErrChoiceConflict) {
+		t.Errorf("want ErrChoiceConflict, got %v", err)
+	}
+}
+
+func TestService_RecordChoice_UnknownVignette(t *testing.T) {
+	t.Parallel()
+	svc, _ := newServiceFixture(t)
+	p, _ := svc.CreatePlaythrough(context.Background(), uuid.New(), "season-001")
+	_, err := svc.RecordChoice(context.Background(), playthrough.RecordChoiceInput{
+		PlaythroughID: p.ID, VignetteID: "vignette-999", ChoiceID: "choice-1",
+	})
+	if !errors.Is(err, playthrough.ErrInvalidVignette) {
+		t.Errorf("want ErrInvalidVignette, got %v", err)
+	}
+}
+
+func TestService_RecordChoice_UnknownChoice(t *testing.T) {
+	t.Parallel()
+	svc, _ := newServiceFixture(t)
+	p, _ := svc.CreatePlaythrough(context.Background(), uuid.New(), "season-001")
+	_, err := svc.RecordChoice(context.Background(), playthrough.RecordChoiceInput{
+		PlaythroughID: p.ID, VignetteID: "vignette-001", ChoiceID: "choice-bogus",
+	})
+	if !errors.Is(err, playthrough.ErrInvalidChoice) {
+		t.Errorf("want ErrInvalidChoice, got %v", err)
+	}
+}
+
+func TestService_RecordChoice_UnknownPlaythrough(t *testing.T) {
+	t.Parallel()
+	svc, _ := newServiceFixture(t)
+	_, err := svc.RecordChoice(context.Background(), playthrough.RecordChoiceInput{
+		PlaythroughID: uuid.New(), VignetteID: "vignette-001", ChoiceID: "choice-1",
+	})
+	if !errors.Is(err, playthrough.ErrNotFound) {
+		t.Errorf("want ErrNotFound, got %v", err)
+	}
+}
+
+func TestService_FinalizeIfComplete_NoScorer(t *testing.T) {
+	t.Parallel()
+	svc, _ := newServiceFixture(t) // scorer = nil
+	_, err := svc.FinalizeIfComplete(context.Background(), uuid.New())
+	if !errors.Is(err, playthrough.ErrScorerUnavailable) {
+		t.Errorf("want ErrScorerUnavailable, got %v", err)
+	}
+}
+
+func TestService_FinalizeIfComplete_Incomplete(t *testing.T) {
+	t.Parallel()
+	scorer := &fakeScorer{}
+	svc, _ := newServiceFixtureWithScorer(t, scorer)
+	p, _ := svc.CreatePlaythrough(context.Background(), uuid.New(), "season-001")
+
+	_, err := svc.FinalizeIfComplete(context.Background(), p.ID)
+	if !errors.Is(err, playthrough.ErrPlaythroughIncomplete) {
+		t.Errorf("want ErrPlaythroughIncomplete, got %v", err)
+	}
+	if scorer.called {
+		t.Error("scorer should not have been called for incomplete playthrough")
+	}
+}
+
+func TestService_FinalizeIfComplete_HappyPath_PersistsVectorAndMarksCompleted(t *testing.T) {
+	t.Parallel()
+	scorer := &fakeScorer{
+		out: playthrough.TraitVector{
+			BigFive:    []float64{0.1, 0.0, 0.0, 0.0, 0.0},
+			Schwartz:   make([]float64, 10),
+			Attachment: []float64{0.2, 0.0, 0.0},
+		},
+	}
+	svc, repo := newServiceFixtureWithScorer(t, scorer)
+	p, _ := svc.CreatePlaythrough(context.Background(), uuid.New(), "season-001")
+	if _, err := svc.RecordChoice(context.Background(), playthrough.RecordChoiceInput{
+		PlaythroughID: p.ID, VignetteID: "vignette-001", ChoiceID: "choice-1",
+	}); err != nil {
+		t.Fatalf("RecordChoice: %v", err)
+	}
+
+	stored, err := svc.FinalizeIfComplete(context.Background(), p.ID)
+	if err != nil {
+		t.Fatalf("FinalizeIfComplete: %v", err)
+	}
+	if !scorer.called {
+		t.Error("scorer was not called")
+	}
+	if scorer.in.SeasonID != "season-001" {
+		t.Errorf("scorer.in.SeasonID: want season-001, got %q", scorer.in.SeasonID)
+	}
+	if got := scorer.in.SeasonVersion; got != 7 {
+		t.Errorf("scorer.in.SeasonVersion: want 7 (fixture), got %d", got)
+	}
+	if got, want := len(scorer.in.Events), 1; got != want {
+		t.Errorf("event count: want %d, got %d", want, got)
+	}
+	if stored.ScoringVersion != playthrough.ScoringVersionM1 {
+		t.Errorf("scoring version: want %d, got %d", playthrough.ScoringVersionM1, stored.ScoringVersion)
+	}
+	if repo.playthroughs[p.ID].Status != playthrough.StatusCompleted {
+		t.Errorf("playthrough status: want completed, got %q", repo.playthroughs[p.ID].Status)
+	}
+}
+
+func TestService_FinalizeIfComplete_IdempotentReplay(t *testing.T) {
+	t.Parallel()
+	scorer := &fakeScorer{
+		out: playthrough.TraitVector{
+			BigFive:  []float64{0.1, 0.0, 0.0, 0.0, 0.0},
+			Schwartz: make([]float64, 10), Attachment: make([]float64, 3),
+		},
+	}
+	svc, _ := newServiceFixtureWithScorer(t, scorer)
+	p, _ := svc.CreatePlaythrough(context.Background(), uuid.New(), "season-001")
+	_, _ = svc.RecordChoice(context.Background(), playthrough.RecordChoiceInput{
+		PlaythroughID: p.ID, VignetteID: "vignette-001", ChoiceID: "choice-1",
+	})
+
+	first, err := svc.FinalizeIfComplete(context.Background(), p.ID)
+	if err != nil {
+		t.Fatalf("first FinalizeIfComplete: %v", err)
+	}
+	second, err := svc.FinalizeIfComplete(context.Background(), p.ID)
+	if err != nil {
+		t.Fatalf("retry FinalizeIfComplete: %v", err)
+	}
+	if first.PlaythroughID != second.PlaythroughID {
+		t.Errorf("retry produced a different row: first=%s second=%s", first.PlaythroughID, second.PlaythroughID)
+	}
+}
+
+func TestService_GetTraitVector_NotFound(t *testing.T) {
+	t.Parallel()
+	svc, _ := newServiceFixture(t)
+	_, err := svc.GetTraitVector(context.Background(), uuid.New())
+	if !errors.Is(err, playthrough.ErrTraitVectorNotFound) {
+		t.Errorf("want ErrTraitVectorNotFound, got %v", err)
+	}
+}
+
+// --- Portrait + Reflection (T-ML-020 / T-ML-021) ----------------------------
+
+// fakePortraitGen is a recording PortraitGenerator for tests.
+type fakePortraitGen struct {
+	called bool
+	in     playthrough.PortraitInput
+	out    playthrough.PortraitAssets
+	err    error
+}
+
+func (f *fakePortraitGen) GeneratePortrait(_ context.Context, in playthrough.PortraitInput) (playthrough.PortraitAssets, error) {
+	f.called = true
+	f.in = in
+	return f.out, f.err
+}
+
+// fakeReflectionGen is a recording ReflectionGenerator for tests.
+type fakeReflectionGen struct {
+	called bool
+	in     playthrough.ReflectionInput
+	out    playthrough.Reflection
+	err    error
+}
+
+func (f *fakeReflectionGen) GenerateReflection(_ context.Context, in playthrough.ReflectionInput) (playthrough.Reflection, error) {
+	f.called = true
+	f.in = in
+	return f.out, f.err
+}
+
+func seedTraitVector(t *testing.T, repo *fakeRepo) uuid.UUID {
+	t.Helper()
+	id := uuid.New()
+	repo.vectors[id] = playthrough.StoredTraitVector{
+		PlaythroughID:  id,
+		BigFive:        []float64{0.4, -0.2, 0.0, 0.1, -0.1},
+		Schwartz:       []float64{0.0, 0.1, 0.2, 0.0, -0.1, 0.0, 0.0, 0.0, 0.3, -0.2},
+		Attachment:     []float64{0.7, 0.2, 0.5},
+		ScoringVersion: playthrough.ScoringVersionM1,
+		SeasonVersion:  7,
+		CreatedAt:      time.Now(),
+	}
+	return id
+}
+
+func TestService_GetPortrait_HappyPath(t *testing.T) {
+	t.Parallel()
+	svc, repo := newServiceFixture(t)
+	pg := &fakePortraitGen{out: playthrough.PortraitAssets{
+		PNG:             []byte("\x89PNGFAKE"),
+		RendererVersion: 2,
+	}}
+	svc.WithPortraitGenerator(pg)
+
+	id := seedTraitVector(t, repo)
+	assets, err := svc.GetPortrait(context.Background(), id, false)
+	if err != nil {
+		t.Fatalf("GetPortrait: %v", err)
+	}
+	if !pg.called {
+		t.Fatal("portrait generator was not called")
+	}
+	if string(assets.PNG) != "\x89PNGFAKE" {
+		t.Errorf("png passthrough broke: %q", assets.PNG)
+	}
+	// Inputs forwarded verbatim from the stored vector.
+	if pg.in.PlaythroughID != id.String() {
+		t.Errorf("playthrough id not propagated: got %s want %s", pg.in.PlaythroughID, id)
+	}
+	if len(pg.in.BigFive) != 5 || len(pg.in.Schwartz) != 10 || len(pg.in.Attachment) != 3 {
+		t.Errorf("vector shape not propagated: %+v", pg.in)
+	}
+	if pg.in.Animate {
+		t.Errorf("animate should default to false, got true")
+	}
+}
+
+func TestService_GetPortrait_AnimateRequested(t *testing.T) {
+	t.Parallel()
+	svc, repo := newServiceFixture(t)
+	pg := &fakePortraitGen{out: playthrough.PortraitAssets{
+		PNG:             []byte("\x89PNGFAKE"),
+		AnimatedWebP:    []byte("RIFFFAKEWEBP"),
+		RendererVersion: 2,
+	}}
+	svc.WithPortraitGenerator(pg)
+
+	id := seedTraitVector(t, repo)
+	assets, err := svc.GetPortrait(context.Background(), id, true)
+	if err != nil {
+		t.Fatalf("GetPortrait: %v", err)
+	}
+	if !pg.in.Animate {
+		t.Error("animate flag must be propagated to the generator")
+	}
+	if string(assets.AnimatedWebP) != "RIFFFAKEWEBP" {
+		t.Errorf("animated webp passthrough broke: %q", assets.AnimatedWebP)
+	}
+}
+
+func TestService_GetPortrait_NoGenerator(t *testing.T) {
+	t.Parallel()
+	svc, repo := newServiceFixture(t)
+	id := seedTraitVector(t, repo)
+	_, err := svc.GetPortrait(context.Background(), id, false)
+	if !errors.Is(err, playthrough.ErrPortraitUnavailable) {
+		t.Errorf("want ErrPortraitUnavailable, got %v", err)
+	}
+}
+
+func TestService_GetPortrait_TraitVectorMissing(t *testing.T) {
+	t.Parallel()
+	svc, _ := newServiceFixture(t)
+	pg := &fakePortraitGen{}
+	svc.WithPortraitGenerator(pg)
+	_, err := svc.GetPortrait(context.Background(), uuid.New(), false)
+	if !errors.Is(err, playthrough.ErrTraitVectorNotFound) {
+		t.Errorf("want ErrTraitVectorNotFound, got %v", err)
+	}
+	if pg.called {
+		t.Error("generator should not be called when trait vector is missing")
+	}
+}
+
+func TestService_GetReflection_HappyPath(t *testing.T) {
+	t.Parallel()
+	svc, repo := newServiceFixture(t)
+	rg := &fakeReflectionGen{out: playthrough.Reflection{
+		Text:       "Today you reach toward what is unfamiliar.",
+		TemplateID: "m1-stub.v1",
+	}}
+	svc.WithReflectionGenerator(rg)
+
+	id := seedTraitVector(t, repo)
+	reflection, err := svc.GetReflection(context.Background(), id, true)
+	if err != nil {
+		t.Fatalf("GetReflection: %v", err)
+	}
+	if !rg.called {
+		t.Fatal("reflection generator was not called")
+	}
+	if reflection.Text != "Today you reach toward what is unfamiliar." {
+		t.Errorf("text passthrough broke: %q", reflection.Text)
+	}
+	if !rg.in.YouthSafe {
+		t.Error("youth-safe flag did not propagate to the generator")
+	}
+	if rg.in.Locale != "en-GB" {
+		t.Errorf("locale default broken: got %q want en-GB", rg.in.Locale)
+	}
+}
+
+func TestService_GetReflection_NoGenerator(t *testing.T) {
+	t.Parallel()
+	svc, repo := newServiceFixture(t)
+	id := seedTraitVector(t, repo)
+	_, err := svc.GetReflection(context.Background(), id, true)
+	if !errors.Is(err, playthrough.ErrReflectionUnavailable) {
+		t.Errorf("want ErrReflectionUnavailable, got %v", err)
+	}
+}
+
+func TestService_GetReflection_TraitVectorMissing(t *testing.T) {
+	t.Parallel()
+	svc, _ := newServiceFixture(t)
+	rg := &fakeReflectionGen{}
+	svc.WithReflectionGenerator(rg)
+	_, err := svc.GetReflection(context.Background(), uuid.New(), false)
+	if !errors.Is(err, playthrough.ErrTraitVectorNotFound) {
+		t.Errorf("want ErrTraitVectorNotFound, got %v", err)
+	}
+}

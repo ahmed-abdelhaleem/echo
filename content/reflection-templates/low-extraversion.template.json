@@ -1,0 +1,61 @@
+{
+  "id": "low-extraversion",
+  "version": 1,
+  "summary": "A day that did not get noisier the longer it went on.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-E",
+            "direction": "low",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "small_image_close",
+      "no_archetype"
+    ],
+    "avoid": [
+      "antisocial",
+      "you are an introvert",
+      "shy",
+      "loner"
+    ],
+    "notes": "Low extraversion reads as energy that the room does not take from you. Never frame this as shyness; frame it as a different metabolism for company."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the window you turned to instead of the room",
+        "the conversation you let go past"
+      ],
+      "output": "There was a window you turned to halfway through the gathering, and a conversation you let go past without stepping into it. Neither was a refusal. You were doing the thing you do, which is keep some part of the day to yourself, and the part you kept was small and adequate.",
+      "notes": "Reframes quietness as a metabolism rather than a deficit. 'Adequate' is intentional."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

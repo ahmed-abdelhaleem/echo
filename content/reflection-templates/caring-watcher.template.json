@@ -1,0 +1,66 @@
+{
+  "id": "caring-watcher",
+  "version": 1,
+  "summary": "High benevolence with prominent anxious attachment: you tended the people near you and watched the door.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-BENEVOLENCE",
+            "direction": "high",
+            "min_magnitude": 0.4
+          },
+          {
+            "dimension": "ATT-ANXIOUS",
+            "direction": "high",
+            "min_magnitude": 0.35
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 65,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "acknowledge_contradiction",
+      "describe_not_evaluate"
+    ],
+    "avoid": [
+      "clingy",
+      "needy",
+      "smothering",
+      "anxious"
+    ],
+    "notes": "High benevolence plus anxious attachment reads as care that arrives bundled with watching. CRITICAL: never anxious, never clingy, never smothering. The bundle is honest and we name it gently."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the small kindness you offered that also looked for reassurance",
+        "the message you sent twice for slightly different reasons"
+      ],
+      "output": "There was a small kindness you offered today that was for the other person and also a little for you, and you knew it on both counts. The message you sent twice was sent the first time to give and the second time to check. Both of those were honest. The care and the watching travelled together, the way they often do for you.",
+      "notes": "Acknowledges the bundle without judgement; closes with 'often do' to normalise."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

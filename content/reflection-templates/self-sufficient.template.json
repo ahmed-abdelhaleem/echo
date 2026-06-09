@@ -1,0 +1,65 @@
+{
+  "id": "self-sufficient",
+  "version": 1,
+  "summary": "Low extraversion paired with low neuroticism: the day is small, even, and yours.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-E",
+            "direction": "low",
+            "min_magnitude": 0.3
+          },
+          {
+            "dimension": "OCEAN-N",
+            "direction": "low",
+            "min_magnitude": 0.3
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 65,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "introvert",
+      "loner",
+      "antisocial"
+    ],
+    "notes": "Low extraversion plus low neuroticism reads as a day that did not require company and did not require recovery. Never call it lonely; the player is not lonely."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the long walk you took without talking to anyone",
+        "the news you absorbed and moved past quickly"
+      ],
+      "output": "The long walk you took, you took without talking to anyone. The small piece of news that arrived halfway through, you absorbed and moved past quickly. The day did not require company and did not require recovery, and the simplicity of that is its own quiet evidence about how you are made.",
+      "notes": "Names the under-determined shape of the day without filling it with sadness."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

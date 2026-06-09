@@ -1,0 +1,93 @@
+{
+  "id": "contradictory-day",
+  "version": 1,
+  "summary": "Two opposing dimensions both prominent: the day asked you to be two things at once.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-O",
+            "direction": "high",
+            "min_magnitude": 0.4
+          },
+          {
+            "dimension": "OCEAN-C",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      },
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-A",
+            "direction": "high",
+            "min_magnitude": 0.4
+          },
+          {
+            "dimension": "SCH-POWER",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      },
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-SELF_DIRECTION",
+            "direction": "high",
+            "min_magnitude": 0.4
+          },
+          {
+            "dimension": "SCH-CONFORMITY",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 70,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "acknowledge_contradiction",
+      "describe_not_evaluate"
+    ],
+    "avoid": [
+      "confused",
+      "torn",
+      "you are conflicted"
+    ],
+    "notes": "When two normally opposing dimensions are both high, the day was contradictory in an honest way. Always acknowledge the contradiction; never resolve it for the player."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the careful plan you let yourself break in one specific place",
+        "the moment you led the room and then stepped back into it"
+      ],
+      "output": "You made a careful plan today and then let yourself break it in one specific place. You led the room when leading was the right move and then stepped back into the room afterwards, on the same terms as everyone else. The day asked you to be two things and you were both. The contradiction is not a problem to solve.",
+      "notes": "Names the contradiction explicitly; ends by refusing to resolve it."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

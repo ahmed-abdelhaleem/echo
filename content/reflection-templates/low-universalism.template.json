@@ -1,0 +1,60 @@
+{
+  "id": "low-universalism",
+  "version": 1,
+  "summary": "A day on which you kept your circle small and tended it close.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-UNIVERSALISM",
+            "direction": "low",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "selfish",
+      "parochial",
+      "small-minded"
+    ],
+    "notes": "Low universalism reads as scope restricted to people the player can actually affect today. Never call this selfish; tending close is a real practice."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the news cycle you turned the sound off on",
+        "the friend you wrote to in detail"
+      ],
+      "output": "You turned the sound off on a news cycle that had nothing in it for you to do. The friend you wrote to, you wrote to in detail. The size of the circle you tended today was a small one, on purpose, and the tending was the better for being thorough.",
+      "notes": "Names the choice as a scope decision rather than a moral one."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

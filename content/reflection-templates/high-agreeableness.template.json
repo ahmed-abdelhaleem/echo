@@ -1,0 +1,60 @@
+{
+  "id": "high-agreeableness",
+  "version": 1,
+  "summary": "A day spent keeping other people whole.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-A",
+            "direction": "high",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "acknowledge_contradiction"
+    ],
+    "avoid": [
+      "you are nice",
+      "you are sweet",
+      "people-pleaser"
+    ],
+    "notes": "High agreeableness reads as preserving the other person's day at small private cost to yours. We do not call this kind; we describe it. The reflection should not flatten the small cost."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the apology you offered first",
+        "the small disappointment you set aside"
+      ],
+      "output": "You offered the apology before it was decided who was at fault, and the small disappointment you carried after, you carried alone. That trade is one you have made before. Today it bought a kind of quiet that was worth what it cost, and the cost was real.",
+      "notes": "Acknowledges the private cost of agreeableness; refuses to call it kindness or weakness."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

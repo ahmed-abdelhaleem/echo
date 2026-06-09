@@ -1,0 +1,65 @@
+{
+  "id": "keeping-others-whole",
+  "version": 1,
+  "summary": "High agreeableness, low power: you kept the room steady without needing to direct it.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-A",
+            "direction": "high",
+            "min_magnitude": 0.4
+          },
+          {
+            "dimension": "SCH-POWER",
+            "direction": "low",
+            "min_magnitude": 0.3
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 65,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "small_image_close"
+    ],
+    "avoid": [
+      "pushover",
+      "doormat",
+      "you are kind"
+    ],
+    "notes": "High agreeableness plus low power reads as steadying the room without taking it over. Never doormat; never saintly. Describe the steadying."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the argument you defused without anyone noticing it had needed defusing",
+        "the credit you let pass to someone else"
+      ],
+      "output": "The argument that the table was about to walk into, you defused before it arrived, and you did not announce having defused it. The credit, you let pass to someone else, on purpose. The room stayed whole today because of small invisible labour, and the invisibility of that labour does not bother you the way it might bother someone else.",
+      "notes": "Invisible labour named as labour; closes by acknowledging the player's tolerance for invisibility."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

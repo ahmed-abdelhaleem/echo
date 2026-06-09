@@ -1,0 +1,65 @@
+{
+  "id": "rooted",
+  "version": 1,
+  "summary": "High security, low stimulation: the day kept its weather mild on purpose.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-SECURITY",
+            "direction": "high",
+            "min_magnitude": 0.35
+          },
+          {
+            "dimension": "SCH-STIMULATION",
+            "direction": "low",
+            "min_magnitude": 0.3
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 65,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "boring",
+      "afraid",
+      "stuck"
+    ],
+    "notes": "High security plus low stimulation reads as a day shaped so the weather stays mild. Never frame as fear-driven. The mildness is the point."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the evening you spent inside on purpose",
+        "the plan you kept simple"
+      ],
+      "output": "The evening you spent inside on purpose, and the plan you made for the day, you kept simple even when a more interesting version had been on offer. The mildness of the weather you arranged today was not the absence of weather; it was the weather you wanted. The day is yours when it is small.",
+      "notes": "Names mildness as a choice; closes on the value of the small day."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

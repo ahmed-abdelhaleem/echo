@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://echo.app/schema/vignette.schema.json",
+  "title": "Vignette",
+  "description": "A single decision moment. See docs/04_Game_Design.md §'Shape of a Vignette'.",
+  "type": "object",
+  "required": ["id", "setting_beat", "choices"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^vignette-[0-9]{3,}$"
+    },
+    "setting_beat": {
+      "type": "string",
+      "minLength": 1,
+      "description": "1-3 sentences of present-tense narration placing the character in a specific moment. No generic flavor; every setting is specific (see docs/04 §'Shape of a Vignette')."
+    },
+    "ambient_audio": {
+      "type": ["string", "null"],
+      "description": "Optional ambient audio asset key in R2. Null if vignette has no audio layer."
+    },
+    "ambient_art": {
+      "type": ["string", "null"],
+      "description": "Optional still image asset key in R2."
+    },
+    "choices": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 4,
+      "description": "2-4 natural-language choices. No labels, no MBTI-coded options. Per docs/04 §'Shape of a Vignette'.",
+      "items": {
+        "$ref": "choice.schema.json"
+      }
+    },
+    "resolution_beats": {
+      "type": "object",
+      "description": "Optional per-choice resolution narration keyed by choice id. 1-2 sentences. Never judgmental.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  }
+}

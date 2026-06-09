@@ -1,0 +1,71 @@
+{
+  "id": "balanced-day",
+  "version": 1,
+  "summary": "Many dimensions mildly present, none dominant: the day was textured but even.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "OCEAN-O",
+            "direction": "prominent",
+            "min_magnitude": 0.15
+          },
+          {
+            "dimension": "OCEAN-A",
+            "direction": "prominent",
+            "min_magnitude": 0.15
+          },
+          {
+            "dimension": "OCEAN-C",
+            "direction": "prominent",
+            "min_magnitude": 0.15
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 25,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "small_image_close"
+    ],
+    "avoid": [
+      "balanced",
+      "well-rounded",
+      "moderate"
+    ],
+    "notes": "When many dimensions are mildly present, the day was textured without one signal dominating. Never call this balance; describe the unevenness."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the new thing you tried briefly",
+        "the help you offered without making it a thing",
+        "the order you brought to a single corner"
+      ],
+      "output": "There was a new thing you tried today, briefly. There was help you offered without making it a thing, and one small corner you brought into order before you left it. None of those took over the day. The colour of the day is a colour made of several small ones, and the result is more textured than it looks.",
+      "notes": "Refuses 'balanced' as a label; centres the texture of small distinct moves."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}

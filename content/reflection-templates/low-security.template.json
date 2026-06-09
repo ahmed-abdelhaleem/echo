@@ -1,0 +1,60 @@
+{
+  "id": "low-security",
+  "version": 1,
+  "summary": "A day on which you left the door on the latch.",
+  "applies_when": {
+    "any_of": [
+      {
+        "all_of": [
+          {
+            "dimension": "SCH-SECURITY",
+            "direction": "low",
+            "min_magnitude": 0.4
+          }
+        ]
+      }
+    ]
+  },
+  "priority": 50,
+  "voice_notes": {
+    "emphasize": [
+      "second_person",
+      "specific_not_generic",
+      "describe_not_evaluate",
+      "no_archetype"
+    ],
+    "avoid": [
+      "reckless",
+      "careless",
+      "irresponsible"
+    ],
+    "notes": "Low security reads as comfort with the day's edges being unfinished. Never call this reckless. The world is allowed to be a little ajar."
+  },
+  "exemplars": [
+    {
+      "signal_moments": [
+        "the plan you left half-made",
+        "the door you closed but did not lock"
+      ],
+      "output": "You left the plan half-made and the door you closed at the end of the night, you did not bother to lock. The world is allowed to be a little ajar without it costing anything important. The amount of certainty you needed today was a small amount, and you spent it well.",
+      "notes": "Validates the ajar-world stance without making it sound foolhardy."
+    }
+  ],
+  "constraints": {
+    "voice": "second_person",
+    "min_sentences": 3,
+    "max_sentences": 5,
+    "forbidden_terms": [
+      "neurotic",
+      "narcissistic",
+      "depressed",
+      "introvert",
+      "extrovert",
+      "the helper",
+      "the rebel",
+      "the explorer",
+      "the curious one",
+      "the careful one"
+    ]
+  }
+}
