@@ -6,11 +6,9 @@
 // layers from a [BackdropSpec] with continuous ambient motion (drift, pulse,
 // particles, parallax-breathe) and damped pointer-driven parallax.
 //
-// This widget renders the 2D fallback path. The Thermion/Filament + glTF
-// renderer (T-CLIENT-040) plugs in by replacing `_LayerVisual`'s draw routine
-// with a GLB-backed scene; everything else (the animation driver, parallax
-// math, transitions) is unchanged. Asset binaries themselves are fetched and
-// cached by a separate asset loader, which is not in M1 scope.
+// This widget renders the continuous 2D fallback path. T-CLIENT-040 keeps it
+// underneath a cached Thermion/Filament scene so loading or renderer failures
+// never leave the vignette without an atmospheric backdrop.
 //
 // Usage:
 //   Stack(
@@ -273,9 +271,8 @@ class _LayerVisual extends StatelessWidget {
   }
 }
 
-/// 2D placeholder painter. Produces a stable, asset-keyed silhouette so the
-/// scene reads as composed layers even before real GLB assets are loaded.
-/// Replace with a Thermion (Filament) scene per T-CLIENT-040.
+/// 2D fallback painter. Produces a stable, asset-keyed silhouette while cached
+/// GLB assets are unavailable or the platform renderer cannot initialize.
 class _LayerPainter extends CustomPainter {
   _LayerPainter({
     required this.layer,

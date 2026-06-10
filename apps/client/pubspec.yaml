@@ -6,7 +6,7 @@ version: 0.1.0+1
 # Pinned to match .tool-versions at the repo root.
 environment:
   sdk: ^3.6.2
-  flutter: ^3.27.0
+  flutter: ^3.44.1
 
 dependencies:
   flutter:
@@ -24,7 +24,7 @@ dependencies:
   dio: ^5.7.0
 
   # Internationalisation utilities.
-  intl: ^0.19.0
+  intl: ^0.20.2
 
   # Result/Either type for explicit error plumbing; tiny, no extra deps.
   fpdart: ^1.1.1
@@ -40,6 +40,11 @@ dependencies:
 
   # Stable id generation for local-only rows (eg local playthroughs).
   uuid: ^4.5.1
+
+  # Native filesystem location for content-addressed GLB caching. Drift
+  # already uses path_provider transitively, but the asset cache imports it
+  # directly and therefore declares it explicitly.
+  path_provider: ^2.1.5
 
   # OAuth browser redirect (Google sign-in / sign-up).
   url_launcher: ^6.3.1
@@ -59,6 +64,16 @@ dependencies:
   # that supports all four target platforms with a single API surface.
   # https://pub.dev/packages/in_app_purchase
   in_app_purchase: ^3.2.0
+
+  # Primary native 3D renderer selected by docs/06.
+  # New top-level dependency: required for Filament-backed GLB scenes.
+  thermion_flutter: 0.3.4
+
+  # WebView/<model-viewer> fallback when Thermion cannot initialize, and the
+  # active renderer for Flutter web.
+  # 1.9.2 is the newest release compatible with Flutter's pinned path 1.9.0.
+  # New top-level dependency: required by T-CLIENT-040's fallback contract.
+  model_viewer_plus: 1.9.2
 
 dev_dependencies:
   flutter_test:
@@ -83,3 +98,4 @@ flutter:
   # stream from the CDN and only the backdrop manifest stays bundled.
   assets:
     - assets/backdrops/season-001/backdrops.manifest.json
+    - assets/assets-3d/season-001/assets.manifest.json

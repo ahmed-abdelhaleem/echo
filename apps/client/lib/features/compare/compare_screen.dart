@@ -542,7 +542,7 @@ class _CompareAcceptScreenState extends ConsumerState<CompareAcceptScreen> {
                       _knownRemotePlaythroughIds.isNotEmpty) ...<Widget>[
                     DropdownButtonFormField<String>(
                       key: const Key('compare.accept.knownPlaythroughs'),
-                      value: _selectedKnownRemoteId,
+                      initialValue: _selectedKnownRemoteId,
                       decoration: const InputDecoration(
                         border: OutlineInputBorder(),
                         labelText: 'Known playthroughs',

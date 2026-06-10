@@ -71,7 +71,7 @@ help:
 	@echo "  make validate-content Validate content/ against content-schema"
 	@echo "  make validate-assets  Validate 3D asset manifests (content/assets-3d)"
 	@echo "  make validate-backdrops Validate vignette-backdrop manifests (content/backdrops)"
-	@echo "  make client-content-sync Mirror content/backdrops/ into apps/client/assets/backdrops/"
+	@echo "  make client-content-sync Mirror backdrop and 3D asset manifests into the client"
 	@echo "  make simulate         Run tools/playthrough-sim (placeholder until M1)"
 	@echo "  make replay           Run tools/trait-replay (placeholder until M1)"
 	@echo ""
@@ -346,17 +346,19 @@ else
 	@echo "↷ pnpm not installed; skipping validate-backdrops"
 endif
 
-# Mirror content/backdrops/ into the Flutter client's asset bundle. The
-# client reads the manifest from rootBundle (T-CLIENT-041) so the file has
-# to live under apps/client/assets/. Run whenever a backdrop manifest in
-# content/ changes; CI runs this and verifies the bundle is up to date.
+# Mirror authored content manifests into the Flutter client's asset bundle.
+# GLB binaries stay on the CDN; only their content addresses and renderer
+# composition are bundled for cache-first/offline lookup.
 .PHONY: client-content-sync
 client-content-sync:
 	@echo "→ client-content-sync"
 	@rm -rf apps/client/assets/backdrops
+	@rm -rf apps/client/assets/assets-3d
 	@mkdir -p apps/client/assets/backdrops
+	@mkdir -p apps/client/assets/assets-3d
 	@cp -R content/backdrops/. apps/client/assets/backdrops/
-	@echo "✓ apps/client/assets/backdrops mirrors content/backdrops"
+	@cp -R content/assets-3d/. apps/client/assets/assets-3d/
+	@echo "✓ client content manifests are in sync"
 
 # ---------------------------------------------------------------------------
 # Tools (placeholders until M1)
