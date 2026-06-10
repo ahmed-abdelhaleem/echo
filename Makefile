@@ -391,20 +391,22 @@ proto:
 		--go-grpc_out=$(GO_PB_OUT) --go-grpc_opt=paths=source_relative \
 		$(PROTO_DIR)/trait_scoring.proto \
 		$(PROTO_DIR)/portrait_gen.proto \
-		$(PROTO_DIR)/reflection_gen.proto
+		$(PROTO_DIR)/reflection_gen.proto \
+		$(PROTO_DIR)/asset_gen.proto
 	@cd services/ml-py && uv run python -m grpc_tools.protoc \
 		-I=../../$(PROTO_DIR) \
 		--python_out=app/grpc_gen \
 		--grpc_python_out=app/grpc_gen \
 		../../$(PROTO_DIR)/trait_scoring.proto \
 		../../$(PROTO_DIR)/portrait_gen.proto \
-		../../$(PROTO_DIR)/reflection_gen.proto
+		../../$(PROTO_DIR)/reflection_gen.proto \
+		../../$(PROTO_DIR)/asset_gen.proto
 	@# grpc_tools emits absolute imports (`import trait_scoring_pb2`) which
 	@# break when the package is imported as `app.grpc_gen`. Patch them to
 	@# explicit relative imports so the generated module is portable.
-	@for p in trait_scoring portrait_gen reflection_gen; do \
-		sed -i "s/^import $${p}_pb2 as /from . import $${p}_pb2 as /" \
-			$(PY_PB_OUT)/$${p}_pb2_grpc.py; \
+	@for p in trait_scoring portrait_gen reflection_gen asset_gen; do \
+		perl -pi -e "s/^import \$${p}_pb2 as /from . import \$${p}_pb2 as /" \
+			$(PY_PB_OUT)/\$${p}_pb2_grpc.py; \
 	done
 	@echo "✓ proto stubs regenerated under $(GO_PB_OUT) and $(PY_PB_OUT)"
 
