@@ -4,9 +4,8 @@ The background asset-generation pipeline talks to 3D asset providers
 through the :class:`AssetGenProvider` protocol declared in
 :mod:`.base`. Concrete implementations:
 
-- :mod:`.self_hosted` — :class:`SelfHostedProvider`: open-model fallback
-  (TripoSR / InstantMesh). Returns a placeholder GLB in T-ML-050; the
-  real gRPC call to the model server lands with T-ML-051.
+- :mod:`.trellis` — :class:`TrellisProvider`: HTTP client for the
+  self-hosted Microsoft TRELLIS GPU service.
 - :mod:`.meshy`       — :class:`MeshyProvider`: Meshy primary. Validates
   the API key at construction; ``generate()`` raises in T-ML-050 so
   the router exercices the fallback path without real spend.
@@ -20,9 +19,8 @@ through the :class:`AssetGenProvider` protocol declared in
   configured routing provider based on
   ``ECHO_ASSET_GEN_PRIMARY`` / ``ECHO_ASSET_GEN_FALLBACKS``.
 
-This package ships **zero** new top-level dependencies. All hashing uses
-stdlib :mod:`hashlib` / :mod:`json`. Real provider HTTP SDKs land with
-T-ML-051 under a ``human-review-required`` label per AGENTS.md §11.
+This package ships **zero** new top-level dependencies. Hashing and the
+TRELLIS transport use the Python standard library.
 """
 
 from app.services.asset_gen.base import AssetGenProvider
@@ -38,13 +36,14 @@ from app.services.asset_gen.errors import (
 from app.services.asset_gen.factory import (
     DEFAULT_FALLBACKS,
     DEFAULT_PRIMARY,
+    DEFAULT_TRELLIS_BASE_URL,
     KNOWN_PROVIDERS,
     build_provider,
     build_provider_from_env,
 )
 from app.services.asset_gen.meshy import MeshyProvider
 from app.services.asset_gen.routing import RoutingAssetGenProvider, RoutingResult
-from app.services.asset_gen.self_hosted import SelfHostedProvider
+from app.services.asset_gen.trellis import TrellisProvider
 from app.services.asset_gen.types import (
     AssetFormat,
     AssetGenRequest,
@@ -59,6 +58,7 @@ from app.services.asset_gen.types import (
 __all__ = [
     "DEFAULT_FALLBACKS",
     "DEFAULT_PRIMARY",
+    "DEFAULT_TRELLIS_BASE_URL",
     "KNOWN_PROVIDERS",
     "AllAssetGenProvidersFailedError",
     "AssetFormat",
@@ -78,7 +78,7 @@ __all__ = [
     "Reference",
     "RoutingAssetGenProvider",
     "RoutingResult",
-    "SelfHostedProvider",
+    "TrellisProvider",
     "build_provider",
     "build_provider_from_env",
     "compute_content_address",

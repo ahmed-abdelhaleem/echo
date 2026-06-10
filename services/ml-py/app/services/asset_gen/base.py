@@ -1,6 +1,6 @@
 """The :class:`AssetGenProvider` protocol (T-ML-050).
 
-Every provider implementation — Meshy, self-hosted, mock — satisfies
+Every provider implementation — Meshy, trellis, mock — satisfies
 this contract. The routing layer depends only on this protocol, not on
 any concrete class.
 """
@@ -27,7 +27,7 @@ class AssetGenProvider(Protocol):
 
     provider_id: str
     """Stable short identifier used in :class:`AssetGenResult.provider_used`
-    and recognised by the factory (``"meshy"``, ``"self-hosted"``)."""
+    and recognised by the factory (``"meshy"``, ``"trellis"``)."""
 
     def generate(self, request: AssetGenRequest) -> AssetGenResult:
         """Generate (or dry-run) an asset.

@@ -59,7 +59,7 @@ class RoutingAssetGenProvider:
 
     The router itself satisfies the :class:`AssetGenProvider` protocol
     so it can be nested if multi-tier routing is ever needed. In practice
-    we expect one level (Meshy → self-hosted).
+    we expect one level (Meshy → trellis).
     """
 
     provider_id: str = "routing"

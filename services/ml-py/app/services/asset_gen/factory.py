@@ -9,14 +9,19 @@ boot rather than silently producing a half-configured provider.
 Recognised environment variables:
 
 - ``ECHO_ASSET_GEN_PRIMARY``   — Provider id of the primary. Default:
-  ``meshy``. Set to ``self-hosted`` in dev / CI (no API key needed).
+  ``meshy``. Set to ``trellis`` in dev / CI (no API key needed).
 - ``ECHO_ASSET_GEN_FALLBACKS`` — Comma-separated provider ids. Default:
-  ``self-hosted``. Production sets this to ``self-hosted`` (i.e. the
-  open-model TripoSR / InstantMesh server).
+  ``trellis``.
 - ``ECHO_ENV``                 — One of ``production`` / ``staging`` /
   ``dev``. ``production`` rejects dev-only providers in the chain.
 - ``MESHY_API_KEY``            — Meshy API key, required if ``meshy``
   appears in the chain.
+- ``TRELLIS_BASE_URL``         — Internal URL for the TRELLIS GPU service.
+  Defaults to ``http://127.0.0.1:8090``.
+- ``TRELLIS_API_STYLE``        — ``echo`` for ``services/trellis-py`` or
+  ``trellis2-apple`` for the Apple Silicon MLX API. Defaults to ``echo``.
+- ``TRELLIS_TIMEOUT_SECONDS``  — Generation request deadline. Defaults
+  to 900 seconds.
 
 The factory performs *no* network IO; it only constructs provider
 objects. Network failures surface on the first ``generate()`` call.
@@ -31,16 +36,18 @@ from app.services.asset_gen.base import AssetGenProvider
 from app.services.asset_gen.errors import AssetGenConfigurationError
 from app.services.asset_gen.meshy import MeshyProvider
 from app.services.asset_gen.routing import RoutingAssetGenProvider
-from app.services.asset_gen.self_hosted import SelfHostedProvider
+from app.services.asset_gen.trellis import TrellisProvider
 
-KNOWN_PROVIDERS: tuple[str, ...] = ("meshy", "self-hosted")
+KNOWN_PROVIDERS: tuple[str, ...] = ("meshy", "trellis")
 """Provider ids the factory recognises. Update when adding a new provider."""
 
 DEFAULT_PRIMARY: str = "meshy"
 """What we configure as the primary in production."""
 
-DEFAULT_FALLBACKS: tuple[str, ...] = ("self-hosted",)
+DEFAULT_FALLBACKS: tuple[str, ...] = ("trellis",)
 """Default fallback chain when ``ECHO_ASSET_GEN_FALLBACKS`` is unset."""
+
+DEFAULT_TRELLIS_BASE_URL: str = "http://127.0.0.1:8090"
 
 
 def _build_single(provider_id: str, env: dict[str, str]) -> AssetGenProvider:
@@ -57,8 +64,19 @@ def _build_single(provider_id: str, env: dict[str, str]) -> AssetGenProvider:
             )
         return MeshyProvider(api_key=api_key)
 
-    if provider_id == "self-hosted":
-        return SelfHostedProvider()
+    if provider_id == "trellis":
+        timeout_raw = env.get("TRELLIS_TIMEOUT_SECONDS", "900")
+        try:
+            timeout_seconds = float(timeout_raw)
+        except ValueError as exc:
+            raise AssetGenConfigurationError(
+                "TRELLIS_TIMEOUT_SECONDS must be a number",
+            ) from exc
+        return TrellisProvider(
+            base_url=env.get("TRELLIS_BASE_URL", DEFAULT_TRELLIS_BASE_URL),
+            timeout_seconds=timeout_seconds,
+            api_style=env.get("TRELLIS_API_STYLE", "echo").strip().lower(),
+        )
 
     raise AssetGenConfigurationError(
         f"unknown asset-gen provider {provider_id!r}; known: {KNOWN_PROVIDERS}",
@@ -114,12 +132,12 @@ def build_provider_from_env(
 
     Defaults:
         - ``ECHO_ASSET_GEN_PRIMARY=meshy``
-        - ``ECHO_ASSET_GEN_FALLBACKS=self-hosted``
+        - ``ECHO_ASSET_GEN_FALLBACKS=trellis``
 
     In a dev shell where no env vars are set, the constructor will
     raise on the missing Meshy API key. To get a working provider for
     local dev without provider keys, set
-    ``ECHO_ASSET_GEN_PRIMARY=self-hosted ECHO_ASSET_GEN_FALLBACKS=``.
+    ``ECHO_ASSET_GEN_PRIMARY=trellis ECHO_ASSET_GEN_FALLBACKS=``.
     """
     if env is None:
         env = dict(os.environ)
