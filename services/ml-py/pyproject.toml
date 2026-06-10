@@ -32,6 +32,11 @@ dev = [
     "mypy>=1.13.0",
     "grpcio-testing>=1.66.0",
 ]
+asset-worker = [
+    "boto3>=1.43.26",
+    "nats-py>=2.15.0",
+    "psycopg[binary]>=3.3.4",
+]
 
 [build-system]
 requires = ["hatchling"]

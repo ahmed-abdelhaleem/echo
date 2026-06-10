@@ -58,6 +58,7 @@ help:
 	@echo "  make dev-core         Ensure postgres+redis are up, then run core-go"
 	@echo "  make dev-ml           Run ml-py HTTP (uvicorn --reload)"
 	@echo "  make dev-ml-grpc      Run ml-py gRPC on :50051"
+	@echo "  make dev-asset-worker Run the T-ML-051 JetStream asset worker"
 	@echo "  make client           Run Flutter client (auto: chrome without Xcode)"
 	@echo "  make client-web-assets Fetch Drift web/sqlite3.wasm + drift_worker.js"
 	@echo "  make migrate          Apply database migrations"
@@ -459,6 +460,17 @@ ifeq ($(UV_AVAILABLE),yes)
 	@cd services/ml-py && uv run python -m app.grpc_server
 else
 	@echo "↷ uv not installed; cannot run dev-ml-grpc"
+	@exit 1
+endif
+
+.PHONY: dev-asset-worker
+dev-asset-worker:
+ifeq ($(UV_AVAILABLE),yes)
+	@echo "→ dev-asset-worker (JetStream)"
+	@cd services/ml-py && uv sync --extra asset-worker
+	@cd services/ml-py && uv run python -m app.services.asset_gen.worker_main
+else
+	@echo "↷ uv not installed; cannot run dev-asset-worker"
 	@exit 1
 endif
 
