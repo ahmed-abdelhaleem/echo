@@ -1,19 +1,24 @@
 // Wiring test for the atmospheric backdrop on VignetteScreen (T-CLIENT-041).
 //
 // Verifies:
-//   * When the backdrop manifest does not match the current vignette, the
-//     screen renders exactly as before (no AtmosphericBackdrop in the tree).
-//   * When the backdrop manifest does match, the AtmosphericBackdrop widget
-//     is present and the choice UI is still tappable.
+//   * When no backdrop is authored for the current vignette, the screen
+//     renders exactly as before (no AtmosphericBackdrop in the tree).
+//   * When a backdrop is authored, AtmosphericBackdrop is present and the
+//     choice UI is still tappable.
 //
-// We never call pumpAndSettle here because AtmosphericBackdrop's animation
-// repeats forever; pumpAndSettle would hang. Use explicit pump() durations.
+// We override `backdropForVignetteProvider` directly so the tests do not
+// depend on the rootBundle asset loader (an async FutureProvider chain that
+// is hard to drain deterministically without pumpAndSettle, which itself
+// hangs because AtmosphericBackdrop's animation ticker repeats forever).
+// The rootBundle path is exercised in integration tests.
 
 import 'package:echo_client/data/choice_repository.dart';
 import 'package:echo_client/data/local/database.dart';
 import 'package:echo_client/data/models/content.dart';
 import 'package:echo_client/data/playthrough_repository.dart';
 import 'package:echo_client/features/vignette/backdrop/atmospheric_backdrop.dart';
+import 'package:echo_client/features/vignette/backdrop/backdrop_models.dart';
+import 'package:echo_client/features/vignette/backdrop/backdrop_provider.dart';
 import 'package:echo_client/features/vignette/vignette_controller.dart';
 import 'package:echo_client/features/vignette/vignette_screen.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +26,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../_helpers/fakes.dart';
+
+/// Minimal BackdropSpec — one layer is enough to exercise the renderer.
+BackdropSpec _minimalSpec(String vignetteId) {
+  return BackdropSpec.fromJson(<String, dynamic>{
+    'vignette_id': vignetteId,
+    'layers': <Map<String, dynamic>>[
+      <String, dynamic>{
+        'id': 'sky',
+        'asset_id': 'morning-bedroom-window',
+        'parallax_depth': 90,
+      },
+    ],
+  });
+}
 
 /// Controller fixed at a specific [VignettePlaying] index. Lets us drive the
 /// screen straight into the playing state without going through the loading
@@ -65,12 +84,11 @@ Season _seasonWith(String vignetteId) {
 
 void main() {
   testWidgets(
-    'no backdrop is rendered when the manifest does not cover the vignette',
+    'no backdrop is rendered when no spec is authored for the vignette',
     (WidgetTester tester) async {
       final db = newInMemoryDatabase();
       addTearDown(db.close);
 
-      // vignette-999 does not exist in the bundled sample manifest.
       final controller = _StaticPlayingController(
         db: db,
         season: _seasonWith('vignette-999'),
@@ -80,15 +98,17 @@ void main() {
         ProviderScope(
           overrides: <Override>[
             vignetteControllerProvider.overrideWith((Ref ref) => controller),
+            // Stub: no backdrop authored for any vignette.
+            backdropForVignetteProvider.overrideWith(
+              (Ref ref, BackdropKey key) => null,
+            ),
           ],
           child: const MaterialApp(
             home: VignetteScreen(seasonId: 'season-001'),
           ),
         ),
       );
-      // Two pumps: one for the build, one for the FutureProvider resolution.
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
 
       expect(tester.takeException(), isNull);
       expect(find.byType(AtmosphericBackdrop), findsNothing);
@@ -98,12 +118,11 @@ void main() {
   );
 
   testWidgets(
-    'backdrop renders behind the choice UI when the manifest matches',
+    'backdrop renders behind the choice UI when a spec is authored',
     (WidgetTester tester) async {
       final db = newInMemoryDatabase();
       addTearDown(db.close);
 
-      // vignette-001 IS covered by the bundled sample manifest.
       final controller = _StaticPlayingController(
         db: db,
         season: _seasonWith('vignette-001'),
@@ -113,14 +132,20 @@ void main() {
         ProviderScope(
           overrides: <Override>[
             vignetteControllerProvider.overrideWith((Ref ref) => controller),
+            backdropForVignetteProvider.overrideWith(
+              (Ref ref, BackdropKey key) => key.vignetteId == 'vignette-001'
+                  ? _minimalSpec(key.vignetteId)
+                  : null,
+            ),
           ],
           child: const MaterialApp(
             home: VignetteScreen(seasonId: 'season-001'),
           ),
         ),
       );
+      // One pump for the synchronous override; do NOT pumpAndSettle (the
+      // AtmosphericBackdrop animation ticker repeats forever).
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
 
       expect(tester.takeException(), isNull);
       expect(find.byType(AtmosphericBackdrop), findsOneWidget);
