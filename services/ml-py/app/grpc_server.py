@@ -17,7 +17,7 @@ ReflectionGenService has two paths:
     loaded eagerly from ``content/reflection-templates/``.
 
 AssetGenService routes through a :class:`RoutingAssetGenProvider` chain
-(Meshy primary, self-hosted fallback). Opted into via
+(Meshy primary, trellis fallback). Opted into via
 ``ECHO_ASSET_GEN_ENABLED=true``; otherwise the servicer returns
 ``UNIMPLEMENTED`` for all four RPCs.
 """
@@ -275,7 +275,7 @@ class AssetGenServicer(asset_gen_pb2_grpc.AssetGenServiceServicer):
     """gRPC adapter for the T-ML-050 asset-gen provider abstraction.
 
     Routes ``SubmitAsset`` calls through the injected
-    :class:`RoutingAssetGenProvider` (Meshy primary, self-hosted fallback).
+    :class:`RoutingAssetGenProvider` (Meshy primary, trellis fallback).
 
     The three other RPCs — ``GetAssetStatus``, ``ReconcileManifest``,
     ``ListAssets`` — are stubs returning ``UNIMPLEMENTED``. Real
@@ -295,7 +295,7 @@ class AssetGenServicer(asset_gen_pb2_grpc.AssetGenServiceServicer):
 
         In T-ML-050 the "enqueueing" is simulated: we compute the
         content-address, call the routing provider (which in the stub
-        chain either fails over to self-hosted or succeeds), and return
+        chain either fails over to trellis or succeeds), and return
         the address and status. T-ML-051 replaces this with NATS JetStream
         enqueuing and a real DB row.
         """
@@ -408,7 +408,7 @@ _KIND_MAP: dict[int, str] = {
 _PROVIDER_MAP: dict[int, str] = {
     0: "meshy",  # PROVIDER_UNSPECIFIED -> default to meshy
     1: "meshy",
-    6: "self-hosted",
+    6: "trellis",
 }
 
 _MODE_MAP: dict[int, str] = {
@@ -517,7 +517,7 @@ def _build_asset_gen_provider_if_enabled() -> RoutingAssetGenProvider | None:
 
     Opt-in via ``ECHO_ASSET_GEN_ENABLED=true``. CI and dev shells that
     have no provider keys can set
-    ``ECHO_ASSET_GEN_PRIMARY=self-hosted ECHO_ASSET_GEN_FALLBACKS=``
+    ``ECHO_ASSET_GEN_PRIMARY=trellis ECHO_ASSET_GEN_FALLBACKS=``
     without setting the opt-in flag.
     """
     if os.environ.get("ECHO_ASSET_GEN_ENABLED", "").lower() != "true":

@@ -220,9 +220,9 @@ The **Replace path** field exists so that future-us, future-team, or an AI agent
 - **Why this:** Meshy AI offers strong text-to-3D and image-to-3D with direct **glTF/GLB + PBR-texture** export, an API suited to automated pipelines, and good quality-for-cost. It lets a tiny team produce a large, cohesive set of 3D assets without a 3D-artist headcount.
 - **Alternatives considered:**
   - **Luma AI (Genie), Tripo AI, Rodin / Hyper3D, Stability AI (Stable Fast 3D)** — viable hosted providers; kept behind the same abstraction as redundant / cost-arbitrage routes.
-  - **Self-hosted open models — TripoSR, InstantMesh, Hunyuan3D-2, Stable Fast 3D** (served via the existing Python ML stack / vLLM-style serving) — owned inference for cost control at scale and for assets we prefer not to send to a third party; the same role the self-hosted LLM plays for reflection.
+  - **Self-hosted Microsoft TRELLIS** (called through the `ml-py` provider abstraction) — owned inference for cost control at scale and for assets we prefer not to send to a third party; the same role the self-hosted LLM plays for reflection. The model runtime stays behind an HTTP boundary and can use the original CUDA implementation or an Apple Silicon MPS/MLX port.
 - **Lock-in risk:** Medium — mitigated by (a) a multi-provider abstraction identical in spirit to the LLM router and (b) standardized glTF/GLB output that any provider and any renderer accept.
-- **Replace path:** The provider router in the `asset-gen` service makes a provider swap a config change; self-hosted open models are the floor if every hosted provider becomes unviable. See the **continuous background asset generation** pipeline in `05_Technical_Architecture`.
+- **Replace path:** The provider router in the `asset-gen` service makes a provider swap a config change; self-hosted TRELLIS is the floor if every hosted provider becomes unviable. See the **continuous background asset generation** pipeline in `05_Technical_Architecture`.
 
 ---
 
@@ -325,7 +325,7 @@ The **Replace path** field exists so that future-us, future-team, or an AI agent
 | Object storage | Cloudflare R2 |
 | Auth | Ory Kratos + Apple/Google OAuth |
 | LLM | Anthropic Claude (primary) + self-hosted open model (fallback) |
-| 3D assets | AI-generated — Meshy (primary) + self-hosted open models (fallback), glTF/GLB |
+| 3D assets | AI-generated — Meshy (primary) + self-hosted TRELLIS (fallback), glTF/GLB |
 | Hosting phase 0 | Fly.io |
 | Hosting phase 1 | GKE (Kubernetes on Google Cloud, EU) |
 | Edge | Cloudflare (CDN, R2, Workers) |

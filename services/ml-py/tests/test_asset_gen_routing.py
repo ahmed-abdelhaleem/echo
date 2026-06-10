@@ -2,7 +2,7 @@
 
 Covers:
 - :func:`compute_content_address` determinism and canonical-form guarantees.
-- :class:`SelfHostedProvider` happy path.
+- :class:`TrellisProvider` happy path.
 - :class:`MeshyProvider` configuration validation and stub failure.
 - :class:`RoutingAssetGenProvider` happy-path, primary-fail-fallback-success,
   all-fail, chain ordering, and close behaviour.
@@ -13,6 +13,11 @@ Covers:
 """
 
 from __future__ import annotations
+
+import base64
+import hashlib
+import json
+from typing import Any
 
 import pytest
 
@@ -30,11 +35,36 @@ from app.services.asset_gen import (
     Reference,
     RoutingAssetGenProvider,
     RoutingResult,
-    SelfHostedProvider,
+    TrellisProvider,
     build_provider,
     build_provider_from_env,
     compute_content_address,
 )
+
+_TEST_GLB = b"glTF\x02\x00\x00\x00\x0c\x00\x00\x00"
+
+
+class _FakeHTTPResponse:
+    def __init__(self, body: bytes = _TEST_GLB) -> None:
+        self._body = body
+
+    def read(self, size: int = -1) -> bytes:
+        return self._body if size < 0 else self._body[:size]
+
+    def __enter__(self) -> _FakeHTTPResponse:
+        return self
+
+    def __exit__(self, *_args: object) -> None:
+        pass
+
+
+@pytest.fixture(autouse=True)
+def _stub_trellis_http(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "app.services.asset_gen.trellis.urlopen",
+        lambda *_args, **_kwargs: _FakeHTTPResponse(),
+    )
+
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -44,7 +74,7 @@ from app.services.asset_gen import (
 def _basic_inputs(prompt: str = "A worn leather satchel") -> GenerationInputs:
     return GenerationInputs(
         kind="prop",
-        provider="self-hosted",
+        provider="trellis",
         mode="text-to-3d",
         prompt=prompt,
         pipeline_version=1,
@@ -64,7 +94,7 @@ def test_generation_inputs_rejects_empty_prompt() -> None:
     with pytest.raises(ValueError, match="prompt"):
         GenerationInputs(
             kind="prop",
-            provider="self-hosted",
+            provider="trellis",
             mode="text-to-3d",
             prompt="",
             pipeline_version=1,
@@ -75,7 +105,7 @@ def test_generation_inputs_rejects_zero_pipeline_version() -> None:
     with pytest.raises(ValueError, match="pipeline_version"):
         GenerationInputs(
             kind="prop",
-            provider="self-hosted",
+            provider="trellis",
             mode="text-to-3d",
             prompt="hello",
             pipeline_version=0,
@@ -86,7 +116,7 @@ def test_generation_inputs_rejects_image_to_3d_without_references() -> None:
     with pytest.raises(ValueError, match="references"):
         GenerationInputs(
             kind="prop",
-            provider="self-hosted",
+            provider="trellis",
             mode="image-to-3d",
             prompt="hello",
             pipeline_version=1,
@@ -97,7 +127,7 @@ def test_generation_inputs_rejects_image_to_3d_without_references() -> None:
 def test_generation_inputs_accepts_image_to_3d_with_references() -> None:
     inputs = GenerationInputs(
         kind="environment",
-        provider="self-hosted",
+        provider="trellis",
         mode="image-to-3d",
         prompt="rainy street",
         pipeline_version=1,
@@ -169,7 +199,7 @@ def test_content_address_reference_sha256_included() -> None:
     ref_with = Reference(uri="https://cdn.example/img.jpg", sha256="a" * 64)
     inputs_without = GenerationInputs(
         kind="environment",
-        provider="self-hosted",
+        provider="trellis",
         mode="image-to-3d",
         prompt="forest",
         pipeline_version=1,
@@ -177,7 +207,7 @@ def test_content_address_reference_sha256_included() -> None:
     )
     inputs_with = GenerationInputs(
         kind="environment",
-        provider="self-hosted",
+        provider="trellis",
         mode="image-to-3d",
         prompt="forest",
         pipeline_version=1,
@@ -187,43 +217,134 @@ def test_content_address_reference_sha256_included() -> None:
 
 
 # ---------------------------------------------------------------------------
-# SelfHostedProvider
+# TrellisProvider
 # ---------------------------------------------------------------------------
 
 
-def test_self_hosted_returns_glb_bytes() -> None:
-    provider = SelfHostedProvider()
+def test_trellis_returns_glb_bytes() -> None:
+    provider = TrellisProvider(base_url="http://trellis.test")
     result = provider.generate(_basic_request())
     assert result.glb_bytes is not None
     assert result.glb_bytes[:4] == b"glTF"
 
 
-def test_self_hosted_content_address_is_sha256() -> None:
-    provider = SelfHostedProvider()
+def test_trellis_content_address_is_sha256() -> None:
+    provider = TrellisProvider(base_url="http://trellis.test")
     result = provider.generate(_basic_request())
     assert result.content_address.startswith("sha256:")
 
 
-def test_self_hosted_dry_run_returns_no_bytes() -> None:
-    provider = SelfHostedProvider()
+def test_trellis_dry_run_returns_no_bytes() -> None:
+    provider = TrellisProvider(base_url="http://trellis.test")
     req = AssetGenRequest(inputs=_basic_inputs(), asset_id="dry", dry_run=True)
     result = provider.generate(req)
     assert result.glb_bytes is None
     assert result.content_address.startswith("sha256:")
 
 
-def test_self_hosted_provider_id() -> None:
-    assert SelfHostedProvider().provider_id == "self-hosted"
+def test_trellis_provider_id() -> None:
+    assert TrellisProvider(base_url="http://trellis.test").provider_id == "trellis"
 
 
-def test_self_hosted_is_stub() -> None:
-    provider = SelfHostedProvider()
+def test_trellis_rejects_unknown_api_style() -> None:
+    with pytest.raises(AssetGenConfigurationError, match="TRELLIS_API_STYLE"):
+        TrellisProvider(base_url="http://trellis.test", api_style="metal-maybe")
+
+
+def test_trellis_sends_generation_inputs(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: dict[str, Any] = {}
+
+    def fake_urlopen(request: Any, *, timeout: float) -> _FakeHTTPResponse:
+        captured["url"] = request.full_url
+        captured["payload"] = json.loads(request.data)
+        captured["timeout"] = timeout
+        return _FakeHTTPResponse()
+
+    monkeypatch.setattr("app.services.asset_gen.trellis.urlopen", fake_urlopen)
+    provider = TrellisProvider(base_url="http://trellis.test")
     result = provider.generate(_basic_request())
-    assert result.is_stub is True
+
+    assert captured["url"] == "http://trellis.test/v1/generate"
+    assert captured["payload"]["prompt"] == "A worn leather satchel"
+    assert captured["payload"]["mode"] == "text-to-3d"
+    assert captured["timeout"] == 900.0
+    assert result.is_stub is False
 
 
-def test_self_hosted_satisfies_protocol() -> None:
-    provider: AssetGenProvider = SelfHostedProvider()
+def test_trellis2_apple_sends_image_and_decodes_glb(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    image_bytes = b"example-image"
+    image_sha256 = hashlib.sha256(image_bytes).hexdigest()
+    captured: dict[str, Any] = {}
+
+    def fake_urlopen(target: Any, *, timeout: float) -> _FakeHTTPResponse:
+        if isinstance(target, str):
+            assert target == "https://cdn.example/ref.png"
+            assert timeout == 30
+            return _FakeHTTPResponse(image_bytes)
+        captured["url"] = target.full_url
+        captured["payload"] = json.loads(target.data)
+        return _FakeHTTPResponse(
+            json.dumps({"glb": base64.b64encode(_TEST_GLB).decode("ascii")}).encode()
+        )
+
+    monkeypatch.setattr("app.services.asset_gen.trellis.urlopen", fake_urlopen)
+    inputs = GenerationInputs(
+        kind="prop",
+        provider="trellis",
+        mode="image-to-3d",
+        prompt="A worn leather satchel",
+        pipeline_version=1,
+        references=(Reference(uri="https://cdn.example/ref.png", sha256=image_sha256),),
+        params={"seed": 7, "target_polycount": 250_000, "texture_size": 512},
+    )
+    provider = TrellisProvider(
+        base_url="http://trellis.test",
+        api_style="trellis2-apple",
+    )
+
+    result = provider.generate(AssetGenRequest(inputs=inputs))
+
+    assert captured["url"] == "http://trellis.test/generate"
+    assert base64.b64decode(captured["payload"]["image"]) == image_bytes
+    assert captured["payload"]["seed"] == 7
+    assert captured["payload"]["decimation_target"] == 250_000
+    assert captured["payload"]["texture_size"] == 512
+    assert result.glb_bytes == _TEST_GLB
+
+
+def test_trellis2_apple_rejects_text_to_3d() -> None:
+    provider = TrellisProvider(
+        base_url="http://trellis.test",
+        api_style="trellis2-apple",
+    )
+    with pytest.raises(AssetGenProviderError, match="image-to-3d"):
+        provider.generate(_basic_request())
+
+
+def test_trellis_rejects_invalid_glb(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "app.services.asset_gen.trellis.urlopen",
+        lambda *_args, **_kwargs: _FakeHTTPResponse(b"not a glb"),
+    )
+    provider = TrellisProvider(base_url="http://trellis.test")
+    with pytest.raises(AssetGenProviderError, match="invalid GLB"):
+        provider.generate(_basic_request())
+
+
+def test_trellis_maps_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    def time_out(*_args: object, **_kwargs: object) -> _FakeHTTPResponse:
+        raise TimeoutError
+
+    monkeypatch.setattr("app.services.asset_gen.trellis.urlopen", time_out)
+    provider = TrellisProvider(base_url="http://trellis.test")
+    with pytest.raises(AssetGenProviderTimeoutError):
+        provider.generate(_basic_request())
+
+
+def test_trellis_satisfies_protocol() -> None:
+    provider: AssetGenProvider = TrellisProvider(base_url="http://trellis.test")
     assert isinstance(provider, AssetGenProvider)
 
 
@@ -457,9 +578,9 @@ def test_router_close_continues_after_broken_close() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_build_provider_with_self_hosted_primary_no_fallback() -> None:
-    router = build_provider(primary="self-hosted", env={})
-    assert router.primary.provider_id == "self-hosted"
+def test_build_provider_with_trellis_primary_no_fallback() -> None:
+    router = build_provider(primary="trellis", env={})
+    assert router.primary.provider_id == "trellis"
     assert router.fallbacks == ()
 
 
@@ -470,7 +591,15 @@ def test_build_provider_rejects_unknown_provider() -> None:
 
 def test_build_provider_rejects_duplicate_providers() -> None:
     with pytest.raises(AssetGenConfigurationError, match="duplicate"):
-        build_provider(primary="self-hosted", fallbacks=["self-hosted"], env={})
+        build_provider(primary="trellis", fallbacks=["trellis"], env={})
+
+
+def test_build_provider_rejects_unknown_trellis_api_style() -> None:
+    with pytest.raises(AssetGenConfigurationError, match="TRELLIS_API_STYLE"):
+        build_provider(
+            primary="trellis",
+            env={"TRELLIS_API_STYLE": "metal-maybe"},
+        )
 
 
 def test_build_provider_requires_meshy_key_when_meshy_in_chain() -> None:
@@ -486,10 +615,10 @@ def test_build_provider_constructs_meshy_when_key_present() -> None:
 def test_build_provider_constructs_mixed_chain() -> None:
     router = build_provider(
         primary="meshy",
-        fallbacks=["self-hosted"],
+        fallbacks=["trellis"],
         env={"MESHY_API_KEY": "sk-test"},
     )
-    assert router.chain_provider_ids == ("meshy", "self-hosted")
+    assert router.chain_provider_ids == ("meshy", "trellis")
 
 
 def test_build_provider_from_env_uses_default_primary() -> None:
@@ -499,28 +628,28 @@ def test_build_provider_from_env_uses_default_primary() -> None:
         build_provider_from_env(env={})
 
 
-def test_build_provider_from_env_self_hosted_works_for_dev() -> None:
+def test_build_provider_from_env_trellis_works_for_dev() -> None:
     router = build_provider_from_env(
-        env={"ECHO_ASSET_GEN_PRIMARY": "self-hosted", "ECHO_ASSET_GEN_FALLBACKS": ""}
+        env={"ECHO_ASSET_GEN_PRIMARY": "trellis", "ECHO_ASSET_GEN_FALLBACKS": ""}
     )
-    assert router.primary.provider_id == "self-hosted"
+    assert router.primary.provider_id == "trellis"
 
 
 def test_build_provider_from_env_parses_fallback_list() -> None:
     router = build_provider_from_env(
         env={
             "ECHO_ASSET_GEN_PRIMARY": "meshy",
-            "ECHO_ASSET_GEN_FALLBACKS": "self-hosted",
+            "ECHO_ASSET_GEN_FALLBACKS": "trellis",
             "MESHY_API_KEY": "sk-test",
         },
     )
-    assert router.chain_provider_ids == ("meshy", "self-hosted")
+    assert router.chain_provider_ids == ("meshy", "trellis")
 
 
 def test_build_provider_from_env_trims_whitespace_in_fallback_list() -> None:
     router = build_provider_from_env(
         env={
-            "ECHO_ASSET_GEN_PRIMARY": "self-hosted",
+            "ECHO_ASSET_GEN_PRIMARY": "trellis",
             "ECHO_ASSET_GEN_FALLBACKS": "  ,  ,  ",  # blank entries only
         },
     )
@@ -528,24 +657,24 @@ def test_build_provider_from_env_trims_whitespace_in_fallback_list() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Integration: meshy → self-hosted mirrors T-ML-050 production topology
+# Integration: meshy → trellis mirrors T-ML-050 production topology
 # ---------------------------------------------------------------------------
 
 
-def test_meshy_primary_self_hosted_fallback_production_topology() -> None:
+def test_meshy_primary_trellis_fallback_production_topology() -> None:
     """End-to-end: MeshyProvider (stub → always fails) routes to
-    SelfHostedProvider (stub → returns placeholder GLB).
+    TrellisProvider (HTTP response stubbed in-process).
 
     This is exactly the T-ML-050 acceptance criterion on real classes,
     not mocks.
     """
     meshy = MeshyProvider(api_key="sk-test")
-    self_hosted = SelfHostedProvider()
-    router = RoutingAssetGenProvider(primary=meshy, fallbacks=[self_hosted])
+    trellis = TrellisProvider(base_url="http://trellis.test")
+    router = RoutingAssetGenProvider(primary=meshy, fallbacks=[trellis])
 
     result = router.generate(_basic_request())
 
-    assert result.provider_used == "self-hosted"
+    assert result.provider_used == "trellis"
     assert result.glb_bytes is not None
     assert result.glb_bytes[:4] == b"glTF"
     assert result.content_address.startswith("sha256:")
@@ -554,14 +683,14 @@ def test_meshy_primary_self_hosted_fallback_production_topology() -> None:
 def test_content_address_is_same_regardless_of_provider_used() -> None:
     """The content-address is a function of *inputs* not of the provider.
 
-    MeshyProvider (dry_run) and SelfHostedProvider must return the same
+    MeshyProvider (dry_run) and TrellisProvider must return the same
     address for the same inputs, since the address is the dedup key.
     """
     inputs = _basic_inputs()
     req = AssetGenRequest(inputs=inputs, asset_id="x", dry_run=True)
 
     meshy_result = MeshyProvider(api_key="sk-test").generate(req)
-    self_result = SelfHostedProvider().generate(req)
+    self_result = TrellisProvider(base_url="http://trellis.test").generate(req)
 
     assert meshy_result.content_address == self_result.content_address, (
         "Content-address must be provider-independent"

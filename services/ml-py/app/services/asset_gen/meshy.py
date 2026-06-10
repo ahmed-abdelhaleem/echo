@@ -71,7 +71,7 @@ class MeshyProvider:
 
         # CHOICE: raise instead of calling Meshy. The real HTTP call lands
         # in T-ML-051. Raising here proves the router routes to fallback.
-        # Alternative considered: return a placeholder GLB like SelfHostedProvider.
+        # Alternative considered: return a placeholder GLB.
         # We chose raise so that the primary is *visibly* non-functional and
         # tests can assert routing happened.
         raise AssetGenProviderError(

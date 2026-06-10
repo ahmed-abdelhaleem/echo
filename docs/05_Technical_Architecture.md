@@ -267,7 +267,7 @@ A scheduler runs the loop continuously: it diffs the set of *desired* assets (ev
 
 - **Budget caps.** Generation spend is bounded by a configurable per-period cap per environment. Hitting the cap pauses generation and alerts; it never spends unbounded. Large or first-time batch runs require human approval (an escalation item in `07_AI_Agent_Implementation_Guide`).
 - **Dedup by content-address.** Nothing is generated twice; cache hits are free.
-- **Provider routing.** A multi-provider abstraction (mirroring the LLM router) routes to the cheapest acceptable provider and fails over to a self-hosted open model.
+- **Provider routing.** A multi-provider abstraction (mirroring the LLM router) routes to the cheapest acceptable provider and fails over to self-hosted Microsoft TRELLIS. TRELLIS runs behind an internal HTTP boundary so its model runtime stays isolated from the Python 3.12 `ml-py` service. Deployment may use the original CUDA runtime or an Apple Silicon MPS/MLX port.
 - **QA / safety / brand gate.** Every generated asset passes an automated check (geometry sanity, size/poly budget, texture sanity) plus a safety/brand review; new asset *sets* get human curation before they ship. Changes to this gate are an escalation item.
 - **Data residency.** Binaries are stored in EU R2. Generated scenery contains no personal data, so third-party generation providers stay outside the personal-data boundary — a deliberate reason this pipeline is for the world and not the Portrait.
 

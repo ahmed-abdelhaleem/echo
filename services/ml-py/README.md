@@ -2,7 +2,8 @@
 
 The Echo ML service. Per `docs/05_Technical_Architecture.md` this is a Python
 process that owns trait scoring, Portrait generation, reflection generation,
-and the safety/tone classifiers.
+the safety/tone classifiers, and the provider-facing side of background 3D
+asset generation.
 
 ## Layout
 
@@ -15,7 +16,8 @@ services/ml-py/
 │   └── services/
 │       ├── trait_scoring.py     # M1 (T-ML-010) — implemented
 │       ├── portrait_gen.py      # M2 (T-ML-030)
-│       └── reflection_gen.py    # M2 (T-ML-040)
+│       ├── reflection_gen.py    # M2 (T-ML-040)
+│       └── asset_gen/           # Meshy/TRELLIS provider routing
 └── tests/
 ```
 
@@ -34,6 +36,16 @@ uv run python -m app.grpc_server
 The Go core service dials the gRPC server via `ML_GRPC_ADDR` (e.g.
 `ML_GRPC_ADDR=127.0.0.1:50051`); when that env var is unset, trait
 scoring is disabled and `POST /playthroughs/{id}/finalize` returns 503.
+
+## TRELLIS
+
+TRELLIS runs as a separate process so its model-specific environment stays
+isolated from Echo's Python 3.12 service. Configure `TRELLIS_BASE_URL`,
+`TRELLIS_API_STYLE`, and opt in with `ECHO_ASSET_GEN_ENABLED=true`. See
+[`services/trellis-py/README.md`](../trellis-py/README.md).
+
+The original Microsoft runtime is CUDA-oriented. Apple Silicon can run
+TRELLIS.2 locally through community MPS/MLX ports, without an NVIDIA GPU.
 
 ## Verify
 

@@ -27,5 +27,5 @@ stubs that match these definitions.
 
 `asset_gen.proto` (`AssetGenService`) is the forward contract for AI 3D asset
 generation (T-ML-050/051/052) — see `docs/05_Technical_Architecture.md`
-§"Continuous background asset generation". It is wired into `make proto` codegen
-when that pipeline lands.
+§"Continuous background asset generation". It is wired into `make proto`
+codegen.

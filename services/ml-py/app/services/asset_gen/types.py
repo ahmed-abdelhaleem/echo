@@ -15,7 +15,7 @@ from typing import Literal
 AssetKind = Literal["prop", "environment", "character", "ambient"]
 
 # Mirrors Provider enum in asset_gen.proto (only the two used in this PR).
-ProviderID = Literal["meshy", "self-hosted"]
+ProviderID = Literal["meshy", "trellis"]
 
 # Mirrors GenMode enum.
 GenMode = Literal["text-to-3d", "image-to-3d"]
@@ -95,8 +95,7 @@ class AssetGenRequest:
 class AssetGenResult:
     """Result of a successful generation.
 
-    ``glb_bytes`` is ``None`` on a dry-run. For the M1 stubs, the
-    self-hosted fallback returns a minimal placeholder GLB.
+    ``glb_bytes`` is ``None`` on a dry-run.
 
     ``content_address`` always carries the ``sha256:<hex>`` identifier
     so callers can record it even on dry-runs.
