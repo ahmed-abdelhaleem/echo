@@ -105,9 +105,11 @@ class _AtmosphericBackdropState extends State<AtmosphericBackdrop>
         final sensitivity = widget.spec.camera.sensitivity;
 
         return MouseRegion(
-          onHover: (PointerHoverEvent e) => _handlePointer(e, size),
+          // Use the generic PointerEvent so we don't need to import the
+          // specific subtypes; _handlePointer already takes PointerEvent.
+          onHover: (PointerEvent e) => _handlePointer(e, size),
           child: Listener(
-            onPointerMove: (PointerMoveEvent e) => _handlePointer(e, size),
+            onPointerMove: (PointerEvent e) => _handlePointer(e, size),
             behavior: HitTestBehavior.translucent,
             child: AnimatedBuilder(
               animation: _ticker,

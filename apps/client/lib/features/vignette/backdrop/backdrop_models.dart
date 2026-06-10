@@ -71,8 +71,10 @@ class BackdropSpec {
   /// Layers sorted back-to-front (descending parallax depth) for painter's order.
   List<BackdropLayer> get layersBackToFront {
     final sorted = List<BackdropLayer>.of(layers)
-      ..sort((BackdropLayer a, BackdropLayer b) =>
-          b.parallaxDepth.compareTo(a.parallaxDepth));
+      ..sort(
+        (BackdropLayer a, BackdropLayer b) =>
+            b.parallaxDepth.compareTo(a.parallaxDepth),
+      );
     return sorted;
   }
 }

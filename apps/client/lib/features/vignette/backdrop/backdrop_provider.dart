@@ -15,10 +15,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'backdrop_models.dart';
 
+/// Composite key for [backdropForVignetteProvider]. Riverpod families take a
+/// single argument, so (seasonId, vignetteId) ride together in a Dart 3
+/// record — value equality (and therefore Riverpod caching) is automatic.
+typedef BackdropKey = ({String seasonId, String vignetteId});
+
 /// Loads the backdrop manifest for [seasonId] from the bundled assets. Returns
 /// `null` on any failure so the renderer degrades gracefully.
 final FutureProviderFamily<BackdropManifest?, String> backdropManifestProvider =
-    FutureProvider.family<BackdropManifest?, String>((Ref ref, String seasonId) async {
+    FutureProvider.family<BackdropManifest?, String>(
+        (Ref ref, String seasonId) async {
   final assetKey = 'assets/backdrops/$seasonId/backdrops.manifest.json';
   try {
     final raw = await rootBundle.loadString(assetKey);
@@ -35,8 +41,8 @@ final FutureProviderFamily<BackdropManifest?, String> backdropManifestProvider =
 
 /// Returns the [BackdropSpec] for a specific vignette, or `null` if the
 /// manifest is unavailable or no backdrop is authored for that vignette.
-final ProviderFamily<BackdropSpec?, _BackdropKey> backdropForVignetteProvider =
-    Provider.family<BackdropSpec?, _BackdropKey>((Ref ref, _BackdropKey key) {
+final ProviderFamily<BackdropSpec?, BackdropKey> backdropForVignetteProvider =
+    Provider.family<BackdropSpec?, BackdropKey>((Ref ref, BackdropKey key) {
   final async = ref.watch(backdropManifestProvider(key.seasonId));
   return async.maybeWhen<BackdropSpec?>(
     data: (BackdropManifest? m) => m?.forVignette(key.vignetteId),
@@ -44,27 +50,7 @@ final ProviderFamily<BackdropSpec?, _BackdropKey> backdropForVignetteProvider =
   );
 });
 
-/// Composite key for [backdropForVignetteProvider]. Riverpod families are
-/// single-arg, so we wrap (seasonId, vignetteId) in a value type.
-@immutable
-class _BackdropKey {
-  const _BackdropKey({required this.seasonId, required this.vignetteId});
-
-  final String seasonId;
-  final String vignetteId;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is _BackdropKey &&
-          other.seasonId == seasonId &&
-          other.vignetteId == vignetteId;
-
-  @override
-  int get hashCode => Object.hash(seasonId, vignetteId);
-}
-
-/// Public helper so consumers don't construct the private key directly.
+/// Convenience reader that constructs the composite key for callers.
 BackdropSpec? readBackdropFor(
   WidgetRef ref, {
   required String seasonId,
@@ -72,7 +58,7 @@ BackdropSpec? readBackdropFor(
 }) {
   return ref.watch(
     backdropForVignetteProvider(
-      _BackdropKey(seasonId: seasonId, vignetteId: vignetteId),
+      (seasonId: seasonId, vignetteId: vignetteId),
     ),
   );
 }
