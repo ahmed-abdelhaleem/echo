@@ -284,6 +284,13 @@ async def test_long_job_sends_jetstream_progress_heartbeats() -> None:
 
 @pytest.mark.asyncio
 async def test_jetstream_is_created_with_work_queue_retention() -> None:
+    # The stream-creation path builds a real nats.js.api.StreamConfig, so
+    # this test needs the `asset-worker` optional extra installed. CI runs
+    # `uv sync --dev` (no extra), so skip rather than fail there; the test
+    # runs wherever nats-py is present. The "rejects" sibling test does not
+    # reach this import (it raises before building a config).
+    pytest.importorskip("nats.js.api")
+
     class NotFoundError(Exception):
         pass
 
