@@ -68,6 +68,7 @@ make test                  # All unit + integration tests
 make build                 # All build targets for current platform
 make validate-content      # tools/content-validator over content/
 make validate-assets       # 3D asset manifests against the asset schema
+make validate-backdrops    # vignette-backdrop manifests against the backdrop schema
 ```
 
 All four must exit zero before claiming a task complete.

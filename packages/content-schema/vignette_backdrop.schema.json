@@ -1,0 +1,191 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://echo.app/schema/vignette_backdrop.schema.json",
+  "title": "VignetteBackdropManifest",
+  "description": "Per-vignette atmospheric backdrop: layered parallax assets + continuous ambient motion + scene-to-scene transitions. The backdrop is the world *living* behind the choice UI — it never freezes while the player deliberates. See docs/05_Technical_Architecture.md §'Atmospheric backdrops in the renderer' and docs/07 T-CLIENT-041.",
+  "type": "object",
+  "required": ["schema_version", "season_id", "backdrops"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "enum": ["1.0"] },
+    "season_id": {
+      "type": "string",
+      "pattern": "^season-[0-9]{3,}$"
+    },
+    "backdrops": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/backdrop_spec" }
+    }
+  },
+  "definitions": {
+    "backdrop_spec": {
+      "type": "object",
+      "required": ["vignette_id", "layers"],
+      "additionalProperties": false,
+      "properties": {
+        "vignette_id": {
+          "type": "string",
+          "pattern": "^vignette-[0-9]{3,}$",
+          "description": "The vignette this backdrop renders behind. Must match an id in the Season."
+        },
+        "mood": {
+          "type": "object",
+          "description": "Renderer hints for color grading and ambient sound mix. Not part of layer composition.",
+          "additionalProperties": false,
+          "properties": {
+            "time_of_day": {
+              "type": "string",
+              "enum": ["dawn", "morning", "midday", "afternoon", "evening", "dusk", "night"]
+            },
+            "weather": {
+              "type": "string",
+              "enum": ["clear", "overcast", "rain", "snow", "fog", "wind"]
+            },
+            "palette": {
+              "type": "string",
+              "enum": ["warm", "cool", "muted", "saturated", "monochrome"]
+            }
+          }
+        },
+        "camera": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": ["parallax", "orbital", "static"],
+              "default": "parallax",
+              "description": "How the camera reacts to input. 'parallax' shifts on pointer/accelerometer; 'orbital' slow-orbits a focal point; 'static' is a fixed shot with only in-layer ambient motion."
+            },
+            "sensitivity": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0.4,
+              "description": "Parallax response strength. 0 = no input reaction; 1 = full reaction. Always damped; never reaches a startle level."
+            }
+          }
+        },
+        "transition": {
+          "type": "object",
+          "description": "How this backdrop fades in/out when entering/leaving the vignette.",
+          "additionalProperties": false,
+          "properties": {
+            "in_ms": { "type": "integer", "minimum": 0, "maximum": 5000, "default": 800 },
+            "out_ms": { "type": "integer", "minimum": 0, "maximum": 5000, "default": 600 },
+            "curve": {
+              "type": "string",
+              "enum": ["linear", "ease_in", "ease_out", "ease_in_out"],
+              "default": "ease_out"
+            }
+          }
+        },
+        "layers": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "description": "Painter's-order layers, back to front. Each is keyed by parallax_depth so the renderer can sort and weight responses.",
+          "items": { "$ref": "#/definitions/layer" }
+        }
+      }
+    },
+    "layer": {
+      "type": "object",
+      "required": ["id", "asset_id", "parallax_depth"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "Layer id, unique within the backdrop."
+        },
+        "asset_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "References AssetSpec.id in the Season's asset manifest. The validator does NOT yet cross-check this (asset manifests and backdrops are authored in lockstep)."
+        },
+        "parallax_depth": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "0 = at the camera (largest motion); 100 = at infinity (no motion). Layers are sorted by depth, descending, for painter's-order draw."
+        },
+        "opacity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 1
+        },
+        "ambient": {
+          "type": "array",
+          "description": "Continuous motion applied to this layer. The composition of these is what keeps the world feeling alive while the player thinks.",
+          "items": { "$ref": "#/definitions/ambient_effect" }
+        }
+      }
+    },
+    "ambient_effect": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "amplitude_px", "period_ms"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "drift" },
+            "axis": { "type": "string", "enum": ["x", "y"], "default": "x" },
+            "amplitude_px": { "type": "number", "minimum": 0, "maximum": 64 },
+            "period_ms": { "type": "integer", "minimum": 1000, "maximum": 60000 }
+          },
+          "description": "Slow sinusoidal pan. Used for sky, clouds, wind on grass."
+        },
+        {
+          "type": "object",
+          "required": ["type", "amplitude", "period_ms"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "pulse" },
+            "amplitude": { "type": "number", "minimum": 0, "maximum": 0.5 },
+            "period_ms": { "type": "integer", "minimum": 1000, "maximum": 60000 }
+          },
+          "description": "Slow opacity oscillation. Used for distant light sources, embers."
+        },
+        {
+          "type": "object",
+          "required": ["type", "density"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "particles" },
+            "kind": {
+              "type": "string",
+              "enum": ["dust_motes", "rain", "snow", "embers", "fireflies"],
+              "default": "dust_motes"
+            },
+            "density": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "0 = none, 1 = thick. The renderer maps this to a particle count appropriate for the device."
+            }
+          },
+          "description": "Abstract particle emitter. Density is normalized; the renderer maps it to a count appropriate for the device."
+        },
+        {
+          "type": "object",
+          "required": ["type", "amplitude", "period_ms"],
+          "additionalProperties": false,
+          "properties": {
+            "type": { "const": "parallax_breathe" },
+            "amplitude": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 0.05,
+              "description": "Fractional depth pulse. Tiny by design — perceptible only as life, never as motion sickness."
+            },
+            "period_ms": { "type": "integer", "minimum": 4000, "maximum": 60000 }
+          },
+          "description": "Subtle depth pulsation, an inhale/exhale of the scene. Always low-amplitude."
+        }
+      ]
+    }
+  }
+}

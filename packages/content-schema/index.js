@@ -21,6 +21,7 @@ export const choiceSchema = load("choice.schema.json");
 export const traitWeightSchema = load("trait_weight.schema.json");
 export const reflectionTemplateSchema = load("reflection_template.schema.json");
 export const assetManifestSchema = load("asset_manifest.schema.json");
+export const vignetteBackdropSchema = load("vignette_backdrop.schema.json");
 
 export const allSchemas = [
   seasonSchema,
@@ -30,4 +31,5 @@ export const allSchemas = [
   traitWeightSchema,
   reflectionTemplateSchema,
   assetManifestSchema,
+  vignetteBackdropSchema,
 ];

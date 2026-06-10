@@ -69,6 +69,7 @@ help:
 	@echo "  make build            Build all services for the current platform"
 	@echo "  make validate-content Validate content/ against content-schema"
 	@echo "  make validate-assets  Validate 3D asset manifests (content/assets-3d)"
+	@echo "  make validate-backdrops Validate vignette-backdrop manifests (content/backdrops)"
 	@echo "  make simulate         Run tools/playthrough-sim (placeholder until M1)"
 	@echo "  make replay           Run tools/trait-replay (placeholder until M1)"
 	@echo ""
@@ -332,6 +333,15 @@ ifeq ($(PNPM_AVAILABLE),yes)
 	@pnpm --filter @echo/content-validator run validate -- --only assets
 else
 	@echo "↷ pnpm not installed; skipping validate-assets"
+endif
+
+.PHONY: validate-backdrops
+validate-backdrops:
+ifeq ($(PNPM_AVAILABLE),yes)
+	@echo "→ validate-backdrops"
+	@pnpm --filter @echo/content-validator run validate -- --only backdrops
+else
+	@echo "↷ pnpm not installed; skipping validate-backdrops"
 endif
 
 # ---------------------------------------------------------------------------

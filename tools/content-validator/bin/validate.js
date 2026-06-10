@@ -27,6 +27,7 @@ import {
   traitWeightSchema,
   reflectionTemplateSchema,
   assetManifestSchema,
+  vignetteBackdropSchema,
 } from "@echo/content-schema";
 
 import { contentAddress } from "../lib/content_address.js";
@@ -63,7 +64,7 @@ if (flags.help) {
   process.exit(0);
 }
 
-const ONLY_KINDS = new Set(["seasons", "templates", "assets"]);
+const ONLY_KINDS = new Set(["seasons", "templates", "assets", "backdrops"]);
 if (flags.only && !ONLY_KINDS.has(flags.only)) {
   console.error(`--only must be one of: ${[...ONLY_KINDS].join(", ")}`);
   process.exit(2);
@@ -72,6 +73,7 @@ const run = {
   seasons: !flags.only || flags.only === "seasons",
   templates: !flags.only || flags.only === "templates",
   assets: !flags.only || flags.only === "assets",
+  backdrops: !flags.only || flags.only === "backdrops",
 };
 
 // ---------------------------------------------------------------------------
@@ -126,6 +128,7 @@ ajv.addSchema(traitWeightSchema);
 const validateSeason = ajv.compile(seasonSchema);
 const validateReflectionTemplate = ajv.compile(reflectionTemplateSchema);
 const validateAssetManifest = ajv.compile(assetManifestSchema);
+const validateVignetteBackdrop = ajv.compile(vignetteBackdropSchema);
 
 if (flags.selfCheck) {
   console.log("✓ content-validator self-check: all schemas compiled.");
@@ -327,9 +330,72 @@ for (const file of assetFiles) {
   console.log(`✓ ${rel}`);
 }
 
+// ---------------------------------------------------------------------------
+// Validate vignette backdrops under content/backdrops/ (T-CLIENT-041)
+// ---------------------------------------------------------------------------
+
+const backdropsDir = join(repoRoot, "content", "backdrops");
+const backdropPattern = join(backdropsDir, "*", "*.manifest.json");
+
+const backdropFiles = [];
+if (run.backdrops) {
+  for await (const entry of glob(backdropPattern)) {
+    backdropFiles.push(entry);
+  }
+}
+
+for (const file of backdropFiles) {
+  const rel = file.slice(repoRoot.length + 1);
+  let data;
+  try {
+    data = JSON.parse(readFileSync(file, "utf-8"));
+  } catch (err) {
+    console.error(`✗ ${rel}: invalid JSON: ${err.message}`);
+    failed++;
+    continue;
+  }
+  if (!validateVignetteBackdrop(data)) {
+    console.error(`✗ ${rel}: schema validation failed:`);
+    for (const e of validateVignetteBackdrop.errors ?? []) {
+      console.error(`    ${e.instancePath || "(root)"} ${e.message}`);
+    }
+    failed++;
+    continue;
+  }
+
+  // Rules JSON Schema can't express cleanly: at most one backdrop per vignette,
+  // and unique layer ids within a backdrop.
+  let bderr = null;
+  const seenVignettes = new Set();
+  for (const b of data.backdrops) {
+    if (seenVignettes.has(b.vignette_id)) {
+      bderr = `duplicate backdrop for vignette "${b.vignette_id}"`;
+      break;
+    }
+    seenVignettes.add(b.vignette_id);
+
+    const seenLayerIds = new Set();
+    for (const layer of b.layers) {
+      if (seenLayerIds.has(layer.id)) {
+        bderr = `backdrop "${b.vignette_id}": duplicate layer id "${layer.id}"`;
+        break;
+      }
+      seenLayerIds.add(layer.id);
+    }
+    if (bderr) break;
+  }
+  if (bderr) {
+    console.error(`✗ ${rel}: ${bderr}`);
+    failed++;
+    continue;
+  }
+
+  console.log(`✓ ${rel}`);
+}
+
 if (failed > 0) {
   console.error(
-    `\n${failed} content file(s) failed validation (across ${seasonFiles.length} season(s), ${templateFiles.length} template(s), and ${assetFiles.length} asset manifest(s)).`,
+    `\n${failed} content file(s) failed validation (across ${seasonFiles.length} season(s), ${templateFiles.length} template(s), ${assetFiles.length} asset manifest(s), and ${backdropFiles.length} backdrop manifest(s)).`,
   );
   process.exit(1);
 }
@@ -340,4 +406,7 @@ if (run.seasons || run.templates) {
 }
 if (run.assets) {
   console.log(`${assetFiles.length} asset manifest(s) validated.`);
+}
+if (run.backdrops) {
+  console.log(`${backdropFiles.length} backdrop manifest(s) validated.`);
 }
