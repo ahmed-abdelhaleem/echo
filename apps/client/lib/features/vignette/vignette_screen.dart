@@ -16,7 +16,7 @@
 
 import 'package:echo_client/data/local/database.dart';
 import 'package:echo_client/data/models/content.dart';
-import 'package:echo_client/features/vignette/backdrop/atmospheric_backdrop.dart';
+import 'package:echo_client/features/vignette/backdrop/adaptive_backdrop.dart';
 import 'package:echo_client/features/vignette/backdrop/backdrop_models.dart';
 import 'package:echo_client/features/vignette/backdrop/backdrop_provider.dart';
 import 'package:echo_client/features/vignette/vignette_controller.dart';
@@ -78,7 +78,10 @@ class _VignetteScreenState extends ConsumerState<VignetteScreen> {
         fit: StackFit.expand,
         children: <Widget>[
           if (backdrop != null) ...<Widget>[
-            AtmosphericBackdrop(spec: backdrop),
+            AdaptiveAtmosphericBackdrop(
+              seasonId: widget.seasonId,
+              spec: backdrop,
+            ),
             // Scrim keeps the choice UI legible without disabling the
             // backdrop's continuous ambient motion behind it.
             const _BackdropScrim(),

@@ -41,6 +41,7 @@ class BackdropSpec {
     this.mood,
     this.camera = const CameraSpec(),
     this.transition = const TransitionSpec(),
+    this.assetBudget = const AssetBudgetSpec(),
   });
 
   factory BackdropSpec.fromJson(Map<String, dynamic> json) {
@@ -55,6 +56,11 @@ class BackdropSpec {
       transition: json['transition'] is Map<String, dynamic>
           ? TransitionSpec.fromJson(json['transition'] as Map<String, dynamic>)
           : const TransitionSpec(),
+      assetBudget: json['asset_budget'] is Map<String, dynamic>
+          ? AssetBudgetSpec.fromJson(
+              json['asset_budget'] as Map<String, dynamic>,
+            )
+          : const AssetBudgetSpec(),
       layers: <BackdropLayer>[
         for (final l in json['layers'] as List<dynamic>)
           BackdropLayer.fromJson(l as Map<String, dynamic>),
@@ -66,6 +72,7 @@ class BackdropSpec {
   final MoodSpec? mood;
   final CameraSpec camera;
   final TransitionSpec transition;
+  final AssetBudgetSpec assetBudget;
   final List<BackdropLayer> layers;
 
   /// Layers sorted back-to-front (descending parallax depth) for painter's order.
@@ -77,6 +84,24 @@ class BackdropSpec {
       );
     return sorted;
   }
+}
+
+class AssetBudgetSpec {
+  const AssetBudgetSpec({
+    this.maxPolycount = 80000,
+    this.maxSizeBytes = 20 * 1024 * 1024,
+  });
+
+  factory AssetBudgetSpec.fromJson(Map<String, dynamic> json) {
+    return AssetBudgetSpec(
+      maxPolycount: (json['max_polycount'] as num?)?.toInt() ?? 80000,
+      maxSizeBytes:
+          (json['max_size_bytes'] as num?)?.toInt() ?? 20 * 1024 * 1024,
+    );
+  }
+
+  final int maxPolycount;
+  final int maxSizeBytes;
 }
 
 enum CameraMode { parallax, orbital, static }

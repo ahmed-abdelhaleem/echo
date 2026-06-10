@@ -62,6 +62,28 @@ void main() {
       expect(b.camera.sensitivity, closeTo(0.35, 1e-9));
       expect(b.transition.inMs, 1200);
       expect(b.transition.curve, TransitionCurve.easeOut);
+      expect(b.assetBudget.maxPolycount, 80000);
+      expect(b.assetBudget.maxSizeBytes, 20 * 1024 * 1024);
+    });
+
+    test('parses an authored per-vignette asset budget', () {
+      final backdrop = BackdropSpec.fromJson(<String, dynamic>{
+        'vignette_id': 'vignette-001',
+        'asset_budget': <String, dynamic>{
+          'max_polycount': 45000,
+          'max_size_bytes': 123456,
+        },
+        'layers': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'id': 'room',
+            'asset_id': 'room',
+            'parallax_depth': 50,
+          },
+        ],
+      });
+
+      expect(backdrop.assetBudget.maxPolycount, 45000);
+      expect(backdrop.assetBudget.maxSizeBytes, 123456);
     });
 
     test('forVignette returns null for an unknown id', () {

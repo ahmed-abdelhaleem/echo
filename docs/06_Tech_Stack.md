@@ -23,7 +23,7 @@ The **Replace path** field exists so that future-us, future-team, or an AI agent
 ## Client
 
 ### Flutter · Cross-platform application framework
-- **Version:** Flutter 3.27+ (Dart 3.6+)
+- **Version:** Flutter 3.44+ (Dart 3.12+ runtime; app language remains 3.6)
 - **Role:** Single codebase producing native iOS, Android, Windows, and macOS applications.
 - **Why this:** Single codebase with identical rendering across platforms, mature animation framework, strong testing tooling, first-class desktop support, large community.
 - **Alternatives considered:**

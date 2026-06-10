@@ -7,6 +7,7 @@
       "mood": { "time_of_day": "dawn", "weather": "clear", "palette": "warm" },
       "camera": { "mode": "parallax", "sensitivity": 0.35 },
       "transition": { "in_ms": 1200, "out_ms": 600, "curve": "ease_out" },
+      "asset_budget": { "max_polycount": 60000, "max_size_bytes": 20971520 },
       "layers": [
         {
           "id": "sky",
@@ -42,6 +43,7 @@
       "mood": { "time_of_day": "morning", "weather": "clear", "palette": "cool" },
       "camera": { "mode": "static", "sensitivity": 0.15 },
       "transition": { "in_ms": 800, "out_ms": 500, "curve": "ease_in_out" },
+      "asset_budget": { "max_polycount": 50000, "max_size_bytes": 16777216 },
       "layers": [
         {
           "id": "exterior",
@@ -66,6 +68,7 @@
       "mood": { "time_of_day": "evening", "weather": "overcast", "palette": "muted" },
       "camera": { "mode": "parallax", "sensitivity": 0.5 },
       "transition": { "in_ms": 1400, "out_ms": 800, "curve": "ease_out" },
+      "asset_budget": { "max_polycount": 45000, "max_size_bytes": 16777216 },
       "layers": [
         {
           "id": "evening-sky",

@@ -18,7 +18,7 @@ import 'backdrop_models.dart';
 /// Composite key for [backdropForVignetteProvider]. Riverpod families take a
 /// single argument, so (seasonId, vignetteId) ride together in a Dart 3
 /// record — value equality (and therefore Riverpod caching) is automatic.
-typedef BackdropKey = ({String seasonId, String vignetteId});
+typedef VignetteBackdropKey = ({String seasonId, String vignetteId});
 
 /// Loads the backdrop manifest for [seasonId] from the bundled assets. Returns
 /// `null` on any failure so the renderer degrades gracefully.
@@ -41,8 +41,10 @@ final FutureProviderFamily<BackdropManifest?, String> backdropManifestProvider =
 
 /// Returns the [BackdropSpec] for a specific vignette, or `null` if the
 /// manifest is unavailable or no backdrop is authored for that vignette.
-final ProviderFamily<BackdropSpec?, BackdropKey> backdropForVignetteProvider =
-    Provider.family<BackdropSpec?, BackdropKey>((Ref ref, BackdropKey key) {
+final ProviderFamily<BackdropSpec?, VignetteBackdropKey>
+    backdropForVignetteProvider =
+    Provider.family<BackdropSpec?, VignetteBackdropKey>(
+        (Ref ref, VignetteBackdropKey key) {
   final async = ref.watch(backdropManifestProvider(key.seasonId));
   return async.maybeWhen<BackdropSpec?>(
     data: (BackdropManifest? m) => m?.forVignette(key.vignetteId),
