@@ -156,6 +156,127 @@ def test_content_address_has_sha256_prefix() -> None:
     assert len(addr) == 7 + 64, f"expected 71 chars total, got {len(addr)}"
 
 
+# Locks the cross-language algorithm in place. If this value changes,
+# the Node validator at tools/content-validator/lib/content_address.js
+# will disagree with the server about asset identity — and every
+# manifest in content/assets-3d/** carries an address from the Node
+# validator, so a drift here silently double-generates every asset.
+# This is the same fixture used in tools/content-validator/test/content_address.test.js.
+_KNOWN_CROSS_LANGUAGE_ADDRESS = (
+    "sha256:6b03ec452f43b2ffc920bb615cd1d76749f3f526a32060ba30d16f788016935c"
+)
+
+
+def test_content_address_matches_node_validator_known_vector() -> None:
+    """The Python and Node algorithms must produce byte-identical hashes.
+
+    The fixture matches the one in
+    ``tools/content-validator/test/content_address.test.js``. Updating
+    one side without the other will fail this test by design.
+    """
+    inputs = GenerationInputs(
+        kind="prop",
+        provider="meshy",
+        mode="text-to-3d",
+        prompt="a chipped enamel coffee mug, half full",
+        params={"seed": 7, "pbr": True, "target_polycount": 12000},
+        pipeline_version=1,
+    )
+    assert compute_content_address(inputs) == _KNOWN_CROSS_LANGUAGE_ADDRESS
+
+
+def test_content_address_matches_node_validator_with_defaults() -> None:
+    """Default-valued fields (negative_prompt, references, params) must
+    still be hashed — otherwise the Python and Node algorithms drift
+    for the common case of a minimal manifest entry."""
+    inputs = GenerationInputs(
+        kind="prop",
+        provider="meshy",
+        mode="text-to-3d",
+        prompt="A worn leather satchel",
+        pipeline_version=1,
+    )
+    # Computed by running tools/content-validator/lib/content_address.js
+    # on the equivalent JSON literal.
+    expected = "sha256:cb713e945255cd5ae822ddcfaedfd99b1eaef4f65e77d9bf8ef6f6d03d01d12c"
+    assert compute_content_address(inputs) == expected
+
+
+def test_content_address_matches_stamped_manifest_addresses() -> None:
+    """The addresses stamped on content/assets-3d/season-001/assets.manifest.json
+    (by the Node validator) must round-trip through the Python algorithm.
+
+    This is the practical version of the cross-language lock: if a real
+    manifest ships with content-addresses A/B/C, the Python server must
+    look up exactly A/B/C when those same inputs come in. Anything else
+    breaks deduplication for assets already in flight.
+    """
+    # The three real entries in content/assets-3d/season-001/assets.manifest.json,
+    # transcribed as GenerationInputs and paired with the addresses that
+    # ship in the JSON.
+    cases: list[tuple[GenerationInputs, str]] = [
+        (
+            GenerationInputs(
+                kind="environment",
+                provider="meshy",
+                mode="text-to-3d",
+                prompt=(
+                    "a small sunlit bedroom at 7am, unmade bed, soft linen, "
+                    "a window overlooking a quiet european city, warm muted "
+                    "palette, calm and intimate"
+                ),
+                negative_prompt="people, text, logos, clutter",
+                params={
+                    "art_style": "stylized-realistic",
+                    "target_polycount": 40000,
+                    "pbr": True,
+                    "seed": 101,
+                },
+                pipeline_version=1,
+            ),
+            "sha256:4502d522b4dd28fb7385d388a4a501ffa0f951af0ddd75e7b74e6690343003d9",
+        ),
+        (
+            GenerationInputs(
+                kind="prop",
+                provider="meshy",
+                mode="text-to-3d",
+                prompt="a chipped white enamel coffee mug, half full, slight tea stain",
+                params={
+                    "art_style": "stylized-realistic",
+                    "target_polycount": 8000,
+                    "pbr": True,
+                    "seed": 7,
+                },
+                pipeline_version=1,
+            ),
+            "sha256:36c928da02a7ac43c1e1ef52a15af33d4c4b5568f5aefb9962df03ad819ff79a",
+        ),
+        (
+            GenerationInputs(
+                kind="environment",
+                provider="tripo",
+                mode="image-to-3d",
+                prompt="an empty city bus stop at dusk, rain just stopped, reflective pavement",
+                references=(
+                    Reference(uri="r2://echo-content/refs/season-001/bus-stop-evening.png"),
+                ),
+                params={
+                    "art_style": "stylized-realistic",
+                    "target_polycount": 35000,
+                    "pbr": True,
+                },
+                pipeline_version=1,
+            ),
+            "sha256:7220bed9e00872f56c5da83cf3fee46eb06e4bda845f3abce181b83e9117cc34",
+        ),
+    ]
+    for inputs, expected in cases:
+        assert compute_content_address(inputs) == expected, (
+            f"stamped manifest address drifted from server computation for kind={inputs.kind}"
+        )
+
+
 def test_content_address_different_prompts_differ() -> None:
     addr_a = compute_content_address(_basic_inputs("A worn leather satchel"))
     addr_b = compute_content_address(_basic_inputs("A polished obsidian mirror"))
