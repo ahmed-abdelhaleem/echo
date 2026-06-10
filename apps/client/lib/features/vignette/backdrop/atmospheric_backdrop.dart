@@ -236,7 +236,8 @@ class _LayerVisual extends StatelessWidget {
         }
       } else if (effect is PulseEffect) {
         final phase = 2 * math.pi * (tMs / effect.periodMs);
-        opacity = (opacity + math.sin(phase) * effect.amplitude).clamp(0.0, 1.0);
+        opacity =
+            (opacity + math.sin(phase) * effect.amplitude).clamp(0.0, 1.0);
       } else if (effect is ParallaxBreatheEffect) {
         final phase = 2 * math.pi * (tMs / effect.periodMs);
         depthScale = 1.0 + math.sin(phase) * effect.amplitude;
