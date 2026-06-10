@@ -66,6 +66,14 @@ from app.services.asset_gen.queue import (
     NatsAssetJobPublisher,
     run_nats_worker,
 )
+from app.services.asset_gen.reconciler import (
+    AssetReconciler,
+    LoadedManifest,
+    ReconcileOutcome,
+    load_manifest_dir,
+    load_manifest_specs,
+    reconcile_specs_in_order,
+)
 from app.services.asset_gen.repository import (
     AssetRepository,
     InMemoryAssetRepository,
@@ -111,6 +119,7 @@ __all__ = [
     "AssetKind",
     "AssetObjectStore",
     "AssetPostProcessingError",
+    "AssetReconciler",
     "AssetRecord",
     "AssetRepository",
     "AssetSpec",
@@ -125,6 +134,7 @@ __all__ = [
     "GltfpackPostProcessor",
     "InMemoryAssetJobQueue",
     "InMemoryAssetRepository",
+    "LoadedManifest",
     "LocalAssetObjectStore",
     "MeshyProvider",
     "NatsAssetJobPublisher",
@@ -132,6 +142,7 @@ __all__ = [
     "ProcessedAsset",
     "ProviderID",
     "R2AssetObjectStore",
+    "ReconcileOutcome",
     "Reference",
     "RoutingAssetGenProvider",
     "RoutingResult",
@@ -140,5 +151,8 @@ __all__ = [
     "build_provider_from_env",
     "compute_content_address",
     "inspect_glb",
+    "load_manifest_dir",
+    "load_manifest_specs",
+    "reconcile_specs_in_order",
     "run_nats_worker",
 ]

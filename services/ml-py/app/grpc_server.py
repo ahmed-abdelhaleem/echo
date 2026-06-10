@@ -45,6 +45,7 @@ from app.services import portrait_gen, reflection_gen, trait_scoring
 from app.services.asset_gen import (
     AssetFormat,
     AssetKind,
+    AssetReconciler,
     AssetRecord,
     AssetSpec,
     AssetStatus,
@@ -333,8 +334,45 @@ class AssetGenServicer(asset_gen_pb2_grpc.AssetGenServiceServicer):
         request: Any,
         context: grpc.ServicerContext,
     ) -> Any:
-        """Stub: T-ML-052 implements real reconciler/scheduler."""
-        context.abort(grpc.StatusCode.UNIMPLEMENTED, "ReconcileManifest: wired in T-ML-052")
+        """Diff desired vs ready and enqueue the difference (T-ML-052).
+
+        Never generates inline: the reconciler only enqueues, honouring
+        ``budget_cap`` (0 = unlimited). Idempotent on content-address.
+        """
+        try:
+            specs = [_asset_spec_from_proto(spec) for spec in request.desired]
+        except (ValueError, KeyError) as exc:
+            logger.warning("asset_gen.reconcile.invalid_spec", error=str(exc))
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
+            raise AssertionError("unreachable") from None  # abort never returns
+
+        reconciler = AssetReconciler(submission=self._service)
+        try:
+            outcome = reconciler.reconcile(
+                specs,
+                budget_cap=int(request.budget_cap),
+                dry_run=bool(request.dry_run),
+                season_id=request.season_id,
+            )
+        except Exception as exc:
+            logger.error("asset_gen.reconcile.failed", error=str(exc))
+            context.abort(grpc.StatusCode.UNAVAILABLE, str(exc))
+            raise AssertionError("unreachable") from None  # abort never returns
+
+        logger.info(
+            "asset_gen.reconcile.done",
+            season_id=request.season_id,
+            desired=outcome.desired,
+            enqueued=len(outcome.enqueued),
+            already_ready=len(outcome.already_ready),
+            deferred=len(outcome.deferred),
+        )
+        reconcile_response = asset_gen_pb2.ReconcileManifestResponse  # type: ignore[attr-defined]
+        return reconcile_response(
+            enqueued_addresses=list(outcome.enqueued),
+            already_ready=list(outcome.already_ready),
+            budget_remaining=outcome.budget_remaining,
+        )
 
     def ListAssets(
         self,

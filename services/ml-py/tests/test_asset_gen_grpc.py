@@ -133,3 +133,87 @@ def test_submit_rejects_mismatched_claimed_address(asset_grpc: _GrpcFixture) -> 
     with pytest.raises(grpc.RpcError) as exc_info:
         stub.SubmitAsset(_request(content_address="sha256:" + ("0" * 64)))
     assert exc_info.value.code() == grpc.StatusCode.INVALID_ARGUMENT
+
+
+# ---------------------------------------------------------------------------
+# ReconcileManifest (T-ML-052)
+# ---------------------------------------------------------------------------
+
+
+def _desired_spec(asset_id: str, prompt: str) -> object:
+    return asset_gen_pb2.AssetSpec(
+        id=asset_id,
+        kind=asset_gen_pb2.ASSET_KIND_PROP,
+        license="CC0",
+        generation=asset_gen_pb2.Generation(
+            provider=asset_gen_pb2.PROVIDER_TRELLIS,
+            mode=asset_gen_pb2.GEN_MODE_TEXT_TO_3D,
+            prompt=prompt,
+            pipeline_version=1,
+            format=asset_gen_pb2.ASSET_FORMAT_GLB,
+        ),
+    )
+
+
+def test_reconcile_enqueues_missing_assets(asset_grpc: _GrpcFixture) -> None:
+    stub = asset_gen_pb2_grpc.AssetGenServiceStub(asset_grpc.channel)
+    resp = stub.ReconcileManifest(
+        asset_gen_pb2.ReconcileManifestRequest(
+            season_id="season-001",
+            desired=[
+                _desired_spec("a", "asset a"),
+                _desired_spec("b", "asset b"),
+                _desired_spec("c", "asset c"),
+            ],
+        )
+    )
+    assert len(resp.enqueued_addresses) == 3
+    assert list(resp.already_ready) == []
+    assert len(asset_grpc.queue) == 3
+
+
+def test_reconcile_respects_budget_cap(asset_grpc: _GrpcFixture) -> None:
+    stub = asset_gen_pb2_grpc.AssetGenServiceStub(asset_grpc.channel)
+    resp = stub.ReconcileManifest(
+        asset_gen_pb2.ReconcileManifestRequest(
+            season_id="season-001",
+            budget_cap=1,
+            desired=[
+                _desired_spec("a", "asset a"),
+                _desired_spec("b", "asset b"),
+                _desired_spec("c", "asset c"),
+            ],
+        )
+    )
+    assert len(resp.enqueued_addresses) == 1
+    assert resp.budget_remaining == 0
+    assert len(asset_grpc.queue) == 1
+
+
+def test_reconcile_is_idempotent(asset_grpc: _GrpcFixture) -> None:
+    stub = asset_gen_pb2_grpc.AssetGenServiceStub(asset_grpc.channel)
+    desired = [_desired_spec("a", "asset a"), _desired_spec("b", "asset b")]
+
+    first = stub.ReconcileManifest(
+        asset_gen_pb2.ReconcileManifestRequest(season_id="season-001", desired=desired)
+    )
+    assert len(first.enqueued_addresses) == 2
+
+    second = stub.ReconcileManifest(
+        asset_gen_pb2.ReconcileManifestRequest(season_id="season-001", desired=desired)
+    )
+    assert list(second.enqueued_addresses) == []
+    assert len(asset_grpc.queue) == 2  # nothing re-published
+
+
+def test_reconcile_dry_run_enqueues_nothing(asset_grpc: _GrpcFixture) -> None:
+    stub = asset_gen_pb2_grpc.AssetGenServiceStub(asset_grpc.channel)
+    resp = stub.ReconcileManifest(
+        asset_gen_pb2.ReconcileManifestRequest(
+            season_id="season-001",
+            dry_run=True,
+            desired=[_desired_spec("a", "asset a")],
+        )
+    )
+    assert len(resp.enqueued_addresses) == 1  # reported
+    assert len(asset_grpc.queue) == 0  # but not published
