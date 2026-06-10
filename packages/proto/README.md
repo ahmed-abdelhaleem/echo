@@ -20,7 +20,12 @@ This package holds the wire-format contracts shared between services.
 
 ## Acceptance: T-INFRA-001 / T-ML-002
 
-The three service contracts (`TraitScoringService`, `PortraitGenService`,
+The three M1 service contracts (`TraitScoringService`, `PortraitGenService`,
 `ReflectionGenService`) are defined here. Generated Go and Python clients land
 when the proto pipeline is implemented; until then services use hand-written
 stubs that match these definitions.
+
+`asset_gen.proto` (`AssetGenService`) is the forward contract for AI 3D asset
+generation (T-ML-050/051/052) — see `docs/05_Technical_Architecture.md`
+§"Continuous background asset generation". It is wired into `make proto` codegen
+when that pipeline lands.

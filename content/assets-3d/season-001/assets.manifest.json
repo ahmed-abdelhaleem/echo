@@ -1,0 +1,88 @@
+{
+  "schema_version": "1.0",
+  "season_id": "season-001",
+  "assets": [
+    {
+      "id": "morning-bedroom-window",
+      "name": "Morning bedroom by the window",
+      "description": "The opening environment — soft light, an unmade bed, a city beyond the glass.",
+      "kind": "environment",
+      "vignette_ids": [
+        "v-morning-wake",
+        "v-morning-message"
+      ],
+      "license": "provider-terms",
+      "budget_tier": "premium",
+      "status": "desired",
+      "generation": {
+        "provider": "meshy",
+        "mode": "text-to-3d",
+        "prompt": "a small sunlit bedroom at 7am, unmade bed, soft linen, a window overlooking a quiet european city, warm muted palette, calm and intimate",
+        "negative_prompt": "people, text, logos, clutter",
+        "params": {
+          "art_style": "stylized-realistic",
+          "target_polycount": 40000,
+          "pbr": true,
+          "seed": 101
+        },
+        "pipeline_version": 1,
+        "format": "glb"
+      },
+      "content_address": "sha256:4502d522b4dd28fb7385d388a4a501ffa0f951af0ddd75e7b74e6690343003d9"
+    },
+    {
+      "id": "chipped-coffee-mug",
+      "name": "Chipped enamel coffee mug",
+      "description": "A recurring prop. Small, specific, lived-in.",
+      "kind": "prop",
+      "vignette_ids": [
+        "v-morning-message"
+      ],
+      "license": "CC0",
+      "status": "desired",
+      "generation": {
+        "provider": "meshy",
+        "mode": "text-to-3d",
+        "prompt": "a chipped white enamel coffee mug, half full, slight tea stain",
+        "params": {
+          "art_style": "stylized-realistic",
+          "target_polycount": 8000,
+          "pbr": true,
+          "seed": 7
+        },
+        "pipeline_version": 1,
+        "format": "glb"
+      },
+      "content_address": "sha256:36c928da02a7ac43c1e1ef52a15af33d4c4b5568f5aefb9962df03ad819ff79a"
+    },
+    {
+      "id": "bus-stop-evening",
+      "name": "Evening bus stop",
+      "description": "Image-to-3d, generated from a reference photo of the target mood.",
+      "kind": "environment",
+      "vignette_ids": [
+        "v-evening-decision"
+      ],
+      "license": "provider-terms",
+      "status": "desired",
+      "generation": {
+        "provider": "tripo",
+        "mode": "image-to-3d",
+        "prompt": "an empty city bus stop at dusk, rain just stopped, reflective pavement",
+        "references": [
+          {
+            "uri": "r2://echo-content/refs/season-001/bus-stop-evening.png"
+          }
+        ],
+        "params": {
+          "art_style": "stylized-realistic",
+          "target_polycount": 35000,
+          "pbr": true
+        },
+        "pipeline_version": 1,
+        "format": "glb"
+      },
+      "content_address": "sha256:7220bed9e00872f56c5da83cf3fee46eb06e4bda845f3abce181b83e9117cc34"
+    }
+  ]
+}

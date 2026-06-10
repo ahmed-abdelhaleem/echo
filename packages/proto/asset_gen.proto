@@ -1,0 +1,160 @@
+syntax = "proto3";
+
+package echo.assetgen.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/ahmed-abdelhaleem/echo/services/core-go/grpc/echopb";
+
+// AssetGenService — contract for AI 3D asset generation (continuous background).
+// See docs/05_Technical_Architecture.md §"Continuous background asset generation"
+// and docs/07_AI_Agent_Implementation_Guide.md (T-ML-050/051/052).
+//
+// Generation is NEVER inline. Callers declare desired assets; a background worker
+// converges the world toward that desired state and marks assets READY once
+// generated, optimized, QA-passed, and stored on the CDN. Assets are identified
+// by a content-address (stable hash of generation inputs), which makes submission
+// idempotent and results cacheable/reproducible.
+//
+// Forward contract: the M0 codegen target (`make proto`) builds the three M1
+// services; this is wired into codegen when the asset pipeline lands (T-ML-050).
+service AssetGenService {
+  // Declare/enqueue a single asset. Idempotent on content-address.
+  rpc SubmitAsset(SubmitAssetRequest) returns (SubmitAssetResponse);
+
+  // Poll a single asset by content-address.
+  rpc GetAssetStatus(GetAssetStatusRequest) returns (Asset);
+
+  // Diff desired vs ready for a Season and enqueue the difference — the
+  // continuous-reconciliation entry point. Honours budget_cap.
+  rpc ReconcileManifest(ReconcileManifestRequest) returns (ReconcileManifestResponse);
+
+  // List assets for a Season, optionally filtered by status.
+  rpc ListAssets(ListAssetsRequest) returns (ListAssetsResponse);
+}
+
+enum AssetKind {
+  ASSET_KIND_UNSPECIFIED = 0;
+  ASSET_KIND_PROP = 1;
+  ASSET_KIND_ENVIRONMENT = 2;
+  ASSET_KIND_CHARACTER = 3;
+  ASSET_KIND_AMBIENT = 4;
+}
+
+enum Provider {
+  PROVIDER_UNSPECIFIED = 0;
+  PROVIDER_MESHY = 1;
+  PROVIDER_TRIPO = 2;
+  PROVIDER_LUMA = 3;
+  PROVIDER_RODIN = 4;
+  PROVIDER_STABILITY = 5;
+  PROVIDER_SELF_HOSTED = 6;
+}
+
+enum GenMode {
+  GEN_MODE_UNSPECIFIED = 0;
+  GEN_MODE_TEXT_TO_3D = 1;
+  GEN_MODE_IMAGE_TO_3D = 2;
+}
+
+enum AssetFormat {
+  ASSET_FORMAT_UNSPECIFIED = 0;
+  ASSET_FORMAT_GLB = 1;
+  ASSET_FORMAT_GLTF = 2;
+}
+
+// Lifecycle, mirroring the pipeline stages in docs/05.
+enum AssetStatus {
+  ASSET_STATUS_UNSPECIFIED = 0;
+  ASSET_STATUS_DESIRED = 1;
+  ASSET_STATUS_QUEUED = 2;
+  ASSET_STATUS_GENERATING = 3;
+  ASSET_STATUS_POSTPROCESSING = 4;
+  ASSET_STATUS_QA = 5;
+  ASSET_STATUS_READY = 6;
+  ASSET_STATUS_FAILED = 7;
+}
+
+message Reference {
+  string uri = 1;
+  string sha256 = 2; // optional integrity hash of the reference image
+}
+
+// Generation inputs. Together with AssetSpec.kind, these fields are exactly what
+// the content-address hashes — keep in sync with asset_manifest.schema.json and
+// tools/content-validator/lib/content_address.js.
+message Generation {
+  Provider provider = 1;
+  GenMode mode = 2;
+  string prompt = 3;
+  string negative_prompt = 4;
+  repeated Reference references = 5;
+  google.protobuf.Struct params = 6; // provider-tunable params (canonicalized for hashing)
+  uint32 pipeline_version = 7;
+  AssetFormat format = 8;
+}
+
+message AssetSpec {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  AssetKind kind = 4;
+  repeated string vignette_ids = 5;
+  Generation generation = 6;
+  string license = 7;
+  string budget_tier = 8;
+  string content_address = 9; // server recomputes and verifies
+}
+
+message Asset {
+  AssetSpec spec = 1;
+  AssetStatus status = 2;
+  string glb_uri = 3; // CDN URI of the optimized asset when READY
+  string thumbnail_uri = 4;
+  uint32 polycount = 5;
+  uint64 size_bytes = 6;
+  Provider provider_used = 7;
+  string error = 8; // populated when status is FAILED
+  google.protobuf.Timestamp created_at = 9;
+  google.protobuf.Timestamp ready_at = 10;
+}
+
+message SubmitAssetRequest {
+  AssetSpec spec = 1;
+  bool dry_run = 2; // validate + content-address only; enqueue nothing
+}
+
+message SubmitAssetResponse {
+  string content_address = 1;
+  AssetStatus status = 2;
+  bool deduplicated = 3; // true if an asset with this content-address already existed
+}
+
+message GetAssetStatusRequest {
+  string content_address = 1;
+}
+
+// Converge a Season toward its desired-state manifest. Enqueues only the assets
+// that are missing or stale, never exceeding budget_cap in a single run.
+message ReconcileManifestRequest {
+  string season_id = 1;
+  repeated AssetSpec desired = 2;
+  uint32 budget_cap = 3; // max assets to enqueue this run; 0 = unlimited
+  bool dry_run = 4;
+}
+
+message ReconcileManifestResponse {
+  repeated string enqueued_addresses = 1;
+  repeated string already_ready = 2;
+  uint32 budget_remaining = 3;
+}
+
+message ListAssetsRequest {
+  string season_id = 1;
+  AssetStatus status_filter = 2; // UNSPECIFIED = all
+}
+
+message ListAssetsResponse {
+  repeated Asset assets = 1;
+}

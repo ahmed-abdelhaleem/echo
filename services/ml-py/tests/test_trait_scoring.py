@@ -266,5 +266,11 @@ def test_golden_vector_for_season_001() -> None:
         assert -1.0 <= v <= 1.0
     for v in vector.attachment:
         assert 0.0 <= v <= 1.0
-    # OCEAN-N had a -0.2 from vignette-001/choice-1.
-    assert vector.big_five[4] == pytest.approx(-0.2)
+    # OCEAN-N contribution from vignette-001/choice-1.
+    # Golden updated for the season-001 content expansion in 66a3ab5
+    # ("Update season content and minor Dart formatting"), which changed
+    # vignette-001/choice-1's OCEAN-N weight from -0.2 to 0.1. That commit
+    # SHIPPED on main without updating this golden — see the PR description
+    # for the human-review-required note. vignette-002/choice-1 contributes
+    # no OCEAN-N delta, so this sum is the single weight.
+    assert vector.big_five[4] == pytest.approx(0.1)

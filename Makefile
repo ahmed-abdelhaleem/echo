@@ -68,6 +68,9 @@ help:
 	@echo "  make test             Run all unit + integration tests"
 	@echo "  make build            Build all services for the current platform"
 	@echo "  make validate-content Validate content/ against content-schema"
+	@echo "  make validate-assets  Validate 3D asset manifests (content/assets-3d)"
+	@echo "  make validate-backdrops Validate vignette-backdrop manifests (content/backdrops)"
+	@echo "  make client-content-sync Mirror content/backdrops/ into apps/client/assets/backdrops/"
 	@echo "  make simulate         Run tools/playthrough-sim (placeholder until M1)"
 	@echo "  make replay           Run tools/trait-replay (placeholder until M1)"
 	@echo ""
@@ -323,6 +326,36 @@ ifeq ($(PNPM_AVAILABLE),yes)
 else
 	@echo "↷ pnpm not installed; skipping validate-content"
 endif
+
+.PHONY: validate-assets
+validate-assets:
+ifeq ($(PNPM_AVAILABLE),yes)
+	@echo "→ validate-assets"
+	@pnpm --filter @echo/content-validator run validate -- --only assets
+else
+	@echo "↷ pnpm not installed; skipping validate-assets"
+endif
+
+.PHONY: validate-backdrops
+validate-backdrops:
+ifeq ($(PNPM_AVAILABLE),yes)
+	@echo "→ validate-backdrops"
+	@pnpm --filter @echo/content-validator run validate -- --only backdrops
+else
+	@echo "↷ pnpm not installed; skipping validate-backdrops"
+endif
+
+# Mirror content/backdrops/ into the Flutter client's asset bundle. The
+# client reads the manifest from rootBundle (T-CLIENT-041) so the file has
+# to live under apps/client/assets/. Run whenever a backdrop manifest in
+# content/ changes; CI runs this and verifies the bundle is up to date.
+.PHONY: client-content-sync
+client-content-sync:
+	@echo "→ client-content-sync"
+	@rm -rf apps/client/assets/backdrops
+	@mkdir -p apps/client/assets/backdrops
+	@cp -R content/backdrops/. apps/client/assets/backdrops/
+	@echo "✓ apps/client/assets/backdrops mirrors content/backdrops"
 
 # ---------------------------------------------------------------------------
 # Tools (placeholders until M1)

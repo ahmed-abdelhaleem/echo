@@ -63,8 +63,11 @@ class _ActiveView extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.star_rounded,
-                size: 64, color: theme.colorScheme.primary),
+            Icon(
+              Icons.star_rounded,
+              size: 64,
+              color: theme.colorScheme.primary,
+            ),
             const SizedBox(height: 16),
             Text('Echo+ Active', style: theme.textTheme.headlineSmall),
             const SizedBox(height: 8),

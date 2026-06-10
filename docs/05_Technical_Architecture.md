@@ -225,6 +225,103 @@ This is the ML/content-critical path. End-to-end target latency at p95: **under 
 
 ---
 
+## AI 3D asset generation pipeline
+
+Echo's vignettes are set in atmospheric 3D environments and populated with 3D props. These assets are produced by AI generation — text-to-3D and image-to-3D (see `06_Tech_Stack`) — but generation is **slow and costs money per asset**, so it can never run inline during a playthrough. Instead, assets are produced by an always-on **background pipeline** that works ahead of demand. By the time any player reaches a vignette, the finished, optimized asset is already sitting on the CDN.
+
+> **Boundary.** This pipeline generates the *world* — vignette scenery and props. It is deliberately separate from the player **Portrait**, which stays a deterministic, parametric, dependency-free render (see the Portrait pipeline above). Putting a brand-critical, must-be-reproducible artifact behind a non-deterministic external API would violate principle 5. We don't.
+
+### Desired-state model
+
+Content authors do not call a generator. They **declare** the assets a Season needs in an asset manifest (`AssetManifest`, validated against `content-schema`): for each asset, a prompt, optional reference images, generation parameters, a license note, and a **content-address** — a stable hash of all generation inputs (prompt + params + provider + pipeline version). The content-address is the asset's identity: identical inputs always map to the same address, which makes generation idempotent, cacheable, and reproducible, and lets one asset be reused across vignettes without regeneration.
+
+### Pipeline stages
+
+```
+asset manifest (desired)        reconciler
+        │                            │  diff desired vs ready
+        ▼                            ▼
+   content-address  ──────►  enqueue job (NATS JetStream)
+                                     │
+                                     ▼
+                         ┌────────────────────────┐
+                         │  generation worker     │
+                         │  1. submit to provider │  ← Meshy primary,
+                         │  2. poll to completion │     open-model fallback
+                         │  3. post-process       │  ← decimate, Draco/meshopt,
+                         │     (optimize, LODs,    │     LODs, thumbnail
+                         │      thumbnail)         │
+                         │  4. QA + safety/brand   │  ← automated gate + human
+                         │     gate                │     curation for new sets
+                         │  5. store + register    │  ← R2 (binary) + Postgres
+                         └───────────┬────────────┘     (metadata, version)
+                                     ▼
+                            asset marked READY  ──►  Cloudflare CDN
+```
+
+### Continuous reconciliation
+
+A scheduler runs the loop continuously: it diffs the set of *desired* assets (everything referenced by current and upcoming asset manifests) against the set of *ready* assets, and enqueues whatever is missing or stale. This is the converge-to-desired-state pattern of GitOps, applied to content. It naturally supports **pre-warming** — assets for a Season still in authoring are generated quietly long before release — and **self-healing** — if an asset is invalidated (prompt changed, pipeline upgraded), its content-address changes and the reconciler regenerates it.
+
+### Cost and safety controls
+
+- **Budget caps.** Generation spend is bounded by a configurable per-period cap per environment. Hitting the cap pauses generation and alerts; it never spends unbounded. Large or first-time batch runs require human approval (an escalation item in `07_AI_Agent_Implementation_Guide`).
+- **Dedup by content-address.** Nothing is generated twice; cache hits are free.
+- **Provider routing.** A multi-provider abstraction (mirroring the LLM router) routes to the cheapest acceptable provider and fails over to a self-hosted open model.
+- **QA / safety / brand gate.** Every generated asset passes an automated check (geometry sanity, size/poly budget, texture sanity) plus a safety/brand review; new asset *sets* get human curation before they ship. Changes to this gate are an escalation item.
+- **Data residency.** Binaries are stored in EU R2. Generated scenery contains no personal data, so third-party generation providers stay outside the personal-data boundary — a deliberate reason this pipeline is for the world and not the Portrait.
+
+### Where it runs
+
+The generator lives inside the Python ML/content service as an `asset_gen` module plus a long-running **background worker** (a separate process/replica from the request-serving path), consuming from NATS JetStream and writing to R2 + Postgres. It is stateless and horizontally scalable; the queue absorbs bursts. The Flutter client never generates anything — it only downloads ready, optimized GLBs from the CDN and caches them locally (offline-first, like all other content).
+
+---
+
+## Atmospheric backdrops in the renderer
+
+A vignette is not a still image with a choice menu on top. The world *lives* behind the choice — the sky drifts, dust catches the morning light, rain ticks the window — and it keeps living the entire time the player is deliberating. That continuous aliveness is what makes a vignette feel like a place rather than a screen. The **atmospheric backdrop** is the client subsystem that produces it.
+
+> **Boundary.** The backdrop is purely a **renderer** concern. It consumes the GLBs the AI 3D pipeline produces; it does not generate anything, and it does not depend on any cloud service at runtime. A backdrop renders identically offline.
+
+### What the backdrop is
+
+Per vignette, an author declares a `VignetteBackdrop` (`packages/content-schema/vignette_backdrop.schema.json`, validated by `make validate-backdrops`):
+
+- A small set of **layers**, each pointing to an asset by `asset_id` and carrying a **parallax depth** in `[0, 100]` (0 = at camera, 100 = at infinity).
+- A **mood** (time-of-day, weather, palette) that drives color grading and ambient audio mix.
+- A **camera mode** — `parallax` (responds to pointer/accelerometer), `orbital` (slow circular sweep), or `static` (in-layer motion only) — with a damped `sensitivity` in `[0, 1]`.
+- A `transition` (in/out duration + curve) for cross-fades between vignettes.
+- Per-layer **ambient effects**: `drift` (slow sinusoidal pan), `pulse` (slow opacity oscillation), `particles` (dust motes, rain, snow, embers, fireflies), and `parallax_breathe` (a near-imperceptible depth pulse — life, not motion sickness).
+
+A backdrop is not authored in code; it is content. The renderer interprets the spec.
+
+### Continuous, not event-driven
+
+A single long-running animation ticker drives every effect on every layer. Effects compute their phase from elapsed time, so the cost is flat as layers grow and nothing has to be "started" when a choice appears or "stopped" while it is being considered. The scene continues even if the player puts the phone down for a minute and comes back.
+
+Pointer motion (or accelerometer on mobile, when we add it) drives parallax — closer layers move more, far layers stay put. The response is critically damped, so a startled flick of the cursor doesn't shake the scene; the world settles.
+
+### Cross-vignette transitions
+
+When a vignette resolves and the next one is staged, the outgoing backdrop fades out and the incoming one fades in over `transition.in_ms` / `out_ms`. Because the ticker is continuous, ambient motion never pops; the camera does not reset; only the layered visuals cross-dissolve.
+
+### Two rendering paths
+
+- **2D fallback (M1):** Each layer is composited as a tinted painter pass on the Flutter canvas, with particles, drift, pulse, and parallax applied per layer. This is what `apps/client/lib/features/vignette/backdrop/` ships first. It guarantees the renderer works on every device, on every platform, and offline — even before any 3D asset has finished generating.
+- **3D enrichment (M2):** When the GLB for a layer's `asset_id` is locally cached, the same `BackdropSpec` drives a **Thermion (Filament)** scene instead. Parallax depth maps to the camera Z translation; ambient effects (drift, pulse, breathe) become small per-node transforms. *The author-facing spec does not change between the two paths.* The renderer escalates silently when better assets are available and degrades silently when they are not.
+
+### Performance posture
+
+- The animation runs at the device's refresh rate when on, and pauses cleanly when the app is backgrounded.
+- The ticker is wrapped in a `RepaintBoundary` so a backdrop never invalidates the choice UI above it, and the choice UI never invalidates the backdrop. They animate independently.
+- Polycount, particle density, and effect counts are budgeted per vignette in the spec; the renderer downgrades particle counts on lower-tier devices.
+
+### Accessibility
+
+A "reduce motion" preference flattens parallax response to zero, removes particle drift, and stretches every period 5× so ambient motion becomes a slow ambient color shift rather than visible movement. The author-facing spec is the same; the renderer chooses.
+
+---
+
 ## Authentication and authorization
 
 ### Auth approach

@@ -76,3 +76,10 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+
+  # Bundled content (T-CLIENT-041). The backdrops asset bundle is a
+  # build-time mirror of content/backdrops/; keep in sync with
+  # `make client-content-sync`. Once the M2 asset loader lands, GLBs
+  # stream from the CDN and only the backdrop manifest stays bundled.
+  assets:
+    - assets/backdrops/season-001/backdrops.manifest.json
