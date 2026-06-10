@@ -16,6 +16,9 @@
 
 import 'package:echo_client/data/local/database.dart';
 import 'package:echo_client/data/models/content.dart';
+import 'package:echo_client/features/vignette/backdrop/atmospheric_backdrop.dart';
+import 'package:echo_client/features/vignette/backdrop/backdrop_models.dart';
+import 'package:echo_client/features/vignette/backdrop/backdrop_provider.dart';
 import 'package:echo_client/features/vignette/vignette_controller.dart';
 import 'package:echo_client/features/share/share_button.dart';
 import 'package:echo_client/features/sync/sync_controller.dart';
@@ -59,20 +62,67 @@ class _VignetteScreenState extends ConsumerState<VignetteScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(vignetteControllerProvider);
+    // Look up the atmospheric backdrop only while a vignette is playing.
+    // When the manifest is missing or the vignette has no backdrop authored,
+    // [backdrop] is null and the screen renders exactly as before.
+    final BackdropSpec? backdrop = state is VignettePlaying
+        ? readBackdropFor(
+            ref,
+            seasonId: widget.seasonId,
+            vignetteId: state.currentVignette.id,
+          )
+        : null;
     return Scaffold(
       appBar: AppBar(title: const Text('Vignette')),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: switch (state) {
-            VignetteLoading() => const _LoadingView(),
-            VignetteError(message: final m) => _ErrorView(message: m),
-            VignetteSeasonMissing(seasonId: final id) =>
-              _SeasonMissingView(seasonId: id),
-            VignettePlaying() => _PlayingView(state: state),
-            VignetteComplete() => _CompleteView(state: state),
-          },
+      body: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          if (backdrop != null) ...<Widget>[
+            AtmosphericBackdrop(spec: backdrop),
+            // Scrim keeps the choice UI legible without disabling the
+            // backdrop's continuous ambient motion behind it.
+            const _BackdropScrim(),
+          ],
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: switch (state) {
+                VignetteLoading() => const _LoadingView(),
+                VignetteError(message: final m) => _ErrorView(message: m),
+                VignetteSeasonMissing(seasonId: final id) =>
+                  _SeasonMissingView(seasonId: id),
+                VignettePlaying() => _PlayingView(state: state),
+                VignetteComplete() => _CompleteView(state: state),
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Soft translucent wash over the backdrop that keeps the choice UI legible
+/// across light and dark moods. Sits between the backdrop and the content.
+class _BackdropScrim extends StatelessWidget {
+  const _BackdropScrim();
+
+  @override
+  Widget build(BuildContext context) {
+    final surface = Theme.of(context).colorScheme.surface;
+    return IgnorePointer(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: <Color>[
+              surface.withValues(alpha: 0.40),
+              surface.withValues(alpha: 0.70),
+            ],
+          ),
         ),
+        child: const SizedBox.expand(),
       ),
     );
   }

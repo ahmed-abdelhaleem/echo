@@ -39,7 +39,8 @@ echo/
 │   ├── seasons/             # Season YAML/JSON definitions (vignettes, weights)
 │   ├── reflection-templates/# Templated reflection prompts and exemplars
 │   ├── art-tokens/          # Parameters for portrait rendering
-│   └── assets-3d/           # 3D asset manifests + provider metadata (binaries live in R2, not git)
+│   ├── assets-3d/           # 3D asset manifests + provider metadata (binaries live in R2, not git)
+│   └── backdrops/           # Per-vignette atmospheric backdrop manifests (layers, parallax, ambient motion)
 ├── tools/
 │   ├── content-validator/   # CLI: validates Season files + asset manifests against content-schema
 │   ├── playthrough-sim/     # CLI: deterministic playthrough simulator for testing
@@ -290,6 +291,10 @@ Everything from M1 plus: full Season content, real parametric Portrait, real LLM
   - Accept: with N desired and M ready assets, exactly N−M jobs are enqueued; the budget cap is never exceeded in a run; a second run with no changes enqueues nothing.
 - **T-CLIENT-040** — 3D vignette rendering: load and display ready GLB assets (Thermion/Filament, with a `model_viewer` fallback), download-and-cache on device, respect a per-vignette poly/size budget, and degrade gracefully to a 2D still if 3D is unavailable.
   - Accept: golden + perf test for a representative vignette; offline play uses the cached asset; a missing asset falls back without crashing.
+- **T-CLIENT-041** — Atmospheric backdrop renderer: load `VignetteBackdrop` manifests, render layered parallax + continuous ambient motion behind the choice UI in a `RepaintBoundary`, support the four ambient effect types (drift, pulse, particles, parallax_breathe), cross-fade between vignettes per the `transition` spec, and honor the OS "reduce motion" preference. The 2D path (this task) renders without any GLB. T-CLIENT-040 supplies the 3D enrichment path through the same `BackdropSpec`.
+  - Accept: model parsing tests pass for every ambient effect variant; a representative vignette plays a continuous backdrop offline; the choice UI does not invalidate the backdrop and vice versa (verified by a RepaintBoundary instrumentation test); reduce-motion flattens parallax to zero.
+- **T-CONTENT-005** — JSON Schema for `VignetteBackdrop` plus a sample manifest covering ≥3 vignettes of season-001. Validated by `make validate-backdrops`.
+  - Accept: schema published in `packages/content-schema/`; sample passes; tampering with effect types fails closed.
 - **T-INFRA-040** — Provider API keys in Vault; per-environment budget caps; a cost/usage dashboard; `gitleaks` covers the new keys.
   - Accept: no keys in the repo; exceeding the budget cap halts generation and alerts rather than spending unbounded.
 
@@ -348,6 +353,7 @@ For schema or content changes:
 ```bash
 make validate-content   # tools/content-validator over all of content/
 make validate-assets    # 3D asset manifests against the asset schema
+make validate-backdrops # vignette-backdrop manifests against the backdrop schema
 make replay             # tools/trait-replay over a corpus of test playthroughs
 ```
 

@@ -225,9 +225,9 @@ This is the ML/content-critical path. End-to-end target latency at p95: **under 
 
 ---
 
-## Continuous background asset generation
+## AI 3D asset generation pipeline
 
-Echo's vignettes are set in atmospheric 3D environments and populated with 3D props. These assets are produced by AI generation — text-to-3D and image-to-3D (see `06_Tech_Stack`) — but generation is **slow and costs money per asset**, so it can never run inline during a playthrough. Instead, assets are produced by an always-on **continuous background generation pipeline** that works ahead of demand. By the time any player reaches a vignette, the finished, optimized asset is already sitting on the CDN.
+Echo's vignettes are set in atmospheric 3D environments and populated with 3D props. These assets are produced by AI generation — text-to-3D and image-to-3D (see `06_Tech_Stack`) — but generation is **slow and costs money per asset**, so it can never run inline during a playthrough. Instead, assets are produced by an always-on **background pipeline** that works ahead of demand. By the time any player reaches a vignette, the finished, optimized asset is already sitting on the CDN.
 
 > **Boundary.** This pipeline generates the *world* — vignette scenery and props. It is deliberately separate from the player **Portrait**, which stays a deterministic, parametric, dependency-free render (see the Portrait pipeline above). Putting a brand-critical, must-be-reproducible artifact behind a non-deterministic external API would violate principle 5. We don't.
 
@@ -274,6 +274,51 @@ A scheduler runs the loop continuously: it diffs the set of *desired* assets (ev
 ### Where it runs
 
 The generator lives inside the Python ML/content service as an `asset_gen` module plus a long-running **background worker** (a separate process/replica from the request-serving path), consuming from NATS JetStream and writing to R2 + Postgres. It is stateless and horizontally scalable; the queue absorbs bursts. The Flutter client never generates anything — it only downloads ready, optimized GLBs from the CDN and caches them locally (offline-first, like all other content).
+
+---
+
+## Atmospheric backdrops in the renderer
+
+A vignette is not a still image with a choice menu on top. The world *lives* behind the choice — the sky drifts, dust catches the morning light, rain ticks the window — and it keeps living the entire time the player is deliberating. That continuous aliveness is what makes a vignette feel like a place rather than a screen. The **atmospheric backdrop** is the client subsystem that produces it.
+
+> **Boundary.** The backdrop is purely a **renderer** concern. It consumes the GLBs the AI 3D pipeline produces; it does not generate anything, and it does not depend on any cloud service at runtime. A backdrop renders identically offline.
+
+### What the backdrop is
+
+Per vignette, an author declares a `VignetteBackdrop` (`packages/content-schema/vignette_backdrop.schema.json`, validated by `make validate-backdrops`):
+
+- A small set of **layers**, each pointing to an asset by `asset_id` and carrying a **parallax depth** in `[0, 100]` (0 = at camera, 100 = at infinity).
+- A **mood** (time-of-day, weather, palette) that drives color grading and ambient audio mix.
+- A **camera mode** — `parallax` (responds to pointer/accelerometer), `orbital` (slow circular sweep), or `static` (in-layer motion only) — with a damped `sensitivity` in `[0, 1]`.
+- A `transition` (in/out duration + curve) for cross-fades between vignettes.
+- Per-layer **ambient effects**: `drift` (slow sinusoidal pan), `pulse` (slow opacity oscillation), `particles` (dust motes, rain, snow, embers, fireflies), and `parallax_breathe` (a near-imperceptible depth pulse — life, not motion sickness).
+
+A backdrop is not authored in code; it is content. The renderer interprets the spec.
+
+### Continuous, not event-driven
+
+A single long-running animation ticker drives every effect on every layer. Effects compute their phase from elapsed time, so the cost is flat as layers grow and nothing has to be "started" when a choice appears or "stopped" while it is being considered. The scene continues even if the player puts the phone down for a minute and comes back.
+
+Pointer motion (or accelerometer on mobile, when we add it) drives parallax — closer layers move more, far layers stay put. The response is critically damped, so a startled flick of the cursor doesn't shake the scene; the world settles.
+
+### Cross-vignette transitions
+
+When a vignette resolves and the next one is staged, the outgoing backdrop fades out and the incoming one fades in over `transition.in_ms` / `out_ms`. Because the ticker is continuous, ambient motion never pops; the camera does not reset; only the layered visuals cross-dissolve.
+
+### Two rendering paths
+
+- **2D fallback (M1):** Each layer is composited as a tinted painter pass on the Flutter canvas, with particles, drift, pulse, and parallax applied per layer. This is what `apps/client/lib/features/vignette/backdrop/` ships first. It guarantees the renderer works on every device, on every platform, and offline — even before any 3D asset has finished generating.
+- **3D enrichment (M2):** When the GLB for a layer's `asset_id` is locally cached, the same `BackdropSpec` drives a **Thermion (Filament)** scene instead. Parallax depth maps to the camera Z translation; ambient effects (drift, pulse, breathe) become small per-node transforms. *The author-facing spec does not change between the two paths.* The renderer escalates silently when better assets are available and degrades silently when they are not.
+
+### Performance posture
+
+- The animation runs at the device's refresh rate when on, and pauses cleanly when the app is backgrounded.
+- The ticker is wrapped in a `RepaintBoundary` so a backdrop never invalidates the choice UI above it, and the choice UI never invalidates the backdrop. They animate independently.
+- Polycount, particle density, and effect counts are budgeted per vignette in the spec; the renderer downgrades particle counts on lower-tier devices.
+
+### Accessibility
+
+A "reduce motion" preference flattens parallax response to zero, removes particle drift, and stretches every period 5× so ambient motion becomes a slow ambient color shift rather than visible movement. The author-facing spec is the same; the renderer chooses.
 
 ---
 
