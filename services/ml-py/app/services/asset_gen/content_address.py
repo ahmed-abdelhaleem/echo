@@ -4,13 +4,36 @@ The content-address is a stable, deterministic sha256 hash of the
 canonical generation inputs. It is used as the deduplication key for
 asset generation jobs and as a caching identity in R2.
 
-The canonical form is defined as:
-  sha256(canonical_json(inputs))
+**Cross-language invariant.** This implementation MUST produce
+byte-identical hashes to the Node validator at
+:file:`tools/content-validator/lib/content_address.js`. The Node
+validator is what stamps the ``content_address`` field on manifests in
+:file:`content/assets-3d/**`; the Python server uses the same hash as
+the lookup key. Drift between the two would silently double-generate
+every asset (cache misses on every reconcile pass) and break the
+deduplication invariant that the whole architecture rests on.
 
-where canonical_json produces the input dict with **sorted keys** and
-no unnecessary whitespace — identical to what the JSON Schema validator
-``tools/content-validator`` uses (``sort_keys=True, separators=(',', ':')``)
-so Go, Python, and JavaScript all agree on the same hash.
+The shared canonical form is:
+
+* The hashed payload is ``{"kind": ..., "generation": {...}}`` — the
+  ``kind`` is one level *outside* the generation block. The Node
+  validator builds this shape; the Python implementation matches it.
+* Every default field is explicit (``negative_prompt: ""``, ``references:
+  []``, ``params: {}``). Omitting a default-valued field changes the
+  hash and breaks cross-language identity, so this implementation always
+  emits them.
+* ``references`` are normalised: ``sha256`` is dropped when absent, and
+  the list is sorted by ``uri + (sha256 or "")`` so author-side ordering
+  does not change the hash.
+* Canonical JSON: sorted object keys, no whitespace, ``ensure_ascii=False``
+  to match the Node ``JSON.stringify`` of non-ASCII strings, and
+  ``allow_nan=False`` so accidentally non-JSON floats raise rather than
+  silently producing output the JS side cannot reproduce.
+
+The ``KNOWN_FIXTURE_ADDRESS`` test in
+:mod:`tests.test_asset_gen_routing` locks the algorithm against
+drift with a hard-coded sha256 that matches the Node fixture vector at
+:file:`tools/content-validator/test/content_address.test.js`.
 
 >>> from app.services.asset_gen.types import GenerationInputs
 >>> inputs = GenerationInputs(
@@ -35,53 +58,56 @@ import hashlib
 import json
 from typing import Any
 
-from app.services.asset_gen.types import GenerationInputs
+from app.services.asset_gen.types import GenerationInputs, Reference
+
+
+def _canonical_reference(ref: Reference) -> dict[str, str]:
+    """Drop ``sha256`` when absent so the canonical JSON matches the
+    JS algorithm (which builds the object conditionally)."""
+    if ref.sha256:
+        return {"uri": ref.uri, "sha256": ref.sha256}
+    return {"uri": ref.uri}
 
 
 def _canonical_dict(inputs: GenerationInputs) -> dict[str, Any]:
-    """Return a dict of the generation inputs that feeds into the hash.
+    """Return the canonical pre-hash structure for ``inputs``.
 
-    Only the fields that are part of the content-address are included —
-    matching the ``asset_manifest.schema.json`` spec.  Fields marked
-    *"Not part of the content-address"* in the schema (``description``,
-    ``vignette_ids``, ``budget_tier``) are intentionally excluded.
+    Mirrors :func:`canonicalGenerationInputs` in
+    ``tools/content-validator/lib/content_address.js`` field-for-field.
+    Bumping any key here without bumping the JS side will silently make
+    the server and validator disagree about asset identity.
     """
-    d: dict[str, Any] = {
+    refs = [_canonical_reference(r) for r in inputs.references]
+    refs.sort(key=lambda r: r["uri"] + r.get("sha256", ""))
+    return {
         "kind": inputs.kind,
-        "provider": inputs.provider,
-        "mode": inputs.mode,
-        "prompt": inputs.prompt,
-        "pipeline_version": inputs.pipeline_version,
-        "format": inputs.format,
+        "generation": {
+            "provider": inputs.provider,
+            "mode": inputs.mode,
+            "prompt": inputs.prompt,
+            "negative_prompt": inputs.negative_prompt,
+            "references": refs,
+            "params": dict(inputs.params),
+            "pipeline_version": inputs.pipeline_version,
+            "format": inputs.format,
+        },
     }
-    if inputs.negative_prompt:
-        d["negative_prompt"] = inputs.negative_prompt
-    if inputs.references:
-        d["references"] = [
-            {"uri": ref.uri, "sha256": ref.sha256} if ref.sha256 else {"uri": ref.uri}
-            for ref in inputs.references
-        ]
-    if inputs.params:
-        # Sort params by key so insertion order doesn't change the hash.
-        d["params"] = dict(sorted(inputs.params.items()))
-    return d
 
 
 def compute_content_address(inputs: GenerationInputs) -> str:
     """Return the ``sha256:<hex>`` content-address for ``inputs``.
 
-    The address is deterministic: the same ``GenerationInputs`` always
-    produces the same string regardless of the Python process or machine.
-
-    Choice of canonical serialisation: ``json.dumps(sort_keys=True,
-    separators=(',', ':'))`` matches the existing JS implementation in
-    ``tools/content-validator`` so cross-language content-addresses
-    are bit-identical.
+    The address is deterministic and cross-language: the same logical
+    inputs produce the same string in this Python implementation and in
+    :file:`tools/content-validator/lib/content_address.js`.
     """
     canonical = _canonical_dict(inputs)
-    # sort_keys=True: redundant since _canonical_dict already inserts
-    # in key-sorted order for the top level, but defensive for nested
-    # objects (params could have nested maps in future).
-    payload = json.dumps(canonical, sort_keys=True, separators=(",", ":"))
+    payload = json.dumps(
+        canonical,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
     digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
     return f"sha256:{digest}"

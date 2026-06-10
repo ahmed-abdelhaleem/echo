@@ -35,6 +35,21 @@ TRELLIS_API_STYLE=trellis2-apple
 Use an asset manifest with `mode: "image-to-3d"` and exactly one reference
 image. The Apple Silicon API currently does not provide text-to-3D.
 
+The repository also includes an adapter for the patched PyTorch MPS port from
+`shivampkumar/trellis-mac`. After running that port's `setup.sh`, start:
+
+```bash
+export TRELLIS_MAC_ROOT=/path/to/trellis-mac
+"$TRELLIS_MAC_ROOT/.venv/bin/python" \
+  /path/to/echo/services/trellis-py/apple_server.py
+```
+
+This adapter uses Echo's native `POST /v1/generate` contract, so configure
+`TRELLIS_API_STYLE=echo`. It defaults to the 512 pipeline and geometry-only GLB
+export to keep memory and processing time reasonable on a 24 GB Mac. Mesh
+simplification toward `target_polycount` is best-effort; highly detailed meshes
+may remain above the requested target.
+
 ## CUDA Runtime
 
 For the original Microsoft TRELLIS checkout on a CUDA host:

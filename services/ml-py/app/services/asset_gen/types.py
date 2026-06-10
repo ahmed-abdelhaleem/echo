@@ -14,8 +14,20 @@ from typing import Literal
 # Mirrors AssetKind enum in asset_gen.proto.
 AssetKind = Literal["prop", "environment", "character", "ambient"]
 
-# Mirrors Provider enum in asset_gen.proto (only the two used in this PR).
-ProviderID = Literal["meshy", "trellis"]
+# Mirrors Provider enum in asset_gen.proto and the provider enum in
+# packages/content-schema/asset_manifest.schema.json. Manifests in the
+# wild (content/assets-3d/**) already use `tripo` for image-to-3d so the
+# Python type must accept the full enum or those entries fail to load.
+# Only meshy and trellis have wire impls in this PR; the rest are
+# reserved slots that match the proto and the schema.
+ProviderID = Literal[
+    "meshy",
+    "tripo",
+    "luma",
+    "rodin",
+    "stability",
+    "trellis",
+]
 
 # Mirrors GenMode enum.
 GenMode = Literal["text-to-3d", "image-to-3d"]
