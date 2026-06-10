@@ -100,7 +100,7 @@ void main() {
             vignetteControllerProvider.overrideWith((Ref ref) => controller),
             // Stub: no backdrop authored for any vignette.
             backdropForVignetteProvider.overrideWith(
-              (Ref ref, BackdropKey key) => null,
+              (Ref ref, VignetteBackdropKey key) => null,
             ),
           ],
           child: const MaterialApp(
@@ -133,9 +133,10 @@ void main() {
           overrides: <Override>[
             vignetteControllerProvider.overrideWith((Ref ref) => controller),
             backdropForVignetteProvider.overrideWith(
-              (Ref ref, BackdropKey key) => key.vignetteId == 'vignette-001'
-                  ? _minimalSpec(key.vignetteId)
-                  : null,
+              (Ref ref, VignetteBackdropKey key) =>
+                  key.vignetteId == 'vignette-001'
+                      ? _minimalSpec(key.vignetteId)
+                      : null,
             ),
           ],
           child: const MaterialApp(

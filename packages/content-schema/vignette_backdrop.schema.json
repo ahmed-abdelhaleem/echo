@@ -81,6 +81,25 @@
             }
           }
         },
+        "asset_budget": {
+          "type": "object",
+          "description": "Maximum unique 3D geometry and downloaded GLB bytes for this vignette. Assets that would exceed either limit are skipped and retain their 2D fallback.",
+          "additionalProperties": false,
+          "properties": {
+            "max_polycount": {
+              "type": "integer",
+              "minimum": 1000,
+              "maximum": 250000,
+              "default": 80000
+            },
+            "max_size_bytes": {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 52428800,
+              "default": 20971520
+            }
+          }
+        },
         "layers": {
           "type": "array",
           "minItems": 1,

@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   sqlite3_flutter_libs
+  thermion_flutter
   url_launcher_linux
 )
 
