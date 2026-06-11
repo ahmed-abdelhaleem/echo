@@ -44,6 +44,7 @@ from app.grpc_gen import (
 from app.services import portrait_gen, reflection_gen, trait_scoring
 from app.services.asset_gen import (
     AssetFormat,
+    AssetGenBudgetExceededError,
     AssetKind,
     AssetReconciler,
     AssetRecord,
@@ -56,6 +57,7 @@ from app.services.asset_gen import (
     PostgresAssetRepository,
     ProviderID,
     Reference,
+    build_spend_cap_from_env,
 )
 from app.services.reflection import ReflectionPipeline, build_pipeline_from_env
 
@@ -296,6 +298,20 @@ class AssetGenServicer(asset_gen_pb2_grpc.AssetGenServiceServicer):
                 error=str(exc),
             )
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(exc))
+        except AssetGenBudgetExceededError as exc:
+            # T-INFRA-040: the per-environment spend cap halts here so the
+            # caller sees a clear RESOURCE_EXHAUSTED rather than a queued
+            # job that secretly consumed budget. The cap's alert sink has
+            # already fired; no asset row was upserted (peek-before-charge
+            # in AssetSubmissionService.submit).
+            logger.warning(
+                "asset_gen.submit.spend_capped",
+                asset_id=request.spec.id,
+                environment=exc.environment,
+                limit=exc.limit,
+                usage=exc.usage,
+            )
+            context.abort(grpc.StatusCode.RESOURCE_EXHAUSTED, str(exc))
         except Exception as exc:
             logger.error(
                 "asset_gen.submit.enqueue_failed",
@@ -617,7 +633,12 @@ def _build_pipeline_if_enabled() -> ReflectionPipeline | None:
 
 
 def _build_asset_gen_service_if_enabled() -> AssetSubmissionService | None:
-    """Return the Postgres + JetStream submission service when enabled."""
+    """Return the Postgres + JetStream submission service when enabled.
+
+    Also installs the per-environment spend cap (T-INFRA-040) when the
+    operator sets ``ECHO_ASSET_GEN_PERIOD_CAP``. With no cap configured
+    the service stays unlimited (same as before this change).
+    """
     if os.environ.get("ECHO_ASSET_GEN_ENABLED", "").lower() != "true":
         return None
     try:
@@ -625,7 +646,12 @@ def _build_asset_gen_service_if_enabled() -> AssetSubmissionService | None:
         publisher = NatsAssetJobPublisher(
             nats_url=os.environ.get("NATS_URL", "nats://127.0.0.1:4222")
         )
-        return AssetSubmissionService(repository=repository, publisher=publisher)
+        spend_cap = build_spend_cap_from_env(dict(os.environ))
+        return AssetSubmissionService(
+            repository=repository,
+            publisher=publisher,
+            spend_cap=spend_cap,
+        )
     except Exception:
         logger.exception("asset_gen_service.bootstrap_failed")
         return None
