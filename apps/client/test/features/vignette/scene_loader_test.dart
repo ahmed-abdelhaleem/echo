@@ -100,7 +100,8 @@ void main() {
     );
 
     final scene = await loader.loadScene(
-      scene: VignetteScene.fromJson(_scene(envAssetId: 'morning-bedroom-window')),
+      scene:
+          VignetteScene.fromJson(_scene(envAssetId: 'morning-bedroom-window')),
       manifest: _manifestWithReadyEnv(),
       cdnBaseUrl: '',
     );

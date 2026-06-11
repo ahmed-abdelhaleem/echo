@@ -164,9 +164,8 @@ void main() {
           },
         ],
       });
-      final floating = scene
-          .resolvePlacements()
-          .firstWhere((p) => p.asset.id == 'floating');
+      final floating =
+          scene.resolvePlacements().firstWhere((p) => p.asset.id == 'floating');
       _expectVec(_translationOf(floating.worldMatrix), <double>[5, 0, 0]);
     });
 

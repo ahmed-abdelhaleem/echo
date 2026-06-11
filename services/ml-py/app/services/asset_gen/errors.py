@@ -70,8 +70,7 @@ class AllAssetGenProvidersFailedError(AssetGenError):
         # the common case (a flat log line) then shows no actionable cause.
         if failures:
             detail = "; ".join(
-                f"{failure.provider} ({type(failure).__name__}: {failure})"
-                for failure in failures
+                f"{failure.provider} ({type(failure).__name__}: {failure})" for failure in failures
             )
         else:
             detail = "(none)"
