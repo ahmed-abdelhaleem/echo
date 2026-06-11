@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:echo_client/features/vignette/assets/asset_cache.dart';
 import 'package:echo_client/features/vignette/assets/asset_models.dart';
 import 'package:echo_client/features/vignette/backdrop/backdrop_models.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 
 class _MemoryStore implements AssetFileStore {
@@ -188,6 +189,20 @@ void main() {
 
     expect(scene.isEmpty, isTrue);
     expect(downloads, 0);
+  });
+
+  test('dev placeholder GLB is bundled and isValidGlb', () async {
+    // Guards the T-CLIENT-040 debug-only fallback: the file stores hydrate
+    // the cache from this exact bundle key, so dropping it from
+    // pubspec.yaml or shipping a malformed GLB would silently break the
+    // dev "3D shows up" affordance. Production builds strip this asset
+    // via the kDebugMode gate.
+    final data = await rootBundle.load('assets/3d/dev/placeholder.glb');
+    final bytes = data.buffer.asUint8List(
+      data.offsetInBytes,
+      data.lengthInBytes,
+    );
+    expect(isValidGlb(bytes), isTrue);
   });
 
   test(

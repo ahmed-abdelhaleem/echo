@@ -359,6 +359,13 @@ client-content-sync:
 	@mkdir -p apps/client/assets/assets-3d
 	@cp -R content/backdrops/. apps/client/assets/backdrops/
 	@cp -R content/assets-3d/. apps/client/assets/assets-3d/
+	@# Dev affordance for T-CLIENT-040: the source manifest carries the
+	@# authored `desired` state (the reconciler / validator depend on it),
+	@# but the AssetSceneLoader only loads assets marked `ready`. Flip the
+	@# bundled copies so a local dev build can render the placeholder GLB
+	@# end-to-end. The source-of-truth manifest in content/ is unchanged.
+	@find apps/client/assets/assets-3d -name '*.manifest.json' -print0 \
+		| xargs -0 -I{} sed -i 's/"status": "desired"/"status": "ready"/g' {}
 	@echo "✓ client content manifests are in sync"
 
 # ---------------------------------------------------------------------------
