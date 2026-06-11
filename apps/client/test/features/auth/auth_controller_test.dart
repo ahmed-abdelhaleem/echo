@@ -5,6 +5,7 @@
 import 'package:dio/dio.dart';
 import 'package:echo_client/features/auth/auth_controller.dart';
 import 'package:echo_client/services/auth_client.dart';
+import 'package:echo_client/services/session_token_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../_helpers/fakes.dart';
@@ -16,6 +17,29 @@ AuthClient _clientWith(ProgrammableAdapter adapter) {
     coreBaseUrl: 'http://core.test',
     dio: dio,
   );
+}
+
+class _MemorySessionTokenStorage implements SessionTokenStorage {
+  _MemorySessionTokenStorage([this.token]);
+
+  String? token;
+  final List<String> writes = <String>[];
+  var clearCount = 0;
+
+  @override
+  Future<void> clear() async {
+    clearCount++;
+    token = null;
+  }
+
+  @override
+  String? read() => token;
+
+  @override
+  Future<void> write(String token) async {
+    writes.add(token);
+    this.token = token;
+  }
 }
 
 void main() {
@@ -76,6 +100,106 @@ void main() {
     expect(signedIn.session.token, 'tok-1');
     expect(signedIn.whoami?.ageBand, 'adult');
     expect(signedIn.youthSafe, isFalse);
+  });
+
+  test('login persists the new session token', () async {
+    final adapter = ProgrammableAdapter()
+      ..registerJson(
+        method: 'GET',
+        path: RegExp(r'/self-service/login/api$'),
+        status: 200,
+        body: <String, dynamic>{'id': 'persist-login'},
+      )
+      ..registerJson(
+        method: 'POST',
+        path: RegExp(r'/self-service/login$'),
+        status: 200,
+        body: <String, dynamic>{
+          'session_token': 'tok-persisted',
+          'session': <String, dynamic>{
+            'identity': <String, dynamic>{
+              'id': 'id-persisted',
+              'traits': <String, dynamic>{'email': 'saved@x'},
+            },
+          },
+        },
+      )
+      ..registerJson(
+        method: 'GET',
+        path: RegExp(r'/whoami$'),
+        status: 200,
+        body: <String, dynamic>{
+          'identity_id': 'id-persisted',
+          'email': 'saved@x',
+          'age_band': 'adult',
+          'youth_safe': false,
+        },
+      );
+    final storage = _MemorySessionTokenStorage();
+    final ctrl = AuthController(_clientWith(adapter), storage: storage);
+
+    await ctrl.login(email: 'saved@x', password: 'pw-strong');
+
+    expect(storage.token, 'tok-persisted');
+    expect(storage.writes, <String>['tok-persisted']);
+  });
+
+  test('restores a valid persisted session and refreshes whoami', () async {
+    final adapter = ProgrammableAdapter()
+      ..registerJson(
+        method: 'GET',
+        path: RegExp(r'/whoami$'),
+        status: 200,
+        body: <String, dynamic>{
+          'identity_id': 'id-restored',
+          'email': 'restored@x',
+          'display_name': 'Restored',
+          'age_band': 'adult',
+          'youth_safe': false,
+        },
+      );
+    final storage = _MemorySessionTokenStorage('tok-restored');
+    final ctrl = AuthController(_clientWith(adapter), storage: storage);
+
+    expect(
+      (ctrl.state as AuthStateSignedIn).session.token,
+      'tok-restored',
+    );
+    await ctrl.initialSessionRefresh;
+
+    final restored = ctrl.state as AuthStateSignedIn;
+    expect(restored.whoami?.identityId, 'id-restored');
+    expect(restored.whoami?.email, 'restored@x');
+    expect(storage.clearCount, 0);
+  });
+
+  test('invalid persisted session is cleared after whoami', () async {
+    final adapter = ProgrammableAdapter()
+      ..registerJson(
+        method: 'GET',
+        path: RegExp(r'/whoami$'),
+        status: 401,
+      );
+    final storage = _MemorySessionTokenStorage('tok-expired');
+    final ctrl = AuthController(_clientWith(adapter), storage: storage);
+
+    await ctrl.initialSessionRefresh;
+
+    expect(ctrl.state, isA<AuthStateAnonymous>());
+    expect(storage.token, isNull);
+    expect(storage.clearCount, 1);
+  });
+
+  test('offline startup keeps the persisted session for retry', () async {
+    final adapter = ProgrammableAdapter();
+    final storage = _MemorySessionTokenStorage('tok-offline');
+    final ctrl = AuthController(_clientWith(adapter), storage: storage);
+
+    await ctrl.initialSessionRefresh;
+
+    expect(ctrl.state, isA<AuthStateSignedIn>());
+    expect(storage.token, 'tok-offline');
+    expect(storage.clearCount, 0);
   });
 
   test('signUp surfaces youth_safe=true for 13–17 users', () async {
@@ -209,11 +333,14 @@ void main() {
           'youth_safe': false,
         },
       );
-    final ctrl = AuthController(_clientWith(adapter));
+    final storage = _MemorySessionTokenStorage();
+    final ctrl = AuthController(_clientWith(adapter), storage: storage);
     await ctrl.login(email: 'a@x', password: 'pw-strong');
     expect(ctrl.state, isA<AuthStateSignedIn>());
-    ctrl.signOut();
+    await ctrl.signOut();
     expect(ctrl.state, isA<AuthStateAnonymous>());
+    expect(storage.token, isNull);
+    expect(storage.clearCount, 1);
   });
 
   test('delete calls DELETE /me and rotates to anonymous', () async {
