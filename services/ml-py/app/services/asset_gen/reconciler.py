@@ -38,6 +38,7 @@ from pathlib import Path
 
 from app.services.asset_gen.models import AssetSpec, AssetStatus
 from app.services.asset_gen.queue import AssetSubmissionService
+from app.services.asset_gen.spend_cap import AssetGenBudgetExceededError
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,10 @@ class ReconcileOutcome:
     deferred: tuple[str, ...] = ()
     budget_cap: int = 0
     season_id: str = ""
+    # True when the per-environment spend cap (T-INFRA-040) halted this run
+    # before all candidates were enqueued. The remaining candidates are in
+    # `deferred`; the cap's alert sink has already fired.
+    spend_capped: bool = False
 
     @property
     def budget_remaining(self) -> int:
@@ -111,6 +116,7 @@ class AssetReconciler:
 
         seen: set[str] = set()
         desired_count = 0
+        spend_capped = False
         for spec in specs:
             address = spec.content_address
             if address in seen:
@@ -127,11 +133,21 @@ class AssetReconciler:
                 continue
 
             # Missing or FAILED → a (re)generation candidate.
-            if budget_cap and len(enqueued) >= budget_cap:
+            if spend_capped or (budget_cap and len(enqueued) >= budget_cap):
                 deferred.append(address)
                 continue
-            if not dry_run:
+            if dry_run:
+                enqueued.append(address)
+                continue
+            try:
                 self._submission.submit(spec)
+            except AssetGenBudgetExceededError:
+                # The per-environment spend cap tripped. Halt: this and
+                # every remaining candidate are deferred to a later window
+                # (the cap already alerted). Assets already enqueued stand.
+                spend_capped = True
+                deferred.append(address)
+                continue
             enqueued.append(address)
 
         outcome = ReconcileOutcome(
@@ -142,6 +158,7 @@ class AssetReconciler:
             deferred=tuple(deferred),
             budget_cap=budget_cap,
             season_id=season_id,
+            spend_capped=spend_capped,
         )
         logger.info(
             "asset_reconciler.run",

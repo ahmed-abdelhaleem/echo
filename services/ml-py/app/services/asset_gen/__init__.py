@@ -80,6 +80,14 @@ from app.services.asset_gen.repository import (
     PostgresAssetRepository,
 )
 from app.services.asset_gen.routing import RoutingAssetGenProvider, RoutingResult
+from app.services.asset_gen.spend_cap import (
+    AssetGenBudgetExceededError,
+    NoSpendCap,
+    SpendCap,
+    SpendUsage,
+    WindowedSubmissionCap,
+    build_spend_cap_from_env,
+)
 from app.services.asset_gen.storage import (
     AssetObjectStore,
     LocalAssetObjectStore,
@@ -105,6 +113,7 @@ __all__ = [
     "KNOWN_PROVIDERS",
     "AllAssetGenProvidersFailedError",
     "AssetFormat",
+    "AssetGenBudgetExceededError",
     "AssetGenConfigurationError",
     "AssetGenError",
     "AssetGenProvider",
@@ -138,6 +147,7 @@ __all__ = [
     "LocalAssetObjectStore",
     "MeshyProvider",
     "NatsAssetJobPublisher",
+    "NoSpendCap",
     "PostgresAssetRepository",
     "ProcessedAsset",
     "ProviderID",
@@ -146,9 +156,13 @@ __all__ = [
     "Reference",
     "RoutingAssetGenProvider",
     "RoutingResult",
+    "SpendCap",
+    "SpendUsage",
     "TrellisProvider",
+    "WindowedSubmissionCap",
     "build_provider",
     "build_provider_from_env",
+    "build_spend_cap_from_env",
     "compute_content_address",
     "inspect_glb",
     "load_manifest_dir",

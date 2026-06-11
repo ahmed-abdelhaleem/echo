@@ -105,3 +105,8 @@ flutter:
   assets:
     - assets/backdrops/season-001/backdrops.manifest.json
     - assets/assets-3d/season-001/assets.manifest.json
+    # Dev-only placeholder GLB used by AssetFileStore when there is no
+    # CDN configured and no on-disk cache hit. Regenerate deterministically
+    # with `python3 apps/client/assets/3d/dev/gen_placeholder.py`. Stripped
+    # from release builds by the file store's kDebugMode gate.
+    - assets/3d/dev/placeholder.glb

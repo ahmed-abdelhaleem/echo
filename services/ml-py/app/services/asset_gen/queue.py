@@ -10,6 +10,7 @@ from typing import Any, Protocol
 
 from app.services.asset_gen.models import AssetJob, AssetRecord, AssetSpec, AssetStatus
 from app.services.asset_gen.repository import AssetRepository
+from app.services.asset_gen.spend_cap import NoSpendCap, SpendCap
 from app.services.asset_gen.worker import AssetGenerationWorker
 
 logger = logging.getLogger(__name__)
@@ -32,13 +33,26 @@ class AssetSubmissionService:
         *,
         repository: AssetRepository,
         publisher: AssetJobPublisher,
+        spend_cap: SpendCap | None = None,
     ) -> None:
         self.repository = repository
         self._publisher = publisher
+        # Per-environment spend guard (T-INFRA-040). Defaults to no cap so
+        # tests and dev are unaffected until ECHO_ASSET_GEN_PERIOD_CAP is set.
+        self._spend_cap: SpendCap = spend_cap or NoSpendCap()
 
     def submit(self, spec: AssetSpec, *, dry_run: bool = False) -> tuple[AssetRecord, bool]:
         if dry_run:
             return AssetRecord(spec=spec, status=AssetStatus.QUEUED), False
+        # Charge the spend cap only for submissions that would incur paid
+        # work (a publish): a missing or FAILED row will (re)publish; a
+        # READY or already-pending row is free. We peek BEFORE enqueue so a
+        # capped submission leaves no zombie QUEUED row with no job behind
+        # it — the asset stays missing and is retried when the window rolls.
+        existing = self.repository.get(spec.content_address)
+        would_publish = existing is None or existing.status == AssetStatus.FAILED
+        if would_publish:
+            self._spend_cap.charge()  # raises AssetGenBudgetExceededError when over
         result = self.repository.enqueue(spec)
         if result.should_publish:
             self._publisher.publish(AssetJob(spec))
