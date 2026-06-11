@@ -15,6 +15,7 @@ JSON Schemas for the content pipeline. Source of truth for the shape of a
 | `trait_weight.schema.json` | One signed contribution to a single trait dimension. |
 | `asset_manifest.schema.json` | The 3D assets a Season needs (T-CONTENT-004). Each asset carries a deterministic `content_address`. |
 | `vignette_backdrop.schema.json` | Per-vignette atmospheric backdrop: layered parallax + continuous ambient motion + transitions (T-CONTENT-005, T-CLIENT-041). |
+| `vignette_scene.schema.json` | Per-vignette explorable 3D scene: one environment + placed props with transforms/anchors, scene-level lighting, and a bounded camera rig (T-CONTENT-200, T-CLIENT-200). |
 
 Schemas are JSON Schema **Draft 07** for compatibility with the broadest
 toolchain (Ajv in Node, jsonschema in Python, json_schema in Dart).

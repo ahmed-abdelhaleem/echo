@@ -1,0 +1,15 @@
+{
+  "playthrough_id": "season-001-morning-aware",
+  "description": "Phone-first wake-up, rotate the plant. Seeds vignette-001/choice-1 + vignette-002/choice-1; OCEAN-N=0.1 matches the test_trait_scoring golden.",
+  "season_id": "season-001",
+  "events": [
+    { "vignette_id": "vignette-001", "choice_id": "choice-1" },
+    { "vignette_id": "vignette-002", "choice_id": "choice-1" }
+  ],
+  "expected": {
+    "big_five": [-0.1, 0.2, 0.1, 0.1, 0.1],
+    "schwartz": [0.1, 0.2, 0.0, 0.0, 0.0, -0.1, 0.0, 0.0, 0.0, 0.0],
+    "attachment": [0.1, 0.0, 0.0]
+  }
+}
+

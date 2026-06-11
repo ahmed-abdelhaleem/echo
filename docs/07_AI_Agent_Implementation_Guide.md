@@ -149,6 +149,8 @@ T-<AREA>-<NNN>
 
 The list below is **not exhaustive**; it's the spine. Each task on this list will have a fuller specification in the task tracker.
 
+> **Build order — the game comes first (authoritative; see `10_Roadmap` → *Build order*).** Sequence work game-first, *not* by milestone number. The complete explorable game — M0/M1 rails → M2 *content + Portrait + reflection* → **M6 explorable 3D scenes + real asset generation, pulled forward** — is finished and signed off at the **Game-Complete** gate **before** any monetization, accounts, sharing/social, or B2B work. Concretely, these epics are **deferred until Game-Complete**: *Auth and accounts*, *Sharing*, billing/`T-MONEY-*`, friend-comparison/`T-SOCIAL-*`, and all `T-B2B-*`. The game must stand alone — playable anonymously and offline, end to end — first.
+
 ---
 
 ## MILESTONE M0 — Foundation (Weeks 1–4)
@@ -326,6 +328,79 @@ Everything from M1 plus: full Season content, real parametric Portrait, real LLM
 
 ---
 
+## MILESTONE M6 — Explorable 3D vignettes (Phase G — the game; built before monetization/accounts)
+
+> ✅ **Direction approved** (founder sign-off, 2026-06-11). Vignettes move from
+> atmospheric backdrops to gently **explorable 3D scenes**; `01_Product_Vision`,
+> `03_Product_Requirements` (`F-CORE-007`), `04_Game_Design`, `05_Technical_Architecture`,
+> `06_Tech_Stack`, and the roadmap (`10`, M6) have been updated to match. The engine stays
+> **Thermion (Filament)** — *not* Unity (rationale in `06_Tech_Stack`).
+>
+> ⚠️ **Operational gates still require explicit human approval before the dependent tasks
+> merge** — the vision gate is satisfied, these are not: enabling **paid generation** and
+> setting the budget cap (escalation #11, T-ML-200/T-INFRA-200), and the **asset QA /
+> safety / brand + youth-safe** review for scene-level 3D content (#7/#12, T-SAFETY-200).
+> (Numbered M6 to stay aligned with the roadmap, whose M5 is the Series-A/scale business
+> milestone; there is no separate feature-epic M5.)
+
+**Engine decision: stay on Thermion (Filament); do *not* adopt Unity.** `06_Tech_Stack`
+already evaluated and rejected Unity/Godot (heavyweight, large binary, web/WASM-iframe
+fit, and reintroducing the cross-platform bridges Flutter exists to avoid). Thermion is
+already a dependency and already composes a multi-asset scene on native
+(`three_d_viewport_io.dart`). An *explorable* scene (free-look camera, bounded
+navigation, tap-to-inspect) is achievable on Thermion across all four platforms without
+abandoning Flutter parity. Unity would only be reconsidered if the product becomes
+"3D game first," which is a different company decision than this milestone.
+
+- **T-DESIGN-200** — Vision/design definition (gate: founder sign-off, blocks the rest).
+  Decide precisely what "explorable" means — free-look orbit, bounded walk-around, or
+  tap-to-inspect props — and how exploration coexists with the deliberation/choice loop
+  and Echo's reflective, low-pressure tone. Update `01_Product_Vision`, `04_Game_Design`,
+  and the roadmap (`10`).
+  - Accept: the three docs describe the interactive model and explicitly state what does
+    *not* change (the trait engine, the deterministic Portrait, the youth-safe tone).
+- **T-CLIENT-200** — Explorable scene viewport on Thermion: per-vignette camera rig and
+  bounds, free-look (orbit/limited pan), optional tap hit-testing to inspect props,
+  reduce-motion and accessibility fallbacks, graceful degradation to the 2D/atmospheric
+  path. Generalizes the current static single-asset viewport.
+  - Accept: golden + perf test for a representative explorable vignette; reduce-motion
+    disables auto-motion; missing assets fall back without crashing.
+- **T-CLIENT-201** — Web parity for composed scenes: render the *full* multi-asset scene
+  on web (Thermion/Filament-WASM, or a baked per-vignette scene GLB) to match native,
+  retiring the single-model `model_viewer` path for scenes (keep it only as a fallback).
+  - Accept: web renders all backdrop layers composed; offline play uses cached scene.
+- **T-CONTENT-200** — Scene composition schema + authoring: extend `VignetteBackdrop`
+  (or a new `VignetteScene` schema) to place multiple assets with transforms, anchors,
+  lighting, and camera bounds; author full scenes for **all 20** season-001 vignettes,
+  not 3. Validated by a new `make validate-scenes`.
+  - Accept: schema in `packages/content-schema/`; all 20 vignettes have a scene; tamper
+    fails closed; trait vectors are unaffected (`make replay` unchanged).
+- **T-ML-200** — Real generation at content scale (gate: budget approval, #11/#12).
+  Enable Meshy as primary behind the existing per-environment spend cap (T-INFRA-040),
+  generate the season's environment + prop meshes, and confirm the QA/safety/brand gate
+  passes on *real* meshes (not stubs).
+  - Accept: a capped batch generates the season's assets; the spend cap halts+alerts at
+    the limit; every asset clears the automated gate and the human brand review.
+- **T-ML-201** — Scene-coherent generation: prompt/seed/style conventions so generated
+  props and environments compose into one coherent scene (consistent scale, orientation,
+  art direction) rather than isolated objects.
+  - Accept: a generated environment + its props share style/scale and assemble per the
+    scene spec without manual fix-up.
+- **T-SAFETY-200** — Youth-safe + brand review for interactive 3D (gate: human review, #7/#12).
+  Confirm explorable/inspectable 3D introduces no unsafe surfaces; extend the asset
+  QA/safety/brand gate from single assets to full scenes.
+  - Accept: documented review covering scene-level content; the gate rejects an unsafe
+    scene fixture.
+- **T-PERF-200** — Cross-platform performance budget for explorable scenes (poly/draw/
+  memory) with golden + perf tests on iOS/Android/macOS/Windows/web, and automatic
+  degradation to the 2D path on low-end devices and web.
+  - Accept: each platform meets the budget or degrades; no jank regression in the choice UI.
+
+Verification additions for this milestone: `make validate-scenes`; `PLATFORM=… make
+client-test` golden+perf for an explorable vignette.
+
+---
+
 ## Verification — golden command list
 
 Any AI agent finishing a task should be able to run:
@@ -390,4 +465,6 @@ If you are an AI agent reading this:
 - Prefer asking targeted questions over making invisible assumptions. Especially on the trait-engine and youth-safe paths.
 - When a task is ambiguous, write the most boring, smallest, most reversible solution that satisfies the acceptance criteria.
 - When in doubt about which of two valid approaches to take, leave a clearly-labeled comment with the choice and the alternative considered, and proceed.
+- **Keep `13_Agent_Change_Log` current.** At the end of every change, prepend a terse entry to its *Change log* and update its *Next in pipeline* pointer. A change that doesn't update the log is not done.
+- **Honor the build order.** The complete explorable game ships before monetization/accounts/sharing/B2B (see `10_Roadmap` → *Build order*); do not start deferred epics early.
 - Treat the conventions in this document as binding. Conformance failures block merge regardless of correctness.

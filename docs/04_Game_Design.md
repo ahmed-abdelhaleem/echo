@@ -27,13 +27,30 @@ Total: **15–25 vignettes** per Season. Target playtime: **20–30 minutes** un
 
 ### Shape of a Vignette
 
-Each vignette is a single screen with this structure:
+Each vignette is a single **explorable 3D scene** with this structure:
 
-1. **Setting beat** — 1–3 sentences of present-tense narration that places the character in a specific moment. May include an evocative still image and ambient audio layer. No "you are in a forest" generic flavor — every setting is specific (*"The kitchen light is on. Someone has been crying recently and pretended not to."*).
+1. **Setting beat** — 1–3 sentences of present-tense narration that places the character in a specific moment, over a hand-crafted, gently explorable 3D diorama (and an ambient audio layer). No "you are in a forest" generic flavor — every setting is specific (*"The kitchen light is on. Someone has been crying recently and pretended not to."*), and the scene shows it: the unmade bed, the chipped mug, the rain on the glass.
 2. **Inciting choice** — 2 to 4 options, each phrased in natural language as something a person would actually do or say. No labels, no MBTI-coded options.
 3. **Resolution beat** — 1–2 sentences acknowledging the choice. Never judgmental. Sometimes the resolution carries forward and influences a later vignette; sometimes it doesn't.
 
 **Critical:** the player is never told which choices "count" or which traits are being measured. They aren't. *All* choices count, including the act of skipping ambient interactions.
+
+### The vignette as an explorable 3D scene
+
+The scene is the vignette's *body*, not its wallpaper. It exists to make a moment feel like a **place you are standing in**, which is exactly what makes an indirect read of the player feel true. It is deliberately closer to *Monument Valley* than to an open-world game: calm, restrained, and generous with attention rather than demanding of it.
+
+**Interaction model (deliberately small):**
+
+- **Free-look, bounded.** The player can orbit/look around the diorama within author-defined limits (a gentle, damped camera — never a free-fly camera, never disorienting). On touch it is drag-to-look; on desktop, pointer/drag; reduced-motion flattens it to a still framing.
+- **Tap-to-inspect (optional).** A few props in a scene may be *noticing points* — tapping gently focuses them and may surface a one-line observation. This is flavor and presence, never a puzzle and never required.
+- **No traversal, no timing, no fail.** There is no walking, no inventory, no objective, no timer, no way to "lose." Exploration cannot be done "wrong."
+- **Exploration never gates the choice.** The choices are always reachable; a player who ignores the scene entirely has a complete, unpenalized playthrough. The scene rewards curiosity without taxing disinterest.
+
+**How it serves the pillars.** It serves *calm intentional pacing* (the world breathes while you think) and *honesty by indirection* (presence lowers the social mask further than a flat screen does). It must never serve novelty for its own sake — a scene that adds motion-sickness, pressure, or distraction from the decision has failed and does not ship.
+
+**What the trait engine does and does not read here.** Hesitation, pacing, and revisits on the *choice* remain signal (see *Hidden signals*). Camera look-around and prop inspection are **presence, not assessment** — they are not scored into the trait vector at MVP, to avoid penalizing players on slower devices or those who simply don't fidget with the camera. (If a future, well-calibrated study shows exploration patterns are diagnostic, adding them is a trait-engine change and follows the escalation/calibration rules — it is not assumed here.)
+
+**Accessibility & comfort are first-class.** Honor the OS "reduce motion" setting (flatten to a still, no auto-orbit), keep a one-tap "still" toggle, cap camera velocity, and never strobe or rapidly oscillate. The 2D/still path is always a valid, equal way to play.
 
 ### Hidden signals
 

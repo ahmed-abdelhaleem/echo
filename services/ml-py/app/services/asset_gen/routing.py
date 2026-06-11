@@ -104,8 +104,10 @@ class RoutingAssetGenProvider:
                 result = provider.generate(request)
             except AssetGenProviderError as exc:
                 logger.warning(
-                    "asset-gen provider %s failed; trying next",
+                    "asset-gen provider %s failed (%s: %s); trying next provider in chain",
                     provider.provider_id,
+                    type(exc).__name__,
+                    exc,
                     extra={
                         "provider": provider.provider_id,
                         "error_type": type(exc).__name__,

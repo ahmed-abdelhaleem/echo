@@ -31,6 +31,20 @@ Features are grouped by **release milestone** (MVP → V1 → V2). Each feature 
 
 ---
 
+## Build priority — the game comes first (authoritative)
+
+The release table above is the *business* sequence. The **build** sequence is game-first: we finish the whole game before building monetization, accounts, sharing, or B2B. This ordering overrides milestone/release placement wherever they conflict (see `10_Roadmap` → *Build order*).
+
+| Phase | Features (build in this order) | Gate |
+|---|---|---|
+| **G — The Game** (sole priority until done) | `F-CORE-001` playthrough engine, `F-CORE-002` vignette renderer, **`F-CORE-007` explorable 3D scenes**, `F-CORE-003` trait scoring, `F-CORE-004` Portrait + reflection, full Season content, real 3D asset generation, accessibility + offline. Playable **anonymously, no account, no network, no paywall.** | **Game-Complete** (see `10`) |
+| **P — Platform & growth** (only after Game-Complete) | `F-AUTH-001` accounts/sync, `F-SETTINGS-001`, `F-SHARE-001` sharing, `F-SOCIAL-001` friend comparison, `F-CORE-005` desktop store distribution, `F-CORE-006` Season 2, **`F-MONEY-001` Echo+ subscription / payments**, `F-LLM-001` productionized reflection. | Public launch |
+| **B — Business** (after Phase P) | `F-B2B-001/002/003` institutional, `F-COMPLIANCE-001`. | — |
+
+**Anonymous play is what makes this possible.** Per `01_Product_Vision`, a playthrough completes without an account; the youth-safe age gate and any data sync attach in Phase P, but the *game* — including its explorable 3D scenes, Portrait, and reflection — is complete and shippable on its own first. No payment, subscription, account, sharing, or institutional work begins until the Game-Complete gate is signed off.
+
+---
+
 ## MVP — Feature scope
 
 ### F-CORE-001 — Single-Season playthrough engine
@@ -42,12 +56,13 @@ Features are grouped by **release milestone** (MVP → V1 → V2). Each feature 
 - No timed pressure — the player can sit on any vignette indefinitely.
 
 ### F-CORE-002 — Vignette renderer
-**Description.** Each vignette is a screen presenting a short narrative beat (text, optional ambient art, optional sound) followed by 2–4 choices.
+**Description.** Each vignette is a screen presenting a short narrative beat (text, ambient audio, and — where assets are ready — an explorable 3D scene; see `F-CORE-007`) followed by 2–4 choices.
 **Acceptance criteria.**
 - Renders text at multiple lengths gracefully (mobile portrait, tablet, desktop window).
 - Choices are presented as natural-language options, not labeled archetypes.
 - Choice timing, hesitation, and revisits are all logged as part of the input signal (not just the final selection).
 - Optional ambient audio loops smoothly across vignette transitions.
+- The choice UI remains fully usable and legible whether the backdrop is a 3D scene, a 2D atmospheric fallback, or nothing — and never depends on a scene having loaded.
 
 ### F-CORE-003 — Trait scoring engine (rule-based v1)
 **Description.** Every player input feeds a trait vector mapped to Big Five (OCEAN), Schwartz values (10 dimensions), and attachment style proxies. V1 uses transparent rule-based weights authored alongside vignettes.
@@ -67,6 +82,7 @@ Features are grouped by **release milestone** (MVP → V1 → V2). Each feature 
 
 ### F-AUTH-001 — Account creation (light)
 **Description.** Player can complete a playthrough without an account. To save the Portrait, sync across devices, or share it, they create a light account.
+> **Build phase: P (deferred until Game-Complete).** The game is finished and playable fully anonymously before accounts are built; this adds save/sync/sharing on top of an already-complete game.
 **Acceptance criteria.**
 - Anonymous playthrough is supported end-to-end.
 - Sign-up requires email OR Apple/Google OAuth.
@@ -122,8 +138,21 @@ Features are grouped by **release milestone** (MVP → V1 → V2). Each feature 
 - Comparison generates a single shareable artifact.
 - Youth-safe accounts cannot participate without verified guardian consent.
 
+### F-CORE-007 — Explorable 3D vignette scenes
+**Description.** Each vignette is presented as a calm, hand-composed, gently **explorable 3D scene** (an atmospheric diorama — the *Monument Valley* reference, not an open world), composed of AI-generated environment and prop assets placed in 3D. The player can look around within author-defined bounds and optionally inspect a few "noticing point" props. Exploration is presence, not a puzzle, and never gates the choice. See `04_Game_Design` → *The vignette as an explorable 3D scene* and `05_Technical_Architecture` → *Explorable 3D vignette scenes*. Built in the **game-first Phase G** (see `10` → *Build order*; milestone **M6** in `07`/`10`) — before any monetization/accounts work; it supersedes the M2 single-asset/parallax backdrop while keeping the same author-facing content model and the 2D fallback.
+**Acceptance criteria.**
+- Every vignette of a shipped Season has an authored scene (environment + props), not a single object; coverage is validated by `make validate-scenes`.
+- Free-look is bounded and damped (drag-to-look on touch, pointer-drag on desktop); there is no traversal, timer, objective, or fail state.
+- Tap-to-inspect is optional and surfaces at most a one-line observation; ignoring the scene yields a complete, unpenalized playthrough.
+- Scenes render with parity across iOS, Android, macOS, Windows, **and web**; a device or build that cannot render 3D degrades cleanly to the 2D atmospheric path with no loss of playability.
+- OS "reduce motion" flattens the scene to a still framing and disables auto-orbit; a one-tap "still" toggle is always available.
+- Per-vignette poly/draw/memory budgets are honored; the choice UI never janks regardless of scene cost (independent `RepaintBoundary`).
+- Camera look-around and prop inspection are **not** scored into the trait vector at MVP (presence, not assessment); changing this is a trait-engine change governed by the calibration/escalation rules.
+- All scene assets clear the automated QA + safety/brand gate and youth-safe review before a scene ships.
+
 ### F-MONEY-001 — Free tier + Echo+ premium
 **Description.** Free tier includes one Season per quarter; Echo+ unlocks the full library, archival of all Portraits, deeper reflection content, and early access to new Seasons.
+> **Build phase: P (deferred until Game-Complete).** No subscription, paywall, or payment integration is built until the game is complete and signed off.
 **Acceptance criteria.**
 - Subscription billed via Apple IAP, Google Play Billing, and Stripe on desktop.
 - Single subscription tier (Echo+) priced approximately €4.99/month or €39.99/year (final pricing per `09_Monetization`).
@@ -192,6 +221,7 @@ Features are grouped by **release milestone** (MVP → V1 → V2). Each feature 
 - Avatars or profile customization beyond the Portrait
 - Ad-supported tier
 - Crypto, NFTs, "owning your personality on-chain," and anything similar
+- **Open-world / free-roam traversal, movement controls, timers, objectives, or any fail state.** The explorable 3D scene (`F-CORE-007`) is an atmospheric, bounded diorama you look around — never a level you move through.
 
 These are out of scope to protect the brand soul described in `01_Product_Vision`.
 

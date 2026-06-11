@@ -72,9 +72,11 @@ help:
 	@echo "  make validate-content Validate content/ against content-schema"
 	@echo "  make validate-assets  Validate 3D asset manifests (content/assets-3d)"
 	@echo "  make validate-backdrops Validate vignette-backdrop manifests (content/backdrops)"
+	@echo "  make validate-scenes  Validate explorable vignette-scene manifests (content/scenes)"
 	@echo "  make client-content-sync Mirror backdrop and 3D asset manifests into the client"
 	@echo "  make simulate         Run tools/playthrough-sim (placeholder until M1)"
-	@echo "  make replay           Run tools/trait-replay (placeholder until M1)"
+	@echo "  make replay           Run tools/trait-replay drift gate over content/seasons"
+	@echo "  make replay-update    Re-record trait-replay baselines (human-reviewed content changes)"
 	@echo ""
 	@echo "Per-language:"
 	@echo "  make go-test          make py-test          make node-test          make flutter-test"
@@ -347,6 +349,15 @@ else
 	@echo "↷ pnpm not installed; skipping validate-backdrops"
 endif
 
+.PHONY: validate-scenes
+validate-scenes:
+ifeq ($(PNPM_AVAILABLE),yes)
+	@echo "→ validate-scenes"
+	@pnpm --filter @echo/content-validator run validate -- --only scenes
+else
+	@echo "↷ pnpm not installed; skipping validate-scenes"
+endif
+
 # Mirror authored content manifests into the Flutter client's asset bundle.
 # GLB binaries stay on the CDN; only their content addresses and renderer
 # composition are bundled for cache-first/offline lookup.
@@ -355,10 +366,13 @@ client-content-sync:
 	@echo "→ client-content-sync"
 	@rm -rf apps/client/assets/backdrops
 	@rm -rf apps/client/assets/assets-3d
+	@rm -rf apps/client/assets/scenes
 	@mkdir -p apps/client/assets/backdrops
 	@mkdir -p apps/client/assets/assets-3d
+	@mkdir -p apps/client/assets/scenes
 	@cp -R content/backdrops/. apps/client/assets/backdrops/
 	@cp -R content/assets-3d/. apps/client/assets/assets-3d/
+	@cp -R content/scenes/. apps/client/assets/scenes/
 	@# Dev affordance for T-CLIENT-040: the source manifest carries the
 	@# authored `desired` state (the reconciler / validator depend on it),
 	@# but the AssetSceneLoader only loads assets marked `ready`. Flip the
@@ -377,10 +391,32 @@ simulate:
 	@echo "→ simulate: tools/playthrough-sim is a placeholder until M1 (T-CLIENT-011 / T-CORE-010)."
 	@echo "  Adding a no-op exit-0 to keep the convention from docs/07."
 
+# trait-replay reuses the ml-py scoring engine, so it runs in the uv env.
+# The corpus lives in tools/trait-replay/corpus; content is content/seasons.
+TRAIT_REPLAY_CORPUS := ../../tools/trait-replay/corpus
+TRAIT_REPLAY_CONTENT := ../../content/seasons
+
 .PHONY: replay
 replay:
-	@echo "→ replay: tools/trait-replay is a placeholder until M2 (post T-ML-010)."
-	@echo "  Adding a no-op exit-0 to keep the convention from docs/07."
+ifeq ($(UV_AVAILABLE),yes)
+	@echo "→ replay (tools/trait-replay over content/seasons)"
+	@cd services/ml-py && uv run python -m app.tools.trait_replay \
+		--corpus $(TRAIT_REPLAY_CORPUS) --content-root $(TRAIT_REPLAY_CONTENT)
+else
+	@echo "↷ uv not installed; skipping replay"
+endif
+
+# Regenerate trait-replay baselines after an INTENTIONAL, human-reviewed
+# content change (AGENTS.md §4/§10). Review the diff before committing.
+.PHONY: replay-update
+replay-update:
+ifeq ($(UV_AVAILABLE),yes)
+	@echo "→ replay-update (recording trait-replay baselines)"
+	@cd services/ml-py && uv run python -m app.tools.trait_replay \
+		--corpus $(TRAIT_REPLAY_CORPUS) --content-root $(TRAIT_REPLAY_CONTENT) --update
+else
+	@echo "↷ uv not installed; skipping replay-update"
+endif
 
 # ---------------------------------------------------------------------------
 # Proto codegen (committed to the tree so CI doesn't need protoc)
@@ -530,3 +566,78 @@ else
 	@echo "↷ flutter not installed; cannot run client"
 	@exit 1
 endif
+
+# Dev-only stand-in for the asset CDN. Serves content-addressed GLBs with CORS
+# so the web client can fetch them; falls back to the bundled placeholder cube.
+ASSET_CDN_PORT ?= 8099
+ASSET_CDN_ROOT ?= $(CURDIR)/.echo-cdn
+.PHONY: dev-asset-cdn
+dev-asset-cdn:
+	@echo "→ dev-asset-cdn (CORS) on :$(ASSET_CDN_PORT)"
+	@python3 apps/client/tool/dev_asset_cdn.py --port $(ASSET_CDN_PORT) --root "$(ASSET_CDN_ROOT)"
+
+# Generate a distinct dev GLB per asset declared in the season manifests and
+# write them to the CDN serve root at their content-addressed path. This is the
+# local stand-in for the asset-gen worker: no GPU, no paid provider, and the
+# output is uncompressed so <model-viewer> renders it offline. Re-run after
+# editing content/assets-3d/**.
+.PHONY: gen-dev-assets
+gen-dev-assets:
+	@echo "→ gen-dev-assets → $(ASSET_CDN_ROOT)"
+	@python3 apps/client/tool/gen_dev_assets.py --out "$(ASSET_CDN_ROOT)"
+
+# Gated entry point for REAL asset generation via Meshy (PAID — escalation #11).
+# Refuses to start unless BOTH a key and a spend cap are set, so paid generation
+# can never run uncapped. This only runs the generation worker; enqueueing the
+# season's assets (reconcile / gRPC SubmitAsset) is the remaining gated step —
+# see services/ml-py/README and docs/07 T-ML-200/T-INFRA-200. Not activated by
+# default; provide the env and a human-approved budget to use it.
+.PHONY: dev-asset-worker-meshy
+dev-asset-worker-meshy:
+	@test -n "$$MESHY_API_KEY" || { echo "✗ MESHY_API_KEY required (paid Meshy provider)"; exit 1; }
+	@{ [ -n "$$ECHO_ASSET_GEN_PERIOD_CAP" ] && [ "$$ECHO_ASSET_GEN_PERIOD_CAP" -gt 0 ] 2>/dev/null; } || { echo "✗ ECHO_ASSET_GEN_PERIOD_CAP must be set > 0 (spend cap; escalation #11 requires a human-approved budget)"; exit 1; }
+	@echo "→ dev-asset-worker-meshy (PAID: Meshy primary, period cap=$$ECHO_ASSET_GEN_PERIOD_CAP) → $(ASSET_CDN_ROOT)"
+	@cd services/ml-py && ECHO_ASSET_GEN_PRIMARY=meshy ECHO_ASSET_GEN_FALLBACKS=trellis ECHO_ASSET_STORE_BACKEND=local ECHO_ASSET_STORE_DIR="$(ASSET_CDN_ROOT)" GLTFPACK_BIN="$(CURDIR)/node_modules/.bin/gltfpack" uv run python -m app.services.asset_gen.worker_main
+
+# Enqueue the Season's desired assets to JetStream so a worker can generate them.
+# `--list-only` (no DB/NATS) inspects manifests; `--dry-run` reports without
+# publishing. Pass flags via RECONCILE_ARGS, e.g.:
+#   make dev-asset-reconcile RECONCILE_ARGS="--season season-001 --dry-run"
+RECONCILE_ARGS ?=
+.PHONY: dev-asset-reconcile
+dev-asset-reconcile:
+	@echo "→ dev-asset-reconcile $(RECONCILE_ARGS)"
+	@cd services/ml-py && uv run python -m app.services.asset_gen.reconcile_main $(RECONCILE_ARGS)
+
+# Run the web client with the 3D backdrop debug flag + the local asset CDN.
+# The debug flag makes the <model-viewer> viewport loud (console) and visible
+# (magenta border, opaque background, no scrim) so you can tell whether the 3D
+# scene loaded and paints. Pair with `make dev-asset-cdn` in another terminal.
+.PHONY: client-3d
+client-3d:
+ifeq ($(FLUTTER_AVAILABLE),yes)
+	@test -f apps/client/web/sqlite3.wasm || $(MAKE) client-web-assets
+	@echo "→ client-3d (ECHO_3D_DEBUG=true, CDN :$(ASSET_CDN_PORT)) on web :$(FLUTTER_WEB_PORT)"
+	@cd apps/client && flutter pub get && flutter run -d chrome --web-port=$(FLUTTER_WEB_PORT) \
+		--dart-define=ECHO_3D_DEBUG=true \
+		--dart-define=ECHO_ASSET_CDN_URL=http://127.0.0.1:$(ASSET_CDN_PORT)
+else
+	@echo "↷ flutter not installed; cannot run client-3d"
+	@exit 1
+endif
+
+# One-command 3D dev loop: starts the stand-in CDN in the background, runs the
+# debug web client, and tears the CDN down on exit. Equivalent to running
+# `make dev-asset-cdn` and `make client-3d` in two terminals.
+.PHONY: dev-3d
+dev-3d:
+ifeq ($(FLUTTER_AVAILABLE),yes)
+	@test -f apps/client/web/sqlite3.wasm || $(MAKE) client-web-assets
+	@$(MAKE) gen-dev-assets
+	@echo "→ dev-3d (CDN :$(ASSET_CDN_PORT) + debug web client :$(FLUTTER_WEB_PORT))"
+	@bash -c 'python3 apps/client/tool/dev_asset_cdn.py --port $(ASSET_CDN_PORT) --root "$(ASSET_CDN_ROOT)" & CDN_PID=$$!; trap "kill $$CDN_PID 2>/dev/null" EXIT; cd apps/client && flutter pub get && flutter run -d chrome --web-port=$(FLUTTER_WEB_PORT) --dart-define=ECHO_3D_DEBUG=true --dart-define=ECHO_ASSET_CDN_URL=http://127.0.0.1:$(ASSET_CDN_PORT)'
+else
+	@echo "↷ flutter not installed; cannot run dev-3d"
+	@exit 1
+endif
+

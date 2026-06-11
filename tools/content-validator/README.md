@@ -54,3 +54,20 @@ node bin/validate.js --only backdrops
 # or from the repo root:
 make validate-backdrops
 ```
+
+## Vignette scene manifests
+
+Scene manifests (T-CONTENT-200) under `content/scenes/` are validated against
+`vignette_scene.schema.json` plus rules JSON Schema can't express: at most one
+scene per `vignette_id`, unique node ids within a scene (environment + props),
+anchors that reference an existing node (and not themselves), and an internally
+consistent camera rig (default framing within bounds, `min <= max`, sane zoom
+range). A scene that violates any of these fails closed. Validate just these
+with:
+
+```bash
+node bin/validate.js --only scenes
+# or from the repo root:
+make validate-scenes
+```
+

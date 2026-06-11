@@ -33,6 +33,15 @@ from typing import Protocol, runtime_checkable
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_WARN_RATIO = 0.1
+"""Fraction of the limit at which the cap emits an early-warning.
+
+When remaining headroom first drops to/below ``round(limit * warn_ratio)``
+(floored at 1 so there is always at least one charge of lead time) the cap
+logs ``asset_gen.spend_cap.approaching`` once per window. This gives ops a
+heads-up *before* generation hard-halts, rather than only alerting at the
+breach itself."""
+
 
 class AssetGenBudgetExceededError(Exception):
     """Raised by :meth:`SpendCap.charge` when the cap is hit.
@@ -76,6 +85,17 @@ class SpendUsage:
         if self.limit <= 0:
             return -1
         return max(0, self.limit - self.used)
+
+    @property
+    def utilization(self) -> float:
+        """Fraction of the window budget consumed, in ``[0.0, 1.0]``.
+
+        ``0.0`` when the cap is unlimited (``limit <= 0``) so a cost/usage
+        dashboard can graph utilization uniformly across capped and
+        uncapped environments without special-casing the sentinel."""
+        if self.limit <= 0:
+            return 0.0
+        return min(1.0, self.used / self.limit)
 
 
 SpendCapAlertSink = Callable[["AssetGenBudgetExceededError"], None]
@@ -153,6 +173,7 @@ class WindowedSubmissionCap:
         period_seconds: int,
         clock: Callable[[], datetime],
         alert_sink: SpendCapAlertSink | None = None,
+        warn_ratio: float = DEFAULT_WARN_RATIO,
     ) -> None:
         if not environment:
             raise ValueError("environment must be set")
@@ -160,15 +181,22 @@ class WindowedSubmissionCap:
             raise ValueError("limit must be positive (use NoSpendCap for unlimited)")
         if period_seconds <= 0:
             raise ValueError("period_seconds must be positive")
+        if not 0.0 <= warn_ratio < 1.0:
+            raise ValueError("warn_ratio must be in [0.0, 1.0)")
         self.environment = environment
         self._limit = limit
         self._period = timedelta(seconds=period_seconds)
         self._clock = clock
         self._sink = alert_sink or _default_alert_sink
+        # Remaining-headroom threshold for the once-per-window early warning.
+        # 0 disables the warning; otherwise floor at 1 so there is always at
+        # least one charge of lead time before the hard halt.
+        self._warn_at_remaining = max(1, round(limit * warn_ratio)) if warn_ratio > 0 else 0
         self._lock = threading.Lock()
         self._used = 0
         self._window_started_at: datetime | None = None
         self._alerted_this_window = False
+        self._approaching_alerted_this_window = False
 
     def charge(self) -> None:
         with self._lock:
@@ -197,6 +225,44 @@ class WindowedSubmissionCap:
             if self._window_started_at is None:
                 self._window_started_at = now
             self._used += 1
+            self._emit_charge_telemetry()
+
+    def _emit_charge_telemetry(self) -> None:
+        """Log spend telemetry for a successful charge. Caller holds the lock.
+
+        Emits a per-charge ``asset_gen.spend_cap.charged`` event (the
+        cost/usage dashboard's data feed) and, once per window, an
+        ``asset_gen.spend_cap.approaching`` warning when headroom first drops
+        to/below the configured threshold — lead time before the hard halt.
+        """
+        remaining = self._limit - self._used
+        period_seconds = int(self._period.total_seconds())
+        logger.debug(
+            "asset_gen.spend_cap.charged",
+            extra={
+                "environment": self.environment,
+                "used": self._used,
+                "limit": self._limit,
+                "remaining": remaining,
+                "period_seconds": period_seconds,
+            },
+        )
+        if (
+            self._warn_at_remaining > 0
+            and remaining <= self._warn_at_remaining
+            and not self._approaching_alerted_this_window
+        ):
+            self._approaching_alerted_this_window = True
+            logger.warning(
+                "asset_gen.spend_cap.approaching",
+                extra={
+                    "environment": self.environment,
+                    "used": self._used,
+                    "limit": self._limit,
+                    "remaining": remaining,
+                    "period_seconds": period_seconds,
+                },
+            )
 
     def usage(self) -> SpendUsage:
         with self._lock:
@@ -217,6 +283,7 @@ class WindowedSubmissionCap:
             self._window_started_at = None
             self._used = 0
             self._alerted_this_window = False
+            self._approaching_alerted_this_window = False
 
 
 def build_spend_cap_from_env(env: dict[str, str]) -> SpendCap:

@@ -67,6 +67,42 @@ test/
     └── api_client_test.dart     # ApiClient.healthz happy-path.
 ```
 
+## 3D backdrops in dev
+
+Vignette backdrops layer a generated 3D model (GLB) over the continuous 2D
+atmosphere. In production the asset-gen worker generates each model with a real
+provider and streams it from the asset CDN. Locally there is no GPU and no paid
+provider (and the Apple TRELLIS server is image-to-3d only), so a manifest-driven
+generator stands in: it reads `content/assets-3d/<season>/assets.manifest.json`
+and writes a distinct, uncompressed GLB per asset at its content-addressed path.
+
+One command does everything — generate per-asset GLBs, serve them with CORS, and
+run the debug client pointed at them:
+
+```bash
+make dev-3d
+```
+
+Open vignette 1, 4, or 15 (the ones with a backdrop authored) and you'll see a
+different shape/colour per asset (a box per environment, a sphere per prop,
+hue seeded by the asset id). The debug flag also makes the `<model-viewer>`
+viewport loud and visible: it logs the asset scene + model `load`/`error` to the
+console (filter `echo3d`), draws a magenta border, paints an opaque background,
+drops the legibility scrim, and auto-rotates the model.
+
+The pieces, if you want to run them separately:
+
+```bash
+make gen-dev-assets   # synthesize one GLB per manifest asset into .echo-cdn/
+make dev-asset-cdn    # CORS stand-in CDN on :8099 serving .echo-cdn/
+make client-3d        # web client with ECHO_3D_DEBUG=true + ECHO_ASSET_CDN_URL
+```
+
+To preview *your own* model for every asset, drop a file at `.echo-cdn/override.glb`
+(per-asset: `.echo-cdn/assets/sha256/<digest>/asset.glb`). None of this affects a
+plain `make client` build — the debug flag is a compile-time const that defaults
+off.
+
 ## Conventions
 
 - File names: `lower_snake_case.dart`.

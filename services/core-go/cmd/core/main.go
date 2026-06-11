@@ -190,6 +190,12 @@ func main() {
 		)
 	}
 
+	// Friend comparison (T-SOCIAL-001). Behind a feature flag for staged
+	// rollout (implementation_plan.md → Rollout step 1); the routes also
+	// require Playthrough + Users, which the mux enforces.
+	deps.CompareEnabled = cfg.CompareEnabled
+	logger.Info("friend comparison", "enabled", deps.CompareEnabled)
+
 	// Billing (T-MONEY-001). Requires Postgres + Users; degrades gracefully
 	// when not configured so the binary boots without payment credentials.
 	//

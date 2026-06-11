@@ -207,6 +207,12 @@ Divergence selection algorithm:
 4. Enable public share-web compare pages.
 5. Monitor metrics, logs, and revocation events.
 
+**Status (step 1):** The compare HTTP surface is gated behind the
+`CompareEnabled` feature flag (`CORE_COMPARE_ENABLED`, default on in dev / off
+in staging+production). When off, none of the `/compare/*` or
+`/playthroughs/{id}/compare` routes are registered (they resolve to 404). Wired
+in `internal/config`, `http.Dependencies`, `http.NewMux`, and `cmd/core`.
+
 ## Observability
 
 Metrics:
@@ -218,6 +224,15 @@ Metrics:
 
 Structured logs:
 - comparison lifecycle events with redacted token info
+
+**Status:** Implemented as OpenTelemetry counters in
+`services/core-go/http/compare_metrics.go`, recorded off the existing
+`(action, outcome)` audit taxonomy via the `audit` chokepoint so no handler
+call sites changed. `enableCompareShareHandler` now also audits (it previously
+did not), so `share-enabled` events are observable. The (action, outcome) →
+counter mapping is a pure, table-tested function (no metric-SDK dependency
+added); counters are no-ops until the MeterProvider exporter is wired, matching
+the tracer's "instrument now, export later" stance.
 
 ## Execution Checklist
 
@@ -232,6 +247,17 @@ Structured logs:
 - [x] run `make test`
 - [x] run `make build`
 - [x] run `make validate-content`
+- [x] implement `tools/trait-replay` and wire `make replay` (content drift gate; was a no-op stub)
+- [x] run `make replay` to confirm the divergence-selection season content has not shifted trait vectors
+
+## Trait-Replay Gate
+
+Friend Comparison's divergence selector reads canonical season content, so per
+AGENTS.md the verification set must include `make replay` (not just
+`make validate-content`). That target was a placeholder until now; it is
+implemented in `tools/trait-replay` (runner under
+`services/ml-py/app/tools/trait_replay.py`) with a season-001 corpus and runs
+in CI. Run `make replay` as part of this task's verification.
 
 ## Human Review Required
 

@@ -6,9 +6,23 @@
 
 Before doing anything in this repo, read the relevant docs in `docs/`:
 
+- **What just changed / what's next:** `13_Agent_Change_Log` — read it first to orient.
 - Product-level context: `01_Product_Vision`, `03_Product_Requirements`, `04_Game_Design`.
 - Technical context: `05_Technical_Architecture`, `06_Tech_Stack`, `07_AI_Agent_Implementation_Guide`.
 - Privacy and youth-safe context: `08_Data_Privacy_Compliance`.
+
+## Keep the change log current (binding)
+
+At the **end of every change**, update [`docs/13_Agent_Change_Log.md`](./docs/13_Agent_Change_Log.md):
+
+1. Prepend a terse entry (date, agent, one-line summary, files/docs, escalation flags) to *Change log*.
+2. Update *Next in pipeline* to the single next expected change (or `— none queued —`).
+
+Treat this like lint: a change that doesn't update the log is not done.
+
+## Build order — the game comes first
+
+The complete, explorable **game** (playthrough loop, explorable 3D vignette scenes, trait scoring, Portrait + reflection, full content) is built and signed off at the **Game-Complete** gate **before** any monetization, accounts, sharing/social, or B2B work. Auth/accounts, sharing, billing, friend-comparison, and B2B epics are deferred until then. Authoritative detail: `10_Roadmap` → *Build order*.
 
 ## Naming
 

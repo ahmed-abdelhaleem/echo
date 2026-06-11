@@ -1,6 +1,8 @@
 # 10 — Roadmap & Milestones
 
-> This is the single shared timeline. All other documents reference these milestone labels (M0–M5). Dates are calendar-anchored from project kickoff (`T0`).
+> This is the single shared timeline. All other documents reference these milestone labels (M0–M6). Dates are calendar-anchored from project kickoff (`T0`).
+>
+> **Sequencing principle (authoritative, June 2026): the game comes first.** The complete, polished, explorable **game** is built and signed off *before* any monetization, accounts, sharing/social, or B2B work begins. The phase order in *"Build order — the game comes first"* below **supersedes the milestone calendar wherever they conflict.**
 
 ## At a glance
 
@@ -17,6 +19,46 @@ A few honest notes about the timeline:
 - These are **target durations under expected conditions**. They will slip; the plan accommodates 20–30% slip.
 - The bottleneck is content production and design polish, not engineering. Engineering can move faster than the brand can.
 - The team grows as funding lands. The plan does not assume more headcount than the funding milestones support.
+- The milestone **calendar above predates the game-first re-sequencing.** Where it conflicts with the build order below, the build order wins; week numbers are indicative and will be re-baselined around the Game-Complete gate.
+
+---
+
+## Build order — the game comes first (authoritative)
+
+Echo is a game. Everything else — accounts, sharing, comparison, subscriptions, B2B — is platform scaffolding around it. We build **the whole game, to a finished and polished state, first.** No payment, account, social, or institutional work starts until the **Game-Complete** gate is signed off.
+
+### Phase G — The Game (sole priority until done)
+
+The complete player experience, end to end, playable **anonymously and offline**, with no sign-in, paywall, or share feature required to reach the result:
+
+- The full playthrough loop (start, pause/resume, complete) with deliberate, no-pressure pacing.
+- **Explorable 3D vignette scenes** for an entire Season — the `F-CORE-007` / M6 work, *pulled to the front*: every vignette is a composed, gently explorable diorama, with real AI-generated assets, on all four platforms **and web**, degrading cleanly to the 2D path.
+- Trait scoring (rule-based v1), deterministic and replayable.
+- The Portrait (parametric, animated + static) and the prose reflection (with safety + tone classifiers and fallback).
+- A complete, playtested **Season 1** (content), then **Season 2** if needed to prove the loop.
+- Accessibility (reduce-motion, screen-reader, contrast, dyslexia-friendly font), offline play, and performance budgets met.
+
+**Game-Complete gate (Definition of Done).** Phase G is done when a first-time player can, with no account and no network, complete the whole Season as an explorable 3D experience and receive a Portrait + reflection that an external panel rates "feels accurate," at the brand's quality bar, on every target platform including web. Only then does Phase P begin.
+
+### Phase P — Platform & growth (only after Game-Complete)
+
+Accounts & auth UX (the game stays playable anonymously; this adds save/sync), Portrait sharing + public `share-web`, friend comparison, desktop store distribution polish, the **Echo+ subscription and all payments**, and the public marketing launch.
+
+### Phase B — Business (after Phase P)
+
+B2B / institutional dashboard, seat billing, compliance (SOC 2, DPA), NA/locale expansion, and scale toward Series A.
+
+### How the existing milestones re-map
+
+| Existing milestone | Game-first phase |
+|---|---|
+| M0 Foundation, M1 vertical slice (rails) | **Phase G** (foundation for the game) |
+| M2 — *content + Portrait + reflection* | **Phase G** |
+| M2 — *auth/accounts, sharing* | **deferred → Phase P** |
+| M6 — *explorable 3D scenes + real asset gen* | **pulled forward → Phase G** |
+| M3 — desktop, Echo+ subscription, friend comparison, public launch | **Phase P** |
+| M4 — institutional/B2B, compliance, expansion | **Phase B** |
+| M5 — Series A & scale | **Phase B** |
 
 ---
 
@@ -71,6 +113,8 @@ A few honest notes about the timeline:
 
 **Goal:** Full Season 1, real Portrait, real reflection, on iOS and Android, with a closed beta of ~200 testers.
 
+> **Game-first re-sequencing.** Under the build order above, M2 splits: the **game** deliverables (Content, Portrait, Reflection — and, pulled forward from M6, the **explorable 3D scenes + real asset generation**) are **Phase G** and ship first. **Auth/accounts and Sharing are deferred to Phase P** — the game is completed and playable anonymously/offline before any account or share surface is built.
+
 **Team:** Founder full-time. First external hire targeted around Week 14 (recommended: a Flutter engineer to accelerate client polish). Friends/advisors active on a defined cadence (mobile, ML, DevOps, backend reviewers).
 
 ### Deliverables
@@ -98,6 +142,8 @@ A few honest notes about the timeline:
 
 **Goal:** Public launch on all four platforms in the EU. Echo+ subscription live. Second Season released. Friend comparison shipped. The product becomes findable and shareable.
 
+> **Game-first re-sequencing: this entire milestone is Phase P** — it starts only after the **Game-Complete** gate. Subscriptions/payments, friend comparison, and the public launch do not begin while the game itself is unfinished.
+
 **Team:** Founder + 2 full-time engineers (Flutter + Python/ML) by this stage, funded by pre-seed.
 
 ### Deliverables
@@ -122,6 +168,8 @@ A few honest notes about the timeline:
 ## M4 — Institutional V2 (Weeks 39–60)
 
 **Goal:** Echo for Institutions live, with the first paying schools and coaching practices onboarded. SOC 2 Type I audit underway. NA expansion begins.
+
+> **Game-first re-sequencing: Phase B** — institutional/B2B work follows Phase P, which follows the Game-Complete gate.
 
 **Team:** Engineering grows to 5–7. First B2B hire (founder-led initially, formal hire by mid-V2).
 
@@ -155,6 +203,25 @@ A few honest notes about the timeline:
 - ML-augmented trait scoring engine (v2) deployed, validated against external Big Five inventories at scale.
 - B2B sales team in place: SDR, SE, customer success.
 - Research partnership #1 announced.
+
+---
+
+## M6 — Explorable 3D vignettes (Phase G — the game; built before Phase P)
+
+**Goal:** Evolve vignettes from atmospheric parallax backdrops into gently **explorable 3D scenes** — calm, bounded dioramas (the *Monument Valley* reference) that the player can look around — without changing Echo's reflective tone, the trait engine, or the deterministic Portrait. See `F-CORE-007` (`03`), the interaction model in `04_Game_Design`, the renderer design in `05_Technical_Architecture`, and the task breakdown (M6) in `07_AI_Agent_Implementation_Guide`.
+
+> **Build-order note.** Although numbered M6 (the label is kept for cross-references), this work is part of **Phase G — the game** and is sequenced **before** any Phase P (accounts/sharing/subscriptions) or Phase B (B2B) work. "The game" is not complete until vignettes are explorable 3D scenes; the Game-Complete gate depends on it.
+
+### Deliverables
+
+- Scene-composition content model (`VignetteScene`/extended backdrop schema) + `make validate-scenes`; **all** vignettes of a shipped Season authored as scenes, not single objects.
+- Thermion (Filament) explorable viewport (bounded free-look, optional tap-to-inspect, reduce-motion → still) with **web parity** (Filament-on-WASM or baked per-vignette scene GLB), retiring the single-model web fallback for scenes.
+- Real asset generation at content scale (Meshy primary) behind the per-environment spend cap; every asset clears the automated QA + safety/brand gate and youth-safe review.
+- Cross-platform performance budget met (iOS/Android/macOS/Windows/web) with graceful degradation to the 2D path.
+
+### Gates (founder/operational sign-off, not AI-mergeable)
+
+- Direction is approved. Two operational approvals remain: turning on **paid generation** + budget cap (`#11`), and the **scene-level QA/safety/brand + youth-safe** review (`#7`/`#12`).
 
 ---
 
@@ -198,6 +265,7 @@ These are explicit anti-deliverables to keep the roadmap honest:
 
 - No real-time multiplayer in year 1.
 - No user-generated content.
+- No open-world / free-roam traversal, movement controls, or fail states. The explorable 3D vignette scenes (M6, `F-CORE-007`) are bounded atmospheric dioramas you look around — never navigable levels.
 - No advertising-supported tier.
 - No clinical positioning in year 1 (no claims of diagnostic utility; HIPAA scope deferred).
 - No expansion into APAC in year 1 (different regulatory and localization scope).

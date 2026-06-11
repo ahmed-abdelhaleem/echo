@@ -19,6 +19,7 @@ import 'package:echo_client/data/models/content.dart';
 import 'package:echo_client/features/vignette/backdrop/adaptive_backdrop.dart';
 import 'package:echo_client/features/vignette/backdrop/backdrop_models.dart';
 import 'package:echo_client/features/vignette/backdrop/backdrop_provider.dart';
+import 'package:echo_client/features/vignette/backdrop/three_d_debug.dart';
 import 'package:echo_client/features/vignette/vignette_controller.dart';
 import 'package:echo_client/features/share/share_button.dart';
 import 'package:echo_client/features/sync/sync_controller.dart';
@@ -83,8 +84,9 @@ class _VignetteScreenState extends ConsumerState<VignetteScreen> {
               spec: backdrop,
             ),
             // Scrim keeps the choice UI legible without disabling the
-            // backdrop's continuous ambient motion behind it.
-            const _BackdropScrim(),
+            // backdrop's continuous ambient motion behind it. Suppressed under
+            // the 3D debug flag so the viewport is not washed toward white.
+            if (!kEcho3dDebug) const _BackdropScrim(),
           ],
           SafeArea(
             child: Padding(

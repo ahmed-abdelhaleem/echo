@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:echo_client/features/vignette/assets/asset_cache.dart';
 import 'package:flutter/foundation.dart';
@@ -10,6 +9,13 @@ import 'package:flutter/services.dart' show rootBundle;
 /// the cache from the bundled GLB so the 3D viewport has something to
 /// render even when no CDN is configured.
 const String _kDevPlaceholderAssetKey = 'assets/3d/dev/placeholder.glb';
+
+/// When a CDN origin is configured (e.g. `make dev-asset-cdn` +
+/// `--dart-define=ECHO_ASSET_CDN_URL=...`), we do NOT short-circuit to the
+/// bundled placeholder: returning null lets [AssetCache] fetch the real,
+/// content-addressed GLB over the network so dropping a real `.glb` into the
+/// CDN actually previews it. The placeholder is only the no-CDN fallback.
+const String _kAssetCdnUrl = String.fromEnvironment('ECHO_ASSET_CDN_URL');
 
 AssetFileStore createAssetFileStore() => _MemoryAssetFileStore();
 
@@ -22,7 +28,7 @@ class _MemoryAssetFileStore implements AssetFileStore {
     if (cached != null) {
       return _stored(cached);
     }
-    if (kDebugMode) {
+    if (kDebugMode && _kAssetCdnUrl.trim().isEmpty) {
       final hydrated = await _hydrateFromBundle(digest);
       if (hydrated != null) {
         return _stored(hydrated);

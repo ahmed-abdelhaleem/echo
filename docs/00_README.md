@@ -24,6 +24,7 @@ The documents are numbered in **reading order**. If you only have time for three
 | 10 | Roadmap & Milestones | Everyone | Phased plan from day 0 to Series A |
 | 11 | Risk Assessment | Founders, Investors | What can kill this, mitigations |
 | 12 | Investor Pitch Outline | Founders | Storyline and asks for fundraising |
+| 13 | Agent Change Log | AI Coding Agents | Living log of agent changes + the next change in the pipeline |
 
 ---
 

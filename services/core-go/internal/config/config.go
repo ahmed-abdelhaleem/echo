@@ -85,6 +85,12 @@ type Config struct {
 	// Defaults to true in dev and false otherwise.
 	EnableKratosProxy bool
 
+	// CompareEnabled gates the Friend Comparison HTTP surface (T-SOCIAL-001)
+	// for staged rollout (implementation_plan.md → Rollout step 1). Defaults
+	// to true in dev and false in staging/production until explicitly enabled
+	// via CORE_COMPARE_ENABLED.
+	CompareEnabled bool
+
 	// ─── Billing (T-MONEY-001 / F-MONEY-001) ────────────────────────────────
 	//
 	// ⚠️  HUMAN REVIEW REQUIRED before enabling in production.
@@ -135,6 +141,7 @@ func Load() (Config, error) {
 	cfg.CORSAllowedOrigins = parseCSV(os.Getenv("CORE_CORS_ALLOWED_ORIGINS"))
 	cfg.CORSAllowLocalhost = corsAllowLocalhost(cfg.Environment, os.Getenv("CORE_CORS_ALLOW_LOCALHOST"))
 	cfg.EnableKratosProxy = boolWithDevDefault(cfg.Environment, os.Getenv("CORE_ENABLE_KRATOS_PROXY"))
+	cfg.CompareEnabled = boolWithDevDefault(cfg.Environment, os.Getenv("CORE_COMPARE_ENABLED"))
 
 	// Billing.
 	cfg.StripeSecretKey = strings.TrimSpace(os.Getenv("STRIPE_SECRET_KEY"))

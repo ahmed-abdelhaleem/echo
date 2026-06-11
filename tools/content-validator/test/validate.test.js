@@ -34,3 +34,11 @@ test("validator validates 3D asset manifests (--only assets)", () => {
   });
   assert.match(out, /asset manifest\(s\) validated/);
 });
+
+test("validator validates explorable scene manifests (--only scenes)", () => {
+  const out = execFileSync("node", [validator, "--only", "scenes"], {
+    encoding: "utf-8",
+  });
+  assert.match(out, /scene manifest\(s\) validated/);
+});
+

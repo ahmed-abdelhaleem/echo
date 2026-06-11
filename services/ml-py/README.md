@@ -62,6 +62,28 @@ and marks the row ready.
 Local development uses `ECHO_ASSET_STORE_BACKEND=local`. Deployed workers use
 the R2-compatible backend and the `R2_*` variables in `.env.example`.
 
+## Spend cap & cost observability (T-INFRA-040)
+
+The per-environment spend cap sits at the submission boundary every paid
+provider call passes through. It is opt-in: set `ECHO_ASSET_GEN_PERIOD_CAP`
+(max chargeable submissions per window) and `ECHO_ASSET_GEN_PERIOD_SECONDS`
+(window length, default `3600`). Unset/zero means unlimited, so CI and dev are
+unaffected.
+
+When configured, the cap emits structured telemetry on the
+`app.services.asset_gen.spend_cap` logger — the data feed for the deferred
+Grafana cost/usage dashboard:
+
+- `asset_gen.spend_cap.charged` (DEBUG) — one per chargeable submission, with
+  `used` / `limit` / `remaining` / `period_seconds`.
+- `asset_gen.spend_cap.approaching` (WARNING) — once per window when headroom
+  first drops to/below `round(limit * warn_ratio)` (default 10%), giving ops
+  lead time *before* the hard halt.
+- `asset_gen.spend_cap.breached` (CRITICAL, via the default alert sink) — the
+  hard halt; generation stops and the caller sees gRPC `RESOURCE_EXHAUSTED`.
+
+The cap never changes spend on its own; it only counts, halts, and reports.
+
 The `asset-worker` extra adds three production-boundary dependencies:
 
 - `nats-py`: the official asyncio JetStream client.

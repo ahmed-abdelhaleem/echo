@@ -482,3 +482,20 @@ func TestCompareRevoke_AuditedSuccess(t *testing.T) {
 	require.Equal(t, http.StatusNoContent, revokeRec.Code, revokeRec.Body.String())
 	require.True(t, containsAuditEvent(auditEvents, "compare_revoke:success"))
 }
+
+func TestCompareRoutesDisabledByFeatureFlag(t *testing.T) {
+	users := &fakeUsersRepo{user: auth.User{ID: uuid.New(), AgeBand: auth.AgeBandAdult}}
+	mux, cookie, _, _, _ := newPlaythroughSuiteFullWithHooks(t, users, true, compareHookOverrides{}, false)
+
+	// Public token resolution is not registered when the flag is off → 404
+	// (not 200, not 410): the surface simply does not exist.
+	getRec := doJSON(t, mux, http.MethodGet, "/compare/some-token", "", nil)
+	require.Equal(t, http.StatusNotFound, getRec.Code, getRec.Body.String())
+
+	// Authenticated accept is likewise not registered → 404.
+	acceptRec := doJSON(t, mux, http.MethodPost, "/compare/accept", cookie, map[string]any{
+		"token":          "some-token",
+		"playthrough_id": uuid.New().String(),
+	})
+	require.Equal(t, http.StatusNotFound, acceptRec.Code, acceptRec.Body.String())
+}

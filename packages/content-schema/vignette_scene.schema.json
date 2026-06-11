@@ -1,0 +1,267 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://echo.app/schema/vignette_scene.schema.json",
+  "title": "VignetteSceneManifest",
+  "description": "Per-vignette explorable 3D scene: one environment + placed props in a shared 3D space, with per-asset transforms/anchors, scene-level lighting, and a bounded camera rig (look-at target, orbit/pan bounds, default framing). Generalizes the parallax backdrop into a single composed, gently explorable diorama. Presence, not assessment: exploration never gates a choice and is NOT fed to the trait engine. See docs/05_Technical_Architecture.md §'Explorable 3D vignette scenes' and docs/07_AI_Agent_Implementation_Guide.md T-CONTENT-200 / T-CLIENT-200.",
+  "type": "object",
+  "required": ["schema_version", "season_id", "scenes"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "enum": ["1.0"] },
+    "season_id": {
+      "type": "string",
+      "pattern": "^season-[0-9]{3,}$"
+    },
+    "scenes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/scene" }
+    }
+  },
+  "definitions": {
+    "scene": {
+      "type": "object",
+      "required": ["vignette_id", "environment", "camera"],
+      "additionalProperties": false,
+      "properties": {
+        "vignette_id": {
+          "type": "string",
+          "pattern": "^vignette-[0-9]{3,}$",
+          "description": "The vignette this scene renders behind/around. Must match an id in the Season."
+        },
+        "mood": {
+          "type": "object",
+          "description": "Renderer hints for color grading and ambient sound mix. Not part of scene composition.",
+          "additionalProperties": false,
+          "properties": {
+            "time_of_day": {
+              "type": "string",
+              "enum": ["dawn", "morning", "midday", "afternoon", "evening", "dusk", "night"]
+            },
+            "weather": {
+              "type": "string",
+              "enum": ["clear", "overcast", "rain", "snow", "fog", "wind"]
+            },
+            "palette": {
+              "type": "string",
+              "enum": ["warm", "cool", "muted", "saturated", "monochrome"]
+            }
+          }
+        },
+        "environment": {
+          "allOf": [{ "$ref": "#/definitions/placed_asset" }],
+          "description": "The single environment asset the scene is built inside (room, street, interior). Its node id participates in scene-wide id uniqueness."
+        },
+        "props": {
+          "type": "array",
+          "maxItems": 12,
+          "description": "Props placed within the environment. Each has its own transform and an optional anchor (another node id it is positioned relative to).",
+          "items": { "$ref": "#/definitions/placed_asset" }
+        },
+        "lighting": { "$ref": "#/definitions/lighting" },
+        "camera": { "$ref": "#/definitions/camera_rig" },
+        "asset_budget": {
+          "type": "object",
+          "description": "Maximum unique 3D geometry and downloaded GLB bytes for this scene. Assets that would exceed either limit are skipped and the scene degrades to the 2D atmospheric path.",
+          "additionalProperties": false,
+          "properties": {
+            "max_polycount": {
+              "type": "integer",
+              "minimum": 1000,
+              "maximum": 500000,
+              "default": 120000
+            },
+            "max_size_bytes": {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 104857600,
+              "default": 31457280
+            }
+          }
+        }
+      }
+    },
+    "placed_asset": {
+      "type": "object",
+      "required": ["id", "asset_id", "transform"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "Scene node id (kebab-case). Unique within the scene across the environment and all props."
+        },
+        "asset_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "References AssetSpec.id in the Season's asset manifest. The validator does NOT cross-check this (asset manifests and scenes are authored in lockstep)."
+        },
+        "anchor": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "description": "Optional. Another node id in this scene that this asset's transform is relative to. The validator checks the referenced node exists and is not self."
+        },
+        "transform": { "$ref": "#/definitions/transform" },
+        "interactive": {
+          "type": "boolean",
+          "default": false,
+          "description": "Tap-to-inspect 'noticing point'. Calm and optional: it never gates a choice and is never fed to the trait engine."
+        },
+        "notice": {
+          "type": "object",
+          "description": "Optional copy shown when an interactive prop is inspected. Tone must match the youth-safe, low-pressure voice.",
+          "additionalProperties": false,
+          "required": ["label"],
+          "properties": {
+            "label": { "type": "string", "minLength": 1, "maxLength": 60 },
+            "body": { "type": "string", "maxLength": 240 }
+          }
+        }
+      }
+    },
+    "transform": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "position": {
+          "allOf": [{ "$ref": "#/definitions/vec3" }],
+          "description": "Local position in meters [x, y, z]."
+        },
+        "rotation_deg": {
+          "allOf": [{ "$ref": "#/definitions/vec3" }],
+          "description": "Euler rotation in degrees [x, y, z]."
+        },
+        "scale": {
+          "description": "Uniform scale (number) or per-axis scale (vec3). Must be positive.",
+          "oneOf": [
+            { "type": "number", "exclusiveMinimum": 0, "maximum": 1000 },
+            { "$ref": "#/definitions/vec3_positive" }
+          ]
+        }
+      }
+    },
+    "lighting": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "preset": {
+          "type": "string",
+          "enum": [
+            "dawn",
+            "morning",
+            "midday",
+            "afternoon",
+            "evening",
+            "dusk",
+            "night",
+            "interior_warm",
+            "interior_cool",
+            "overcast"
+          ]
+        },
+        "intensity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Key-light intensity multiplier. Kept gentle by design."
+        },
+        "ambient": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Ambient fill, 0 = none, 1 = flat."
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "description": "Key-light color, #rrggbb."
+        },
+        "direction": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "azimuth_deg": { "type": "number", "minimum": -180, "maximum": 180 },
+            "elevation_deg": { "type": "number", "minimum": 0, "maximum": 90 }
+          },
+          "description": "Key-light direction. Elevation 0 = at the horizon, 90 = straight down."
+        }
+      }
+    },
+    "camera_rig": {
+      "type": "object",
+      "required": ["look_at", "distance", "default_framing", "bounds"],
+      "additionalProperties": false,
+      "properties": {
+        "look_at": {
+          "allOf": [{ "$ref": "#/definitions/vec3" }],
+          "description": "World-space focal point the camera orbits, in meters."
+        },
+        "distance": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "description": "Camera distance from look_at, in meters."
+        },
+        "default_framing": {
+          "type": "object",
+          "required": ["azimuth_deg", "polar_deg"],
+          "additionalProperties": false,
+          "properties": {
+            "azimuth_deg": { "type": "number", "minimum": -180, "maximum": 180 },
+            "polar_deg": { "type": "number", "minimum": -89, "maximum": 89 }
+          },
+          "description": "Resting framing. Must fall within bounds (checked by the validator). azimuth = yaw, polar = pitch from horizontal."
+        },
+        "bounds": {
+          "type": "object",
+          "required": ["azimuth_deg", "polar_deg"],
+          "additionalProperties": false,
+          "description": "Hard limits on free-look. The renderer clamps to these; exploration is always bounded and calm.",
+          "properties": {
+            "azimuth_deg": {
+              "type": "object",
+              "required": ["min", "max"],
+              "additionalProperties": false,
+              "properties": {
+                "min": { "type": "number", "minimum": -180, "maximum": 180 },
+                "max": { "type": "number", "minimum": -180, "maximum": 180 }
+              }
+            },
+            "polar_deg": {
+              "type": "object",
+              "required": ["min", "max"],
+              "additionalProperties": false,
+              "properties": {
+                "min": { "type": "number", "minimum": -89, "maximum": 89 },
+                "max": { "type": "number", "minimum": -89, "maximum": 89 }
+              }
+            },
+            "zoom": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Optional dolly bounds. Disabled by default — T-CLIENT-200 keeps exploration to clamped orbit with no zoom unless explicitly enabled.",
+              "properties": {
+                "enabled": { "type": "boolean", "default": false },
+                "min_distance": { "type": "number", "exclusiveMinimum": 0, "maximum": 100 },
+                "max_distance": { "type": "number", "exclusiveMinimum": 0, "maximum": 100 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "vec3": {
+      "type": "array",
+      "items": { "type": "number" },
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "vec3_positive": {
+      "type": "array",
+      "items": { "type": "number", "exclusiveMinimum": 0 },
+      "minItems": 3,
+      "maxItems": 3
+    }
+  }
+}
+
