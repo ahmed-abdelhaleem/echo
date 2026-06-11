@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:echo_client/features/vignette/assets/asset_cache.dart';
 import 'package:flutter/foundation.dart';
@@ -71,7 +70,9 @@ class _NativeAssetFileStore implements AssetFileStore {
   /// asset for *digest*. Returns null when the placeholder is missing from
   /// the bundle (e.g. tests with a fake AssetBundle). Debug-only — see find().
   Future<StoredAsset?> _hydrateFromBundle(
-      String digest, File destination) async {
+    String digest,
+    File destination,
+  ) async {
     try {
       final data = await rootBundle.load(_kDevPlaceholderAssetKey);
       final bytes = data.buffer.asUint8List(

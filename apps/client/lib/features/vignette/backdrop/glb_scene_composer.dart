@@ -98,8 +98,9 @@ _ParsedGlb? _parseGlb(Uint8List data) {
   }
   final buffers = doc['buffers'];
   if (buffers is! List || buffers.length != 1) return null;
-  if ((buffers.first as Map).containsKey('uri'))
+  if ((buffers.first as Map).containsKey('uri')) {
     return null; // must be embedded
+  }
   final accessors = doc['accessors'];
   if (accessors is List) {
     for (final a in accessors) {

@@ -115,8 +115,11 @@ Map<String, dynamic> _parseGlbJson(Uint8List data) {
   final view = ByteData.sublistView(data);
   expect(view.getUint32(0, Endian.little), _glbMagic);
   expect(view.getUint32(4, Endian.little), 2);
-  expect(view.getUint32(8, Endian.little), data.lengthInBytes,
-      reason: 'declared length must equal byte length');
+  expect(
+    view.getUint32(8, Endian.little),
+    data.lengthInBytes,
+    reason: 'declared length must equal byte length',
+  );
   var offset = 12;
   Map<String, dynamic>? doc;
   while (offset + 8 <= data.lengthInBytes) {
@@ -185,7 +188,7 @@ void main() {
     // Each wrapper node carries its source's world matrix; the translation
     // column (indices 12..14) places the part within the merged scene.
     final wrappers = (doc['nodes'] as List)
-        .whereType<Map>()
+        .whereType<Map<String, dynamic>>()
         .where((n) => n.containsKey('matrix'))
         .toList();
     expect(wrappers, hasLength(2));
@@ -202,7 +205,7 @@ void main() {
     ]);
     final doc = _parseGlbJson(merged!);
     final wrappers = (doc['nodes'] as List)
-        .whereType<Map>()
+        .whereType<Map<String, dynamic>>()
         .where((n) => !n.containsKey('mesh')) // wrapper nodes have no mesh
         .toList();
     expect(wrappers, hasLength(2));
@@ -212,9 +215,11 @@ void main() {
 
   test('bails (null) when a part requires an unsupported extension', () {
     final plain = _triangleGlb();
-    final draco = _triangleGlb(extraDoc: <String, dynamic>{
-      'extensionsRequired': <String>['KHR_draco_mesh_compression'],
-    });
+    final draco = _triangleGlb(
+      extraDoc: <String, dynamic>{
+        'extensionsRequired': <String>['KHR_draco_mesh_compression'],
+      },
+    );
     final result = composeSceneGlb([
       GlbScenePart(glb: plain, matrix: _identity),
       GlbScenePart(glb: draco, matrix: _translation(0, 0, -0.4)),
