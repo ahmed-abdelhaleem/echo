@@ -309,6 +309,16 @@ When a vignette resolves and the next one is staged, the outgoing backdrop fades
 
 - **2D fallback (M1):** Each layer is composited as a tinted painter pass on the Flutter canvas, with particles, drift, pulse, and parallax applied per layer. This is what `apps/client/lib/features/vignette/backdrop/` ships first. It guarantees the renderer works on every device, on every platform, and offline — even before any 3D asset has finished generating.
 - **3D enrichment (M2):** When the GLB for a layer's `asset_id` is locally cached, the same `BackdropSpec` drives a **Thermion (Filament)** scene instead. Parallax depth maps to the camera Z translation; ambient effects (drift, pulse, breathe) become small per-node transforms. *The author-facing spec does not change between the two paths.* The renderer escalates silently when better assets are available and degrades silently when they are not.
+- **Explorable scene (M5):** the parallax backdrop generalizes into a fully composed, gently **explorable 3D scene** (see below). The same spec family still drives it; the difference is that multiple assets are placed in a shared 3D space with an author-defined camera rig and bounded free-look, rather than treated as flat parallax planes.
+
+### Explorable 3D vignette scenes
+
+Milestone M5 evolves the backdrop from "parallax planes behind the choice" into a **single composed 3D scene** the player can gently look around — the product-level shift described in `01_Product_Vision` and `04_Game_Design`. It remains a **renderer** concern: it consumes generated GLBs and renders identically offline.
+
+- **Scene composition (content).** A vignette scene places several assets (one environment + props) in a shared 3D space with per-asset transform/anchor, plus scene-level **lighting** and a **camera rig** (look-at target, orbit/pan bounds, default framing). This extends the backdrop schema (or a sibling `VignetteScene` schema) and is validated by `make validate-scenes`. It is content, not code.
+- **Interaction.** Bounded, critically-damped free-look (drag/pointer), optional tap-to-inspect "noticing points," reduce-motion → still framing. No traversal, no timing, no fail state. Exploration never gates a choice and is **not** fed to the trait engine at MVP (presence, not assessment).
+- **Engine: Thermion (Filament) on all four platforms — and web.** The native path (`three_d_viewport_io.dart`) already composes a multi-asset Thermion scene. **Web parity** is a first-class requirement (`F-CORE-007`): web must render the *full* composed scene, via Filament-on-WASM through Thermion or a baked per-vignette scene GLB, rather than the single-model `model_viewer` path that ships as the web fallback today. We do **not** adopt Unity/Godot — that decision and its rationale (binary size, web/WASM-iframe fit, Flutter cross-platform parity) stand in `06_Tech_Stack`; an explorable diorama is achievable on Thermion without abandoning the Flutter stack.
+- **Graceful degradation is mandatory.** A device or build that cannot render the 3D scene (or has no cached asset) falls back to the 2D atmospheric path with no loss of playability. The choice UI never depends on a scene having loaded.
 
 ### Performance posture
 

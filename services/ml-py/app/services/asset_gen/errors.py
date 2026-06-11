@@ -61,6 +61,19 @@ class AllAssetGenProvidersFailedError(AssetGenError):
     """
 
     def __init__(self, failures: list[AssetGenProviderError]) -> None:
-        providers = ", ".join(f.provider for f in failures) or "(none)"
-        super().__init__(f"all asset-gen providers failed: {providers}")
+        # Include each provider's failure reason in the message itself, not
+        # just the provider ids. Loggers (and the worker's traceback) print
+        # the exception string but drop structured `extra=` fields under the
+        # default formatter, so the reason has to live in the message to be
+        # visible at all. Alternative considered: keep the terse id-only
+        # message and rely on callers reading `.failures` — rejected because
+        # the common case (a flat log line) then shows no actionable cause.
+        if failures:
+            detail = "; ".join(
+                f"{failure.provider} ({type(failure).__name__}: {failure})"
+                for failure in failures
+            )
+        else:
+            detail = "(none)"
+        super().__init__(f"all asset-gen providers failed: {detail}")
         self.failures = tuple(failures)

@@ -1,0 +1,16 @@
+{
+  "playthrough_id": "season-001-morning-warm",
+  "description": "Phone-first, rotate the plant, then fully listen to Berk in the stairwell. vignette-001/choice-1 + vignette-002/choice-1 + vignette-003/choice-4; accumulates BENEVOLENCE and secure attachment across vignettes.",
+  "season_id": "season-001",
+  "events": [
+    { "vignette_id": "vignette-001", "choice_id": "choice-1" },
+    { "vignette_id": "vignette-002", "choice_id": "choice-1" },
+    { "vignette_id": "vignette-003", "choice_id": "choice-4" }
+  ],
+  "expected": {
+    "big_five": [0.1, 0.2, 0.2, 0.5, 0.1],
+    "schwartz": [0.1, 0.2, 0.0, 0.0, 0.0, -0.1, 0.0, 0.0, 0.3, 0.0],
+    "attachment": [0.4, 0.0, 0.0]
+  }
+}
+

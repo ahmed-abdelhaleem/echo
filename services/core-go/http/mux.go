@@ -41,6 +41,12 @@ type Dependencies struct {
 	CompareAllowTokenResolve compareTokenAllowFunc
 	CompareAudit             compareAuditFunc
 
+	// CompareEnabled gates the Friend Comparison surface (T-SOCIAL-001) for
+	// staged rollout (implementation_plan.md → Rollout step 1). When false the
+	// compare routes are not registered at all (resolving to 404), even if
+	// Playthrough and Users are present.
+	CompareEnabled bool
+
 	// Billing is the Echo+ subscription service (T-MONEY-001).
 	// When nil, all /billing/* and /users/me/subscription routes are not
 	// registered. This allows the binary to boot without billing config
@@ -169,8 +175,9 @@ func NewMux(deps Dependencies) http.Handler {
 
 	// Friend comparison surface (T-SOCIAL-001). Public compare routes are
 	// token-based and intentionally unauthenticated; write operations require
-	// an authenticated session.
-	if deps.Playthrough != nil && deps.Users != nil {
+	// an authenticated session. Gated behind the CompareEnabled feature flag
+	// for staged rollout — when off, none of these routes are registered.
+	if deps.CompareEnabled && deps.Playthrough != nil && deps.Users != nil {
 		compareCfg := compareHandlerConfig{
 			Playthrough:  deps.Playthrough,
 			Users:        deps.Users,

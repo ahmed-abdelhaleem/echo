@@ -1,0 +1,15 @@
+{
+  "playthrough_id": "season-001-morning-deliberate",
+  "description": "Phone face-down, leave the leaning plant. vignette-001/choice-2 + vignette-002/choice-3.",
+  "season_id": "season-001",
+  "events": [
+    { "vignette_id": "vignette-001", "choice_id": "choice-2" },
+    { "vignette_id": "vignette-002", "choice_id": "choice-3" }
+  ],
+  "expected": {
+    "big_five": [0.4, 0.0, -0.1, 0.1, -0.2],
+    "schwartz": [0.3, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.2],
+    "attachment": [0.0, 0.0, 0.0]
+  }
+}
+

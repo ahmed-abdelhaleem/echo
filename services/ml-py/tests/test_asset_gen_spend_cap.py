@@ -201,6 +201,82 @@ def test_spend_usage_remaining_signals_unlimited() -> None:
     assert usage.remaining == -1
 
 
+def test_spend_usage_utilization() -> None:
+    clock = _FakeClock(datetime(2026, 6, 11, 12, 0, 0, tzinfo=UTC))
+    cap = WindowedSubmissionCap(environment="prod", limit=4, period_seconds=60, clock=clock)
+    assert cap.usage().utilization == 0.0
+    cap.charge()
+    assert cap.usage().utilization == 0.25
+    # An unlimited cap reports 0.0 so a dashboard can graph utilization
+    # uniformly without special-casing the sentinel.
+    assert NoSpendCap().usage().utilization == 0.0
+
+
+def test_charge_emits_charged_debug_telemetry(caplog: pytest.LogCaptureFixture) -> None:
+    """Each successful charge feeds the cost/usage dashboard."""
+    clock = _FakeClock(datetime(2026, 6, 11, 12, 0, 0, tzinfo=UTC))
+    cap = WindowedSubmissionCap(environment="prod", limit=10, period_seconds=60, clock=clock)
+    with caplog.at_level("DEBUG", logger="app.services.asset_gen.spend_cap"):
+        cap.charge()
+    charged = [rec for rec in caplog.records if "spend_cap.charged" in rec.message]
+    assert len(charged) == 1
+    assert charged[0].environment == "prod"
+    assert charged[0].used == 1
+    assert charged[0].limit == 10
+    assert charged[0].remaining == 9
+
+
+def test_approaching_warning_fires_once_per_window(caplog: pytest.LogCaptureFixture) -> None:
+    """The cap warns with lead time before the hard halt, only once per window."""
+    clock = _FakeClock(datetime(2026, 6, 11, 12, 0, 0, tzinfo=UTC))
+    cap = WindowedSubmissionCap(
+        environment="prod", limit=4, period_seconds=60, clock=clock, warn_ratio=0.5
+    )
+    with caplog.at_level("WARNING", logger="app.services.asset_gen.spend_cap"):
+        for _ in range(4):  # fill to the limit without breaching it
+            cap.charge()
+    approaching = [rec for rec in caplog.records if "spend_cap.approaching" in rec.message]
+    assert len(approaching) == 1
+    assert approaching[0].remaining == 2  # warned with two charges of lead time
+
+
+def test_approaching_warning_re_arms_after_window_roll(caplog: pytest.LogCaptureFixture) -> None:
+    clock = _FakeClock(datetime(2026, 6, 11, 12, 0, 0, tzinfo=UTC))
+    cap = WindowedSubmissionCap(
+        environment="prod", limit=2, period_seconds=60, clock=clock, warn_ratio=0.5
+    )
+    with caplog.at_level("WARNING", logger="app.services.asset_gen.spend_cap"):
+        cap.charge()  # used 1, remaining 1 -> warns (warn_at_remaining == 1)
+        cap.charge()  # used 2, remaining 0 -> already warned this window
+        clock.advance(61)  # roll the window forward
+        cap.charge()  # fresh window -> warns again
+    approaching = [rec for rec in caplog.records if "spend_cap.approaching" in rec.message]
+    assert len(approaching) == 2
+
+
+def test_warn_ratio_zero_disables_approaching_warning(caplog: pytest.LogCaptureFixture) -> None:
+    clock = _FakeClock(datetime(2026, 6, 11, 12, 0, 0, tzinfo=UTC))
+    cap = WindowedSubmissionCap(
+        environment="prod", limit=3, period_seconds=60, clock=clock, warn_ratio=0.0
+    )
+    with caplog.at_level("WARNING", logger="app.services.asset_gen.spend_cap"):
+        for _ in range(3):
+            cap.charge()
+    assert not any("spend_cap.approaching" in rec.message for rec in caplog.records)
+
+
+def test_invalid_warn_ratio_rejected() -> None:
+    clock = _FakeClock(datetime(2026, 6, 11, 12, 0, 0, tzinfo=UTC))
+    with pytest.raises(ValueError):
+        WindowedSubmissionCap(
+            environment="x", limit=1, period_seconds=60, clock=clock, warn_ratio=1.0
+        )
+    with pytest.raises(ValueError):
+        WindowedSubmissionCap(
+            environment="x", limit=1, period_seconds=60, clock=clock, warn_ratio=-0.1
+        )
+
+
 # ---------------------------------------------------------------------------
 # AssetSubmissionService integration
 # ---------------------------------------------------------------------------

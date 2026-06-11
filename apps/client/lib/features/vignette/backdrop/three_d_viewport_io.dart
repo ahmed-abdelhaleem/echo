@@ -25,6 +25,11 @@ class _NativeThreeDViewport extends StatefulWidget {
 
 class _NativeThreeDViewportState extends State<_NativeThreeDViewport> {
   ThermionViewer? _viewer;
+  // T-CLIENT-200: bounded free-look on native. Orbit is an *enhancement* — if
+  // the input handler can't be created, we render the scene statically rather
+  // than fail. (Refinement to validate on-device: clamp azimuth/polar and
+  // disable zoom for the calm, bounded feel the web path already has.)
+  InputHandler? _inputHandler;
   bool _thermionFailed = false;
 
   @override
@@ -58,11 +63,20 @@ class _NativeThreeDViewportState extends State<_NativeThreeDViewport> {
       await viewer.setBackgroundColor(0, 0, 0, 0);
       await viewer.setPostProcessing(true);
       await viewer.setRendering(true);
+      InputHandler? inputHandler;
+      try {
+        inputHandler = DelegateInputHandler.fixedOrbit(viewer);
+      } on Object {
+        inputHandler = null; // orbit unavailable → static render
+      }
       if (!mounted) {
         await viewer.dispose();
         return;
       }
-      setState(() => _viewer = viewer);
+      setState(() {
+        _viewer = viewer;
+        _inputHandler = inputHandler;
+      });
     } on Object {
       await viewer?.dispose();
       if (mounted) {
@@ -85,7 +99,17 @@ class _NativeThreeDViewportState extends State<_NativeThreeDViewport> {
   Widget build(BuildContext context) {
     final viewer = _viewer;
     if (viewer != null) {
-      return ThermionWidget(viewer: viewer, initial: const SizedBox.expand());
+      final scene = ThermionWidget(
+        viewer: viewer,
+        initial: const SizedBox.expand(),
+      );
+      final handler = _inputHandler;
+      if (handler != null) {
+        // Forward pointer/drag gestures to the orbit handler so the player can
+        // look around the composed scene.
+        return ThermionListenerWidget(inputHandler: handler, child: scene);
+      }
+      return scene;
     }
     if (_thermionFailed && (Platform.isAndroid || Platform.isIOS)) {
       return ModelViewer(

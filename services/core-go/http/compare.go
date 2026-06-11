@@ -44,6 +44,10 @@ func (c compareHandlerConfig) allow(ctx context.Context, action, token string) b
 }
 
 func (c compareHandlerConfig) audit(action, outcome string) {
+	// Record the lifecycle metric off the same taxonomy as the audit hook
+	// (implementation plan → Observability). Safe no-op until a MeterProvider
+	// exporter is wired.
+	getCompareMetrics().record(action, outcome)
 	if c.Audit != nil {
 		c.Audit(action, outcome)
 	}
@@ -389,6 +393,7 @@ func enableCompareShareHandler(cfg compareHandlerConfig) http.HandlerFunc {
 
 		token := strings.TrimSpace(r.PathValue("token"))
 		if token == "" {
+			cfg.audit("compare_share_enable", "bad_request")
 			writeJSONError(w, http.StatusBadRequest, "token required")
 			return
 		}
@@ -396,16 +401,20 @@ func enableCompareShareHandler(cfg compareHandlerConfig) http.HandlerFunc {
 		shareToken, err := cfg.Playthrough.EnableComparisonShare(r.Context(), user.ID, token)
 		switch {
 		case errors.Is(err, playthrough.ErrNotFound), errors.Is(err, playthrough.ErrNotOwner):
+			cfg.audit("compare_share_enable", "not_found")
 			writeJSONError(w, http.StatusNotFound, "comparison not found")
 			return
 		case errors.Is(err, playthrough.ErrComparisonNotAccepted):
+			cfg.audit("compare_share_enable", "not_accepted")
 			writeJSONError(w, http.StatusConflict, "comparison is not accepted")
 			return
 		case err != nil:
+			cfg.audit("compare_share_enable", "error")
 			cfg.Logger.Error("compare: share-enable", "err", err)
 			writeJSONError(w, http.StatusInternalServerError, "share-enable failed")
 			return
 		}
+		cfg.audit("compare_share_enable", "success")
 
 		writeJSON(w, http.StatusOK, shareEnableResponse{
 			ShareToken: shareToken,

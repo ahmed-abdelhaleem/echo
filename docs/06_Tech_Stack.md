@@ -59,12 +59,12 @@ The **Replace path** field exists so that future-us, future-team, or an AI agent
 
 ### Thermion (Filament) + glTF/GLB · 3D scene and model rendering
 - **Version:** Thermion 0.x (Flutter runtime), glTF 2.0 / GLB asset format
-- **Role:** Render AI-generated 3D vignette environments, props, and ambient scene elements inside the client — atmospheric depth for vignettes that benefit from a navigable or parallaxed 3D space. (The player **Portrait** is *not* 3D; it stays a deterministic parametric render — see Pillow + Cairo below.)
+- **Role:** Render AI-generated 3D vignette environments, props, and ambient scene elements inside the client — from parallaxed atmospheric depth up to fully composed, gently **explorable 3D scenes** (`F-CORE-007`, milestone M5) with an author-defined camera rig and bounded free-look. Target is parity across all four platforms **and web** (Filament-on-WASM, or a baked per-vignette scene GLB). (The player **Portrait** is *not* 3D; it stays a deterministic parametric render — see Pillow + Cairo below.)
 - **Why this:** Thermion wraps Google's **Filament** PBR engine behind a Flutter API, giving high-fidelity, identical rendering across all four platforms — the same parity argument that selected Flutter itself. **glTF/GLB** is the universal, royalty-free 3D interchange format that every generation provider can export, which keeps us provider-neutral end to end.
 - **Alternatives considered:**
   - **flutter_scene** (Impeller-native 3D from the Flutter team) — lighter and promising, but still experimental; revisit as it matures.
-  - **model_viewer_plus** (`<model-viewer>` in a platform webview) — trivial to adopt and a fine low-fidelity fallback, but webview overhead and weak control over lighting/perf.
-  - **Embedding Unity / Godot** — full engines, but heavyweight and reintroduce exactly the cross-platform-bridge problems Flutter exists to avoid.
+  - **model_viewer_plus** (`<model-viewer>` in a platform webview) — trivial to adopt and a fine low-fidelity fallback, but webview overhead, single-model only (cannot compose a multi-asset scene), and weak control over lighting/perf. Kept only as the web/low-end fallback.
+  - **Embedding Unity / Godot** — full engines, but heavyweight and reintroduce exactly the cross-platform-bridge problems Flutter exists to avoid. **Re-confirmed when scoping explorable scenes (M5):** an atmospheric, bounded diorama needs a *renderer*, not a game engine, and Unity's binary size + WebGL-iframe story on web would regress the Flutter parity the whole stack is built on. We stay on Thermion; Unity would only be revisited if Echo became "3D-game-first," which is a product-vision change, not a rendering choice.
 - **Lock-in risk:** Low. Assets are standard glTF/GLB; the renderer is swappable without touching content.
 - **Replace path:** Swap to flutter_scene or model_viewer_plus; assets are unchanged because they are standard glTF.
 

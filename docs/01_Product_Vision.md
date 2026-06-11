@@ -36,8 +36,10 @@ A single playthrough is roughly **20–30 minutes**. During that time the player
 - Morning, midday, afternoon, evening — four acts.
 - 15–25 micro-decisions per playthrough.
 - No timers, no scores, no "right answers," no XP, no leaderboards.
-- Atmospheric soundtrack, minimal but evocative art direction.
+- Atmospheric soundtrack and a hand-crafted **explorable 3D scene** for every vignette — a small, restrained diorama you can gently look around (think *Monument Valley*, not an open world), so each moment feels like a place you are standing in rather than a screen you are reading.
 - Choices presented as natural-language options people would actually say or do — not as labeled archetypes.
+
+The 3D scene is atmospheric, not a level: there is no running, no timing, no fail state. Looking around is optional and never gates a choice — it deepens *presence*. The world keeps living, quietly, the entire time the player deliberates. (How exploration coexists with the calm pacing is specified in `04_Game_Design`; how it is rendered and generated, in `05_Technical_Architecture`.)
 
 At the end, instead of a label, Echo generates:
 
@@ -54,6 +56,7 @@ The Portrait is what gets shared. It is the viral asset. It is also unique enoug
 To stay honest about scope, here are deliberate non-goals:
 
 - **Not a competitive game.** No leaderboards, no rankings, no "high score" personality.
+- **Not an open-world or twitch game.** Each vignette is an intimate, explorable 3D *diorama* — calm and restrained (the *Monument Valley* reference, not an action game). No movement controls, no timing, no fail state; exploration is gentle and optional and never blocks a choice.
 - **Not a diagnosis.** Echo describes patterns, not pathologies. It will never tell anyone they have a disorder. (See `08 — Data, Privacy & Compliance`.)
 - **Not a dating app.** Compatibility features may eventually exist but are not the wedge.
 - **Not a chatbot or AI companion.** Echo speaks to you four times — at the start, in the middle, and twice at the end. That's it. Restraint is part of the brand.

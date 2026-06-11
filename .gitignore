@@ -57,6 +57,7 @@ macos/Flutter/ephemeral/
 .env.local
 .envrc.local
 .echo-assets/
+.echo-cdn/
 
 # --- Secrets (defense in depth — gitleaks also scans) ---
 *.pem
