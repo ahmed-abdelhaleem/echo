@@ -27,11 +27,18 @@ This rule is also stated in `AGENTS.md` and `07_AI_Agent_Implementation_Guide`; 
 
 > A single reference to the next change. Replace it when you pick up the next thing.
 
-- **T-CLIENT-201 (cont.) — render from `VignetteScene` manifests:** wire the renderer to consume `content/scenes/**` (per-asset transforms/anchors + camera rig/bounds) on web and native, generalizing the current single-asset/parallax composition; keep the 2D atmospheric fallback. Pair with **on-device validation of native orbit** (T-CLIENT-200: clamp azimuth/polar, disable zoom). Real-generation activation stays **blocked on human approval**: Meshy key + spend cap (#11) and the scene-level QA/safety/youth-safe review (#7/#12).
+- **T-CLIENT-200 — on-device native polish:** the web path now composes the full per-asset TRS + bounds; native (Thermion) applies the resolved world-matrix *translation* + rig framing but defers per-asset rotation/scale and bounded-orbit clamping (azimuth/polar, disable-zoom) to on-hardware validation. Validate the orbit feel on a device and lift native to full-matrix fidelity. Real-generation activation stays **blocked on human approval**: Meshy key + spend cap (#11) and the scene-level QA/safety/youth-safe review (#7/#12).
 
 ---
 
 ## Change log
+
+### 2026-06-11 · Claude Code · Renderer consumes VignetteScene manifests (T-CLIENT-201 cont.)
+- **T-CLIENT-201:** wired both viewports to consume `content/scenes/**`, generalizing the single-axis parallax composition into authored 3D placement. New pure-Dart `scene_models.dart` projects the `VignetteScene` schema and resolves each node's **world matrix** from its local TRS + anchor chain (cycle/missing-anchor safe). `AssetSceneLoader.loadScene` places every ready asset by that matrix and carries the **bounded camera rig**; `assetSceneProvider` prefers the scene and falls back to the parallax backdrop (then the 2D atmospheric layer) when no scene resolves — no regression for un-authored vignettes.
+- **Web (unit-tested):** the GLB composer now bakes each asset's column-major world matrix into its wrapper `node.matrix` (was Z-only); `<model-viewer>` orbit/min/max + radius are derived from the rig (`phi = 90 − polar`), zoom stays disabled unless the scene enables it. **Native:** applies the world-matrix translation + frames the camera from the rig (per-asset rotation/scale + bounded-orbit clamp deferred to on-device T-CLIENT-200).
+- Bundled `content/scenes/**` into the client (`make client-content-sync`, `pubspec.yaml`). Added `scene_models_test.dart` (TRS/anchor math + projection) and `scene_loader_test.dart`; updated `glb_scene_composer_test.dart` for the matrix API. Flutter not runnable in this env — relied on faithful additive edits + VM unit tests; CI runs analyze/test.
+- Files: `apps/client/lib/features/vignette/{scene_models.dart,scene_provider.dart,assets/{asset_models.dart,asset_cache.dart,asset_provider.dart},backdrop/{glb_scene_composer.dart,three_d_viewport_web.dart,three_d_viewport_io.dart}}`, `apps/client/test/features/vignette/{scene_models_test.dart,scene_loader_test.dart,glb_scene_composer_test.dart}`, `apps/client/pubspec.yaml`, `Makefile`, `13`.
+- Flags: none new. Real generation still gated — Meshy key + spend cap (#11), scene-level QA/safety/youth-safe (#7/#12). Not activated. Scene `asset_id`s remain authored in lockstep (the loader skips ids absent from the asset manifest, so today only ready assets render).
 
 ### 2026-06-11 · GitHub Copilot · Scene-composition schema + all 20 season-001 scenes (T-CONTENT-200)
 - **T-CONTENT-200:** added `VignetteScene` schema (`vignette_scene.schema.json`) — one environment + placed props with transforms/anchors, scene-level lighting, and a **bounded camera rig** (look-at, default framing, azimuth/polar bounds, optional disabled zoom). Authored **all 20** season-001 vignettes as scenes (`content/scenes/season-001/scenes.manifest.json`), not 3.

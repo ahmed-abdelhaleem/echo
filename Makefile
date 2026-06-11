@@ -366,10 +366,13 @@ client-content-sync:
 	@echo "→ client-content-sync"
 	@rm -rf apps/client/assets/backdrops
 	@rm -rf apps/client/assets/assets-3d
+	@rm -rf apps/client/assets/scenes
 	@mkdir -p apps/client/assets/backdrops
 	@mkdir -p apps/client/assets/assets-3d
+	@mkdir -p apps/client/assets/scenes
 	@cp -R content/backdrops/. apps/client/assets/backdrops/
 	@cp -R content/assets-3d/. apps/client/assets/assets-3d/
+	@cp -R content/scenes/. apps/client/assets/scenes/
 	@# Dev affordance for T-CLIENT-040: the source manifest carries the
 	@# authored `desired` state (the reconciler / validator depend on it),
 	@# but the AssetSceneLoader only loads assets marked `ready`. Flip the

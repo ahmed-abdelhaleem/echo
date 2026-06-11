@@ -1,0 +1,646 @@
+{
+  "schema_version": "1.0",
+  "season_id": "season-001",
+  "scenes": [
+    {
+      "vignette_id": "vignette-001",
+      "mood": { "time_of_day": "dawn", "weather": "clear", "palette": "warm" },
+      "environment": {
+        "id": "env-bedroom",
+        "asset_id": "morning-bedroom-window",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "unmade-bed",
+          "asset_id": "unmade-bed",
+          "anchor": "env-bedroom",
+          "transform": { "position": [-0.6, 0, -0.4], "rotation_deg": [0, 12, 0], "scale": 1 }
+        },
+        {
+          "id": "nightstand-phone",
+          "asset_id": "nightstand-phone",
+          "anchor": "unmade-bed",
+          "interactive": true,
+          "notice": { "label": "The phone", "body": "Face-down. You can feel the messages there, waiting." },
+          "transform": { "position": [0.9, 0.5, -0.2], "rotation_deg": [0, -20, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "dawn", "intensity": 1.4, "ambient": 0.45, "color": "#ffd9a8", "direction": { "azimuth_deg": -35, "elevation_deg": 14 } },
+      "camera": {
+        "look_at": [0, 1.0, 0],
+        "distance": 4.6,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 9 },
+        "bounds": { "azimuth_deg": { "min": -28, "max": 28 }, "polar_deg": { "min": -4, "max": 18 } }
+      },
+      "asset_budget": { "max_polycount": 120000, "max_size_bytes": 31457280 }
+    },
+    {
+      "vignette_id": "vignette-002",
+      "mood": { "time_of_day": "morning", "weather": "clear", "palette": "warm" },
+      "environment": {
+        "id": "env-kitchen",
+        "asset_id": "morning-kitchen-counter",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "windowsill-plant",
+          "asset_id": "leaning-windowsill-plant",
+          "anchor": "env-kitchen",
+          "interactive": true,
+          "notice": { "label": "The plant", "body": "Tilted, reaching hard toward the light. Not dying — just leaning." },
+          "transform": { "position": [0.7, 1.1, -0.8], "rotation_deg": [0, 0, 14], "scale": 1 }
+        },
+        {
+          "id": "drip-coffee-maker",
+          "asset_id": "drip-coffee-maker",
+          "anchor": "env-kitchen",
+          "transform": { "position": [-0.5, 0.95, -0.5], "rotation_deg": [0, 8, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "morning", "intensity": 1.5, "ambient": 0.5, "color": "#fff0d6", "direction": { "azimuth_deg": 40, "elevation_deg": 22 } },
+      "camera": {
+        "look_at": [0, 1.1, 0],
+        "distance": 4.2,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 8 },
+        "bounds": { "azimuth_deg": { "min": -26, "max": 26 }, "polar_deg": { "min": -4, "max": 16 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-003",
+      "mood": { "time_of_day": "morning", "weather": "clear", "palette": "cool" },
+      "environment": {
+        "id": "env-stairwell",
+        "asset_id": "apartment-stairwell",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "grocery-bags",
+          "asset_id": "reusable-grocery-bags",
+          "anchor": "env-stairwell",
+          "interactive": true,
+          "notice": { "label": "Three full bags", "body": "Berk has clearly had a good morning." },
+          "transform": { "position": [0.5, 0, 0.3], "rotation_deg": [0, -15, 0], "scale": 1 }
+        },
+        {
+          "id": "apartment-door",
+          "asset_id": "apartment-door",
+          "anchor": "env-stairwell",
+          "transform": { "position": [-0.9, 0, -0.6], "rotation_deg": [0, 25, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "morning", "intensity": 1.1, "ambient": 0.55, "color": "#e8eef5", "direction": { "azimuth_deg": -20, "elevation_deg": 30 } },
+      "camera": {
+        "look_at": [0, 1.2, 0],
+        "distance": 4.0,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 6 },
+        "bounds": { "azimuth_deg": { "min": -24, "max": 24 }, "polar_deg": { "min": -3, "max": 14 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-004",
+      "mood": { "time_of_day": "morning", "weather": "clear", "palette": "cool" },
+      "environment": {
+        "id": "env-bus",
+        "asset_id": "city-bus-interior",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "window-seat",
+          "asset_id": "bus-window-seat",
+          "anchor": "env-bus",
+          "transform": { "position": [0.4, 0, 0.2], "rotation_deg": [0, 0, 0], "scale": 1 }
+        },
+        {
+          "id": "paperback-book",
+          "asset_id": "dog-eared-paperback",
+          "anchor": "window-seat",
+          "interactive": true,
+          "notice": { "label": "The book", "body": "A cover you loved three years ago. They're near the end." },
+          "transform": { "position": [0.1, 0.7, 0.1], "rotation_deg": [70, 0, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "morning", "intensity": 1.2, "ambient": 0.6, "color": "#eaf1f7", "direction": { "azimuth_deg": 60, "elevation_deg": 28 } },
+      "camera": {
+        "look_at": [0, 1.0, 0],
+        "distance": 3.6,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 7 },
+        "bounds": { "azimuth_deg": { "min": -22, "max": 22 }, "polar_deg": { "min": -3, "max": 14 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-005",
+      "mood": { "time_of_day": "morning", "weather": "clear", "palette": "cool" },
+      "environment": {
+        "id": "env-office",
+        "asset_id": "open-plan-office",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "tidy-desk",
+          "asset_id": "tidy-office-desk",
+          "anchor": "env-office",
+          "transform": { "position": [0, 0, 0.4], "rotation_deg": [0, 0, 0], "scale": 1 }
+        },
+        {
+          "id": "office-coffee-pot",
+          "asset_id": "office-coffee-pot",
+          "anchor": "env-office",
+          "interactive": true,
+          "notice": { "label": "The pot", "body": "Made by the 7 a.m. crowd. It's been sitting a while." },
+          "transform": { "position": [1.4, 0.95, -0.7], "rotation_deg": [0, -30, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "interior_cool", "intensity": 1.0, "ambient": 0.65, "color": "#f2f6fb", "direction": { "azimuth_deg": 0, "elevation_deg": 70 } },
+      "camera": {
+        "look_at": [0, 1.05, 0],
+        "distance": 4.4,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 8 },
+        "bounds": { "azimuth_deg": { "min": -26, "max": 26 }, "polar_deg": { "min": -4, "max": 15 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-006",
+      "mood": { "time_of_day": "midday", "weather": "clear", "palette": "cool" },
+      "environment": {
+        "id": "env-cubicles",
+        "asset_id": "office-cubicle-row",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "desk-monitor",
+          "asset_id": "desk-monitor",
+          "anchor": "env-cubicles",
+          "transform": { "position": [0, 0.95, -0.5], "rotation_deg": [0, 5, 0], "scale": 1 }
+        },
+        {
+          "id": "report-printout",
+          "asset_id": "quarterly-report-printout",
+          "anchor": "env-cubicles",
+          "interactive": true,
+          "notice": { "label": "The report", "body": "Not an error — a choice that could have gone differently." },
+          "transform": { "position": [0.6, 0.92, 0.1], "rotation_deg": [80, 0, -10], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "interior_cool", "intensity": 1.0, "ambient": 0.66, "color": "#f1f5fa", "direction": { "azimuth_deg": 0, "elevation_deg": 72 } },
+      "camera": {
+        "look_at": [0, 1.05, 0],
+        "distance": 3.8,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 7 },
+        "bounds": { "azimuth_deg": { "min": -24, "max": 24 }, "polar_deg": { "min": -3, "max": 14 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-007",
+      "mood": { "time_of_day": "midday", "weather": "clear", "palette": "warm" },
+      "environment": {
+        "id": "env-cafe",
+        "asset_id": "corner-cafe-interior",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "two-top-table",
+          "asset_id": "cafe-two-top-table",
+          "anchor": "env-cafe",
+          "transform": { "position": [0, 0, 0.3], "rotation_deg": [0, 0, 0], "scale": 1 }
+        },
+        {
+          "id": "water-glass",
+          "asset_id": "water-glass",
+          "anchor": "two-top-table",
+          "transform": { "position": [0.2, 0.75, 0.1], "rotation_deg": [0, 0, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "interior_warm", "intensity": 1.2, "ambient": 0.55, "color": "#ffe7c2", "direction": { "azimuth_deg": -50, "elevation_deg": 35 } },
+      "camera": {
+        "look_at": [0, 1.0, 0],
+        "distance": 4.0,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 8 },
+        "bounds": { "azimuth_deg": { "min": -28, "max": 28 }, "polar_deg": { "min": -4, "max": 15 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-008",
+      "mood": { "time_of_day": "afternoon", "weather": "clear", "palette": "cool" },
+      "environment": {
+        "id": "env-cubicles",
+        "asset_id": "office-cubicle-row",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "desk-monitor",
+          "asset_id": "desk-monitor",
+          "anchor": "env-cubicles",
+          "transform": { "position": [0, 0.95, -0.5], "rotation_deg": [0, 5, 0], "scale": 1 }
+        },
+        {
+          "id": "smartphone",
+          "asset_id": "smartphone-on-desk",
+          "anchor": "env-cubicles",
+          "interactive": true,
+          "notice": { "label": "Mara's message", "body": "\"Are we still on for Thursday? Also can I bring someone?\"" },
+          "transform": { "position": [0.5, 0.92, 0.2], "rotation_deg": [80, 0, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "interior_cool", "intensity": 0.95, "ambient": 0.62, "color": "#eef3f9", "direction": { "azimuth_deg": 10, "elevation_deg": 68 } },
+      "camera": {
+        "look_at": [0, 1.05, 0],
+        "distance": 3.8,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 7 },
+        "bounds": { "azimuth_deg": { "min": -24, "max": 24 }, "polar_deg": { "min": -3, "max": 14 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-009",
+      "mood": { "time_of_day": "afternoon", "weather": "overcast", "palette": "muted" },
+      "environment": {
+        "id": "env-meeting",
+        "asset_id": "glass-meeting-room",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "conference-table",
+          "asset_id": "conference-table",
+          "anchor": "env-meeting",
+          "transform": { "position": [0, 0, 0.2], "rotation_deg": [0, 0, 0], "scale": 1 }
+        },
+        {
+          "id": "wall-clock",
+          "asset_id": "wall-clock",
+          "anchor": "env-meeting",
+          "interactive": true,
+          "notice": { "label": "3:15", "body": "Forty-five minutes past when this was supposed to end." },
+          "transform": { "position": [0, 2.1, -1.4], "rotation_deg": [0, 0, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "overcast", "intensity": 0.85, "ambient": 0.7, "color": "#e6eaef", "direction": { "azimuth_deg": 0, "elevation_deg": 80 } },
+      "camera": {
+        "look_at": [0, 1.1, 0],
+        "distance": 4.6,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 8 },
+        "bounds": { "azimuth_deg": { "min": -26, "max": 26 }, "polar_deg": { "min": -4, "max": 16 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-010",
+      "mood": { "time_of_day": "afternoon", "weather": "clear", "palette": "warm" },
+      "environment": {
+        "id": "env-cubicles",
+        "asset_id": "office-cubicle-row",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "desk-lamp",
+          "asset_id": "desk-lamp",
+          "anchor": "env-cubicles",
+          "transform": { "position": [-0.7, 0.95, -0.4], "rotation_deg": [0, 20, 0], "scale": 1 }
+        },
+        {
+          "id": "draft-document",
+          "asset_id": "printed-draft-document",
+          "anchor": "env-cubicles",
+          "interactive": true,
+          "notice": { "label": "Her draft", "body": "Real problems, not catastrophic ones. She's waiting across the desk." },
+          "transform": { "position": [0.3, 0.92, 0.3], "rotation_deg": [80, 0, 5], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "interior_warm", "intensity": 1.05, "ambient": 0.6, "color": "#ffeacc", "direction": { "azimuth_deg": -30, "elevation_deg": 50 } },
+      "camera": {
+        "look_at": [0, 1.05, 0],
+        "distance": 3.8,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 7 },
+        "bounds": { "azimuth_deg": { "min": -24, "max": 24 }, "polar_deg": { "min": -3, "max": 14 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-011",
+      "mood": { "time_of_day": "afternoon", "weather": "clear", "palette": "muted" },
+      "environment": {
+        "id": "env-quiet-corner",
+        "asset_id": "office-quiet-corner",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "potted-fern",
+          "asset_id": "potted-fern",
+          "anchor": "env-quiet-corner",
+          "transform": { "position": [1.0, 0, -0.6], "rotation_deg": [0, 0, 0], "scale": 1 }
+        },
+        {
+          "id": "smartphone-to-ear",
+          "asset_id": "smartphone-to-ear",
+          "anchor": "env-quiet-corner",
+          "interactive": true,
+          "notice": { "label": "Your mother", "body": "\"I have something to tell you and I don't want you to be alarmed.\"" },
+          "transform": { "position": [0.1, 1.5, 0.3], "rotation_deg": [0, -10, 15], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "interior_cool", "intensity": 0.9, "ambient": 0.6, "color": "#edf1f6", "direction": { "azimuth_deg": 20, "elevation_deg": 60 } },
+      "camera": {
+        "look_at": [0, 1.2, 0],
+        "distance": 3.8,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 7 },
+        "bounds": { "azimuth_deg": { "min": -22, "max": 22 }, "polar_deg": { "min": -3, "max": 13 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-012",
+      "mood": { "time_of_day": "afternoon", "weather": "clear", "palette": "cool" },
+      "environment": {
+        "id": "env-kitchenette",
+        "asset_id": "office-kitchenette",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "water-cooler",
+          "asset_id": "water-cooler",
+          "anchor": "env-kitchenette",
+          "transform": { "position": [0.9, 0, -0.7], "rotation_deg": [0, -15, 0], "scale": 1 }
+        },
+        {
+          "id": "ceramic-mug",
+          "asset_id": "ceramic-mug",
+          "anchor": "env-kitchenette",
+          "interactive": true,
+          "notice": { "label": "A mug, half-filled", "body": "\"Are you okay? You looked like you just got some news.\"" },
+          "transform": { "position": [-0.3, 0.95, 0.2], "rotation_deg": [0, 0, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "interior_cool", "intensity": 0.95, "ambient": 0.64, "color": "#eef3f9", "direction": { "azimuth_deg": 0, "elevation_deg": 72 } },
+      "camera": {
+        "look_at": [0, 1.05, 0],
+        "distance": 3.8,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 7 },
+        "bounds": { "azimuth_deg": { "min": -24, "max": 24 }, "polar_deg": { "min": -3, "max": 14 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-013",
+      "mood": { "time_of_day": "afternoon", "weather": "clear", "palette": "cool" },
+      "environment": {
+        "id": "env-corridor",
+        "asset_id": "office-corridor",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "notice-board",
+          "asset_id": "cork-notice-board",
+          "anchor": "env-corridor",
+          "transform": { "position": [0, 1.4, -1.2], "rotation_deg": [0, 0, 0], "scale": 1 }
+        },
+        {
+          "id": "sign-up-sheet",
+          "asset_id": "volunteer-sign-up-sheet",
+          "anchor": "notice-board",
+          "interactive": true,
+          "notice": { "label": "Volunteer day", "body": "Six names so far. A Saturday, planting trees outside the city." },
+          "transform": { "position": [0.2, 1.45, -1.18], "rotation_deg": [0, 0, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "interior_cool", "intensity": 0.95, "ambient": 0.66, "color": "#f0f4f9", "direction": { "azimuth_deg": 0, "elevation_deg": 75 } },
+      "camera": {
+        "look_at": [0, 1.4, 0],
+        "distance": 3.6,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 5 },
+        "bounds": { "azimuth_deg": { "min": -22, "max": 22 }, "polar_deg": { "min": -3, "max": 12 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-014",
+      "mood": { "time_of_day": "afternoon", "weather": "clear", "palette": "warm" },
+      "environment": {
+        "id": "env-cubicles",
+        "asset_id": "office-cubicle-row",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "desk-monitor",
+          "asset_id": "desk-monitor",
+          "anchor": "env-cubicles",
+          "interactive": true,
+          "notice": { "label": "The email", "body": "A lead you respect, asking if you'd join. Interesting. Extra work. End of day." },
+          "transform": { "position": [0, 0.95, -0.5], "rotation_deg": [0, 5, 0], "scale": 1 }
+        },
+        {
+          "id": "sticky-note-stack",
+          "asset_id": "sticky-note-stack",
+          "anchor": "env-cubicles",
+          "transform": { "position": [0.5, 0.93, 0.2], "rotation_deg": [0, 0, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "interior_warm", "intensity": 1.0, "ambient": 0.6, "color": "#ffeccf", "direction": { "azimuth_deg": -25, "elevation_deg": 45 } },
+      "camera": {
+        "look_at": [0, 1.05, 0],
+        "distance": 3.8,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 7 },
+        "bounds": { "azimuth_deg": { "min": -24, "max": 24 }, "polar_deg": { "min": -3, "max": 14 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-015",
+      "mood": { "time_of_day": "evening", "weather": "overcast", "palette": "muted" },
+      "environment": {
+        "id": "env-street",
+        "asset_id": "bus-stop-evening",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "street-lamp",
+          "asset_id": "street-lamp",
+          "anchor": "env-street",
+          "transform": { "position": [-1.6, 0, -0.5], "rotation_deg": [0, 0, 0], "scale": 1 }
+        },
+        {
+          "id": "busker",
+          "asset_id": "busker-with-guitar",
+          "anchor": "env-street",
+          "interactive": true,
+          "notice": { "label": "The busker", "body": "Good — not showing-off good, just genuinely good. A small crowd." },
+          "transform": { "position": [0.4, 0, 0.6], "rotation_deg": [0, -20, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "evening", "intensity": 0.95, "ambient": 0.4, "color": "#d9c6a8", "direction": { "azimuth_deg": -60, "elevation_deg": 12 } },
+      "camera": {
+        "look_at": [0, 1.1, 0],
+        "distance": 5.0,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 8 },
+        "bounds": { "azimuth_deg": { "min": -40, "max": 40 }, "polar_deg": { "min": -4, "max": 18 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-016",
+      "mood": { "time_of_day": "evening", "weather": "clear", "palette": "warm" },
+      "environment": {
+        "id": "env-home-kitchen",
+        "asset_id": "home-kitchen-evening",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "open-fridge",
+          "asset_id": "open-refrigerator",
+          "anchor": "env-home-kitchen",
+          "transform": { "position": [1.0, 0, -0.6], "rotation_deg": [0, -25, 0], "scale": 1 }
+        },
+        {
+          "id": "leftovers",
+          "asset_id": "leftovers-container",
+          "anchor": "env-home-kitchen",
+          "interactive": true,
+          "notice": { "label": "Two good options", "body": "Something you planned, and leftovers somehow better than what you made on purpose." },
+          "transform": { "position": [-0.4, 0.95, 0.2], "rotation_deg": [0, 0, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "interior_warm", "intensity": 1.1, "ambient": 0.5, "color": "#ffdfb0", "direction": { "azimuth_deg": 30, "elevation_deg": 40 } },
+      "camera": {
+        "look_at": [0, 1.05, 0],
+        "distance": 4.0,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 8 },
+        "bounds": { "azimuth_deg": { "min": -26, "max": 26 }, "polar_deg": { "min": -4, "max": 15 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-017",
+      "mood": { "time_of_day": "evening", "weather": "clear", "palette": "warm" },
+      "environment": {
+        "id": "env-living-room",
+        "asset_id": "home-living-room",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "reading-lamp",
+          "asset_id": "reading-lamp",
+          "anchor": "env-living-room",
+          "transform": { "position": [1.2, 0, -0.7], "rotation_deg": [0, 0, 0], "scale": 1 }
+        },
+        {
+          "id": "smartphone-on-couch",
+          "asset_id": "smartphone-on-couch",
+          "anchor": "env-living-room",
+          "interactive": true,
+          "notice": { "label": "A voice note", "body": "Something funny from Mara's day. She wants you to respond in kind." },
+          "transform": { "position": [-0.3, 0.5, 0.4], "rotation_deg": [60, 0, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "interior_warm", "intensity": 1.0, "ambient": 0.45, "color": "#ffd9a0", "direction": { "azimuth_deg": 50, "elevation_deg": 35 } },
+      "camera": {
+        "look_at": [0, 1.0, 0],
+        "distance": 4.2,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 8 },
+        "bounds": { "azimuth_deg": { "min": -28, "max": 28 }, "polar_deg": { "min": -4, "max": 15 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-018",
+      "mood": { "time_of_day": "night", "weather": "clear", "palette": "warm" },
+      "environment": {
+        "id": "env-living-room",
+        "asset_id": "home-living-room",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "window-city-night",
+          "asset_id": "window-city-night",
+          "anchor": "env-living-room",
+          "transform": { "position": [0, 1.3, -1.6], "rotation_deg": [0, 0, 0], "scale": 1 }
+        },
+        {
+          "id": "smartphone-in-hand",
+          "asset_id": "smartphone-in-hand",
+          "anchor": "env-living-room",
+          "interactive": true,
+          "notice": { "label": "Call her?", "body": "Not to continue earlier — just to say goodnight. Something she would like." },
+          "transform": { "position": [0.2, 1.0, 0.4], "rotation_deg": [40, -10, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "night", "intensity": 0.7, "ambient": 0.35, "color": "#c9b48f", "direction": { "azimuth_deg": 0, "elevation_deg": 25 } },
+      "camera": {
+        "look_at": [0, 1.1, 0],
+        "distance": 4.2,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 7 },
+        "bounds": { "azimuth_deg": { "min": -26, "max": 26 }, "polar_deg": { "min": -4, "max": 14 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-019",
+      "mood": { "time_of_day": "evening", "weather": "clear", "palette": "warm" },
+      "environment": {
+        "id": "env-bedroom-evening",
+        "asset_id": "bedroom-evening",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "low-bookshelf",
+          "asset_id": "low-bookshelf",
+          "anchor": "env-bedroom-evening",
+          "transform": { "position": [-1.1, 0, -0.8], "rotation_deg": [0, 15, 0], "scale": 1 }
+        },
+        {
+          "id": "birthday-card",
+          "asset_id": "old-birthday-card",
+          "anchor": "low-bookshelf",
+          "interactive": true,
+          "notice": { "label": "A birthday card", "body": "From someone you don't see anymore. Cheerful. It doesn't hurt to read." },
+          "transform": { "position": [0.1, 0.9, 0.05], "rotation_deg": [70, 0, -8], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "interior_warm", "intensity": 0.9, "ambient": 0.42, "color": "#ffd6a0", "direction": { "azimuth_deg": -40, "elevation_deg": 30 } },
+      "camera": {
+        "look_at": [0, 1.0, 0],
+        "distance": 4.0,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 7 },
+        "bounds": { "azimuth_deg": { "min": -26, "max": 26 }, "polar_deg": { "min": -4, "max": 14 } }
+      }
+    },
+    {
+      "vignette_id": "vignette-020",
+      "mood": { "time_of_day": "night", "weather": "clear", "palette": "muted" },
+      "environment": {
+        "id": "env-bedroom-night",
+        "asset_id": "bedroom-night",
+        "transform": { "position": [0, 0, 0], "rotation_deg": [0, 0, 0], "scale": 1 }
+      },
+      "props": [
+        {
+          "id": "bedside-phone",
+          "asset_id": "nightstand-phone",
+          "anchor": "env-bedroom-night",
+          "transform": { "position": [0.9, 0.5, -0.2], "rotation_deg": [0, -20, 0], "scale": 1 }
+        },
+        {
+          "id": "ceiling-light",
+          "asset_id": "ceiling-light-fixture",
+          "anchor": "env-bedroom-night",
+          "interactive": true,
+          "notice": { "label": "The ceiling", "body": "The same position as this morning. What do you want to remember about today?" },
+          "transform": { "position": [0, 2.4, -0.2], "rotation_deg": [0, 0, 0], "scale": 1 }
+        }
+      ],
+      "lighting": { "preset": "night", "intensity": 0.5, "ambient": 0.3, "color": "#9fb0c4", "direction": { "azimuth_deg": 0, "elevation_deg": 80 } },
+      "camera": {
+        "look_at": [0, 1.0, 0],
+        "distance": 4.6,
+        "default_framing": { "azimuth_deg": 0, "polar_deg": 10 },
+        "bounds": { "azimuth_deg": { "min": -22, "max": 22 }, "polar_deg": { "min": -2, "max": 22 } }
+      }
+    }
+  ]
+}
+

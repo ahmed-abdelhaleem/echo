@@ -5,6 +5,7 @@ import 'package:echo_client/features/vignette/assets/asset_cache.dart';
 import 'package:echo_client/features/vignette/assets/asset_file_store.dart';
 import 'package:echo_client/features/vignette/assets/asset_models.dart';
 import 'package:echo_client/features/vignette/backdrop/backdrop_provider.dart';
+import 'package:echo_client/features/vignette/scene_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,19 +48,38 @@ final FutureProviderFamily<AssetScene, VignetteBackdropKey> assetSceneProvider =
   Ref ref,
   VignetteBackdropKey key,
 ) async {
-  final backdrop = ref.watch(backdropForVignetteProvider(key));
-  if (backdrop == null) {
-    return AssetScene.empty;
-  }
   final manifest = await ref.watch(
     assetManifestProvider(key.seasonId).future,
   );
   if (manifest == null) {
     return AssetScene.empty;
   }
-  return ref.watch(assetSceneLoaderProvider).load(
-        backdrop: backdrop,
-        manifest: manifest,
-        cdnBaseUrl: ref.watch(assetCdnBaseUrlProvider),
-      );
+  final loader = ref.watch(assetSceneLoaderProvider);
+  final cdnBaseUrl = ref.watch(assetCdnBaseUrlProvider);
+
+  // Prefer the authored VignetteScene (full per-asset transforms + bounded
+  // camera rig, T-CLIENT-201). It is the generalization of the parallax
+  // backdrop; when no scene is authored, or none of its assets resolve to a
+  // ready GLB, fall back to the parallax backdrop below.
+  final scene = ref.watch(sceneForVignetteProvider(key));
+  if (scene != null) {
+    final composed = await loader.loadScene(
+      scene: scene,
+      manifest: manifest,
+      cdnBaseUrl: cdnBaseUrl,
+    );
+    if (!composed.isEmpty) {
+      return composed;
+    }
+  }
+
+  final backdrop = ref.watch(backdropForVignetteProvider(key));
+  if (backdrop == null) {
+    return AssetScene.empty;
+  }
+  return loader.load(
+    backdrop: backdrop,
+    manifest: manifest,
+    cdnBaseUrl: cdnBaseUrl,
+  );
 });

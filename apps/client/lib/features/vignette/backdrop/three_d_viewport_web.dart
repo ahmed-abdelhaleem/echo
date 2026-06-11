@@ -6,6 +6,7 @@ import 'dart:ui_web' as ui_web;
 import 'package:echo_client/features/vignette/assets/asset_models.dart';
 import 'package:echo_client/features/vignette/backdrop/glb_scene_composer.dart';
 import 'package:echo_client/features/vignette/backdrop/three_d_debug.dart';
+import 'package:echo_client/features/vignette/scene_models.dart';
 import 'package:flutter/material.dart';
 
 // This is the web-only viewport, selected by the conditional import in
@@ -37,17 +38,22 @@ import 'package:flutter/material.dart';
 final Set<String> _registeredViewTypes = <String>{};
 
 Widget buildThreeDViewport(BuildContext context, AssetScene scene) {
-  // T-CLIENT-201: render the FULL composed scene on web. We merge every layer's
-  // GLB into one model and place each by parallax depth; if composition isn't
-  // possible (only one asset, or a GLB the composer can't merge losslessly) we
-  // fall back to the first asset so the scene still renders.
+  // T-CLIENT-201: render the FULL composed scene on web. We merge every asset's
+  // GLB into one model and place each by its resolved world matrix (TRS + anchor
+  // chain from the VignetteScene, or translation-only parallax on the fallback
+  // path); if composition isn't possible (only one asset, or a GLB the composer
+  // can't merge losslessly) we fall back to the first asset so the scene still
+  // renders.
   final src = _composedOrFirstSrc(scene);
+  // Bounded orbit from the scene's camera rig (T-CLIENT-201), or the calm
+  // default framing on the parallax fallback.
+  final cam = _CameraAttrs.forRig(scene.camera);
   // Honor the OS "reduce motion" preference: flatten to a still framing with no
   // look-around (F-CORE-007 accessibility requirement). The flag is part of the
   // viewType key so toggling it re-registers a correctly-configured element.
   final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-  final viewType =
-      'echo-model-viewer-${src.hashCode}-${reduceMotion ? 'still' : 'look'}';
+  final viewType = 'echo-model-viewer-${src.hashCode}-'
+      '${reduceMotion ? 'still' : 'look'}-${cam.signature}';
 
   if (kEcho3dDebug) {
     final head = src.length > 64 ? '${src.substring(0, 64)}…' : src;
@@ -72,17 +78,20 @@ Widget buildThreeDViewport(BuildContext context, AssetScene scene) {
           ..setAttribute('disable-pan', '')
           ..setAttribute('disable-tap', '');
       } else {
-        // Bounded, damped free-look: drag to look around within limits; no
-        // zoom/pan (calm, restrained — the Monument-Valley reference, not a
-        // free-fly camera). See 04_Game_Design → "explorable 3D scene".
+        // Bounded, damped free-look: drag to look around within the rig's
+        // limits; no zoom/pan unless the scene enables zoom (calm, restrained —
+        // the Monument-Valley reference, not a free-fly camera). See
+        // 04_Game_Design → "explorable 3D scene".
         modelViewer
           ..setAttribute('camera-controls', '')
-          ..setAttribute('disable-zoom', '')
           ..setAttribute('disable-pan', '')
-          ..setAttribute('camera-orbit', '0deg 80deg 105%')
-          ..setAttribute('min-camera-orbit', '-35deg 65deg auto')
-          ..setAttribute('max-camera-orbit', '35deg 95deg auto')
+          ..setAttribute('camera-orbit', cam.orbit)
+          ..setAttribute('min-camera-orbit', cam.minOrbit)
+          ..setAttribute('max-camera-orbit', cam.maxOrbit)
           ..setAttribute('interpolation-decay', '200');
+        if (!cam.zoomEnabled) {
+          modelViewer.setAttribute('disable-zoom', '');
+        }
         if (kEcho3dDebug) {
           modelViewer.setAttribute('auto-rotate', '');
         }
@@ -107,9 +116,9 @@ Widget buildThreeDViewport(BuildContext context, AssetScene scene) {
   return HtmlElementView(viewType: viewType);
 }
 
-/// Compose every asset in [scene] into one GLB (placed by parallax depth), or
-/// fall back to the first asset's source if there is only one asset or the
-/// GLBs can't be merged losslessly.
+/// Compose every asset in [scene] into one GLB (each placed by its resolved
+/// world matrix), or fall back to the first asset's source if there is only one
+/// asset or the GLBs can't be merged losslessly.
 String _composedOrFirstSrc(AssetScene scene) {
   final assets = scene.assets;
   if (assets.length <= 1) {
@@ -121,13 +130,68 @@ String _composedOrFirstSrc(AssetScene scene) {
     if (bytes == null) {
       return assets.first.renderSource; // non-data-URL source; can't compose
     }
-    parts.add(GlbScenePart(glb: bytes, z: -(asset.parallaxDepth / 100.0)));
+    parts.add(GlbScenePart(glb: bytes, matrix: asset.placementMatrix));
   }
   final composed = composeSceneGlb(parts);
   if (composed == null) {
     return assets.first.renderSource;
   }
   return 'data:model/gltf-binary;base64,${base64Encode(composed)}';
+}
+
+/// `<model-viewer>` orbit attributes derived from a scene [CameraRig], or the
+/// calm fixed framing used on the parallax fallback (and historically before
+/// scenes existed).
+///
+/// model-viewer's `camera-orbit` is `theta phi radius`: theta is the azimuth
+/// (our yaw, 1:1) and phi is measured from the +Y pole, so an elevation of
+/// `polar` degrees above the horizon is `phi = 90 - polar`. Higher polar →
+/// smaller phi, which inverts the polar bounds.
+class _CameraAttrs {
+  const _CameraAttrs({
+    required this.orbit,
+    required this.minOrbit,
+    required this.maxOrbit,
+    required this.zoomEnabled,
+    required this.signature,
+  });
+
+  factory _CameraAttrs.forRig(CameraRig? rig) {
+    if (rig == null) {
+      return const _CameraAttrs(
+        orbit: '0deg 80deg 105%',
+        minOrbit: '-35deg 65deg auto',
+        maxOrbit: '35deg 95deg auto',
+        zoomEnabled: false,
+        signature: 'default',
+      );
+    }
+    String n(double v) => v.toStringAsFixed(1);
+    final theta = n(rig.defaultFraming.azimuthDeg);
+    final phi = n(90 - rig.defaultFraming.polarDeg);
+    final radius = '${n(rig.distance)}m';
+    final orbit = '${theta}deg ${phi}deg $radius';
+    // Polar inverts under the phi convention: min phi pairs with max polar.
+    final minOrbit = '${n(rig.bounds.azimuth.min)}deg '
+        '${n(90 - rig.bounds.polar.max)}deg auto';
+    final maxOrbit = '${n(rig.bounds.azimuth.max)}deg '
+        '${n(90 - rig.bounds.polar.min)}deg auto';
+    return _CameraAttrs(
+      orbit: orbit,
+      minOrbit: minOrbit,
+      maxOrbit: maxOrbit,
+      zoomEnabled: rig.bounds.zoom.enabled,
+      signature: '$minOrbit|$orbit|$maxOrbit',
+    );
+  }
+
+  final String orbit;
+  final String minOrbit;
+  final String maxOrbit;
+  final bool zoomEnabled;
+
+  /// Stable key fragment so a changed rig re-registers the platform view.
+  final String signature;
 }
 
 Uint8List? _bytesFromDataUrl(String src) {

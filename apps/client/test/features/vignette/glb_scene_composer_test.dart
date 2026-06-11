@@ -132,10 +132,25 @@ Map<String, dynamic> _parseGlbJson(Uint8List data) {
   return doc!;
 }
 
+/// Column-major translation matrix, matching scene_models.translationMatrix.
+List<double> _translation(double x, double y, double z) => <double>[
+      1, 0, 0, 0, //
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      x, y, z, 1,
+    ];
+
+const List<double> _identity = <double>[
+  1, 0, 0, 0, //
+  0, 1, 0, 0,
+  0, 0, 1, 0,
+  0, 0, 0, 1,
+];
+
 void main() {
   test('single part passes through unchanged', () {
     final glb = _triangleGlb();
-    final result = composeSceneGlb([GlbScenePart(glb: glb, z: 0)]);
+    final result = composeSceneGlb([GlbScenePart(glb: glb, matrix: _identity)]);
     expect(result, same(glb));
   });
 
@@ -143,8 +158,8 @@ void main() {
     final a = _triangleGlb();
     final b = _triangleGlb();
     final merged = composeSceneGlb([
-      GlbScenePart(glb: a, z: 0),
-      GlbScenePart(glb: b, z: -0.4),
+      GlbScenePart(glb: a, matrix: _translation(0.5, 0, 0)),
+      GlbScenePart(glb: b, matrix: _translation(0, 0, -0.4)),
     ]);
 
     expect(merged, isNotNull);
@@ -167,13 +182,32 @@ void main() {
         ((secondMeshPrim.first as Map)['attributes'] as Map)['POSITION'] as int;
     expect(pos, 3, reason: 'second POSITION accessor re-indexed by +2');
 
-    // A wrapper node carries the parallax Z translation.
+    // Each wrapper node carries its source's world matrix; the translation
+    // column (indices 12..14) places the part within the merged scene.
     final wrappers = (doc['nodes'] as List)
         .whereType<Map>()
-        .where((n) => n.containsKey('translation'))
+        .where((n) => n.containsKey('matrix'))
         .toList();
     expect(wrappers, hasLength(2));
-    expect((wrappers.last['translation'] as List)[2], closeTo(-0.4, 1e-9));
+    final tx = (wrappers.first['matrix'] as List)[12] as num;
+    final tz = (wrappers.last['matrix'] as List)[14] as num;
+    expect(tx, closeTo(0.5, 1e-9));
+    expect(tz, closeTo(-0.4, 1e-9));
+  });
+
+  test('an identity placement omits the wrapper matrix', () {
+    final merged = composeSceneGlb([
+      GlbScenePart(glb: _triangleGlb(), matrix: _identity),
+      GlbScenePart(glb: _triangleGlb(), matrix: _translation(0, 0, -0.4)),
+    ]);
+    final doc = _parseGlbJson(merged!);
+    final wrappers = (doc['nodes'] as List)
+        .whereType<Map>()
+        .where((n) => !n.containsKey('mesh')) // wrapper nodes have no mesh
+        .toList();
+    expect(wrappers, hasLength(2));
+    final withMatrix = wrappers.where((n) => n.containsKey('matrix')).toList();
+    expect(withMatrix, hasLength(1), reason: 'identity wrapper carries no matrix');
   });
 
   test('bails (null) when a part requires an unsupported extension', () {
@@ -182,8 +216,8 @@ void main() {
       'extensionsRequired': <String>['KHR_draco_mesh_compression'],
     });
     final result = composeSceneGlb([
-      GlbScenePart(glb: plain, z: 0),
-      GlbScenePart(glb: draco, z: -0.4),
+      GlbScenePart(glb: plain, matrix: _identity),
+      GlbScenePart(glb: draco, matrix: _translation(0, 0, -0.4)),
     ]);
     expect(result, isNull, reason: 'caller falls back to a single asset');
   });

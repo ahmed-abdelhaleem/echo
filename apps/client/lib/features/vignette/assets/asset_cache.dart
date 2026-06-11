@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:echo_client/features/vignette/assets/asset_models.dart';
+import 'package:echo_client/features/vignette/scene_models.dart';
 
 typedef AssetDownloader = Future<Uint8List?> Function(
   Uri uri,
@@ -37,10 +38,14 @@ class AssetCache implements AssetCacheReader {
     required Uri? remoteUri,
     required int maxSizeBytes,
     required double parallaxDepth,
+    SceneMatrix? worldMatrix,
+    String? nodeId,
+    bool interactive = false,
   }) async {
+    final placement = _Placement(worldMatrix, nodeId, interactive);
     final cached = await store.find(descriptor.digest);
     if (cached != null && cached.sizeBytes <= maxSizeBytes) {
-      return _resolved(descriptor, cached, parallaxDepth);
+      return _resolved(descriptor, cached, parallaxDepth, placement);
     }
     if (remoteUri == null || maxSizeBytes < 12) {
       return null;
@@ -53,13 +58,14 @@ class AssetCache implements AssetCacheReader {
       return null;
     }
     final stored = await store.write(descriptor.digest, bytes);
-    return _resolved(descriptor, stored, parallaxDepth);
+    return _resolved(descriptor, stored, parallaxDepth, placement);
   }
 
   CachedAsset _resolved(
     AssetDescriptor descriptor,
     StoredAsset stored,
     double parallaxDepth,
+    _Placement placement,
   ) {
     return CachedAsset(
       descriptor: descriptor,
@@ -67,8 +73,21 @@ class AssetCache implements AssetCacheReader {
       renderSource: stored.renderSource,
       sizeBytes: stored.sizeBytes,
       parallaxDepth: parallaxDepth,
+      worldMatrix: placement.worldMatrix,
+      nodeId: placement.nodeId,
+      interactive: placement.interactive,
     );
   }
+}
+
+/// Internal bundle of the scene placement fields so they ride together through
+/// the cache-hit and freshly-downloaded paths.
+class _Placement {
+  const _Placement(this.worldMatrix, this.nodeId, this.interactive);
+
+  final SceneMatrix? worldMatrix;
+  final String? nodeId;
+  final bool interactive;
 }
 
 AssetDownloader dioAssetDownloader(Dio dio) {
