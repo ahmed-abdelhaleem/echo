@@ -210,7 +210,8 @@ void main() {
         .toList();
     expect(wrappers, hasLength(2));
     final withMatrix = wrappers.where((n) => n.containsKey('matrix')).toList();
-    expect(withMatrix, hasLength(1), reason: 'identity wrapper carries no matrix');
+    expect(withMatrix, hasLength(1),
+        reason: 'identity wrapper carries no matrix');
   });
 
   test('bails (null) when a part requires an unsupported extension', () {
