@@ -163,5 +163,8 @@ async def _ensure_stream(jetstream: Any, stream: str, subject: str) -> None:
             )
         )
         return
-    if str(info.config.retention.value) != "workqueue":
+    retention = info.config.retention
+    if hasattr(retention, "value"):
+        retention = retention.value
+    if str(retention) != "workqueue":
         raise RuntimeError(f"JetStream {stream} must use work-queue retention")

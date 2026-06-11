@@ -59,6 +59,7 @@ help:
 	@echo "  make dev-ml           Run ml-py HTTP (uvicorn --reload)"
 	@echo "  make dev-ml-grpc      Run ml-py gRPC on :50051"
 	@echo "  make dev-asset-worker Run the T-ML-051 JetStream asset worker"
+	@echo "  make dev-trellis      Run Apple TRELLIS.2 HTTP server on :8090 (Apple Silicon)"
 	@echo "  make client           Run Flutter client (auto: chrome without Xcode)"
 	@echo "  make client-web-assets Fetch Drift web/sqlite3.wasm + drift_worker.js"
 	@echo "  make migrate          Apply database migrations"
@@ -432,7 +433,9 @@ dev:
 	@echo "    make migrate              # first time or after schema changes"
 	@echo "    make dev-core             # terminal 1 — core-go on :8081 (starts postgres+redis)"
 	@echo "    make dev-ml-grpc          # terminal 2 — ml-py gRPC on :50051 (optional)"
-	@echo "    make client               # terminal 3 — Flutter client"
+	@echo "    make dev-trellis          # terminal 3 — Apple TRELLIS.2 on :8090 (Apple Silicon)"
+	@echo "    make dev-asset-worker     # terminal 4 — asset JetStream worker"
+	@echo "    make client               # terminal 5 — Flutter client"
 
 .PHONY: dev-core
 dev-core: compose-up-infra
@@ -475,6 +478,17 @@ else
 	@echo "↷ uv not installed; cannot run dev-asset-worker"
 	@exit 1
 endif
+
+# TRELLIS_MAC_ROOT: path to the trellis-mac checkout (default: ~/Documents/GitHub/trellis-mac).
+# The server uses that checkout's venv so torch/trellis2 deps stay isolated.
+TRELLIS_MAC_ROOT ?= $(HOME)/Documents/GitHub/trellis-mac
+TRELLIS_PY := $(TRELLIS_MAC_ROOT)/.venv/bin/python
+
+.PHONY: dev-trellis
+dev-trellis:
+	@test -f "$(TRELLIS_PY)" || (echo "↷ trellis-mac venv not found at $(TRELLIS_MAC_ROOT)/.venv — run setup.sh first" && exit 1)
+	@echo "→ dev-trellis (Apple TRELLIS.2 HTTP on :$${TRELLIS_PORT:-8090})"
+	@TRELLIS_MAC_ROOT="$(TRELLIS_MAC_ROOT)" "$(TRELLIS_PY)" services/trellis-py/apple_server.py
 
 # PLATFORM selects the Flutter device (macos, ios, android, chrome, ...).
 # Default to chrome when full Xcode.app is not active — macOS desktop builds

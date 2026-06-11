@@ -5,13 +5,13 @@
 //   - signUp(...) / login(...) / signOut() rotate the state
 //   - delete() tears the account down and rotates to anonymous
 //
-// We keep the auth token in memory only in M2. Persisting it across
-// app restarts requires platform secure storage (Keychain on
-// iOS/macOS, EncryptedSharedPreferences on Android, etc.), which we
-// add in a follow-up PR after we've decided on the storage abstraction.
-// Within a single session the surface is fully functional.
+// The token is persisted via [SessionTokenStorage] so users remain logged in
+// across page reloads and cold restarts without exposing it to preferences.
+
+import 'dart:async';
 
 import 'package:echo_client/services/auth_client.dart';
+import 'package:echo_client/services/session_token_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -54,9 +54,40 @@ class AuthStateSignedIn extends AuthState {
 /// has side effects (HTTP calls, whoami refresh) that the UI shouldn't
 /// have to remember to run.
 class AuthController extends StateNotifier<AuthState> {
-  AuthController(this._client) : super(const AuthStateAnonymous());
+  AuthController(this._client, {SessionTokenStorage? storage})
+      : _storage = storage,
+        super(const AuthStateAnonymous()) {
+    // Restore persisted session token synchronously so the very first
+    // frame is already authenticated (no sign-in flash on reload).
+    final saved = storage?.read();
+    if (saved != null && saved.isNotEmpty) {
+      state = AuthStateSignedIn(
+        session: AuthSession(
+          token: saved,
+          identityId: '',
+          email: '',
+          displayName: null,
+        ),
+      );
+      // Refresh whoami asynchronously — this updates age_band / youth_safe
+      // without blocking startup. Transient network errors leave the saved
+      // session in place; a 401 still clears it through _refreshWhoami.
+      initialSessionRefresh = _restoreWhoami();
+      unawaited(initialSessionRefresh);
+    } else {
+      initialSessionRefresh = Future<void>.value();
+    }
+  }
 
   final AuthClient _client;
+  final SessionTokenStorage? _storage;
+
+  /// Completes after a restored token has been checked with `/whoami`.
+  ///
+  /// The app does not await this before rendering because the token is applied
+  /// synchronously. Tests and startup diagnostics can await it when they need
+  /// the validated identity state.
+  late final Future<void> initialSessionRefresh;
 
   /// Calls /auth/preflight. Lifted to the controller so the sign-up
   /// screen doesn't need a direct AuthClient handle (and so tests
@@ -80,6 +111,7 @@ class AuthController extends StateNotifier<AuthState> {
       displayName: displayName,
       birthdate: birthdate,
     );
+    await _storage?.write(session.token);
     state = AuthStateSignedIn(session: session);
     await _refreshWhoami();
   }
@@ -90,6 +122,7 @@ class AuthController extends StateNotifier<AuthState> {
     required String password,
   }) async {
     final session = await _client.login(email: email, password: password);
+    await _storage?.write(session.token);
     state = AuthStateSignedIn(session: session);
     await _refreshWhoami();
   }
@@ -130,6 +163,7 @@ class AuthController extends StateNotifier<AuthState> {
       flowId: flowId,
       isRegistration: isRegistration,
     );
+    await _storage?.write(session.token);
     state = AuthStateSignedIn(session: session);
     await _refreshWhoami();
   }
@@ -149,7 +183,8 @@ class AuthController extends StateNotifier<AuthState> {
   /// that's a no-op for native flows (the token is the source of
   /// truth, and the server will GC it at expiry). A future PR can
   /// add explicit revocation.
-  void signOut() {
+  Future<void> signOut() async {
+    await _storage?.clear();
     state = const AuthStateAnonymous();
   }
 
@@ -170,26 +205,42 @@ class AuthController extends StateNotifier<AuthState> {
       }
     }
     state = const AuthStateAnonymous();
+    await _storage?.clear();
+  }
+
+  Future<void> _restoreWhoami() async {
+    try {
+      await _refreshWhoami();
+    } on Object {
+      // A cold start must still work offline. Only an explicit invalid-session
+      // response (represented by null) removes the restored token.
+    }
   }
 
   Future<void> _refreshWhoami() async {
     final current = state;
     if (current is! AuthStateSignedIn) return;
-    final w = await _client.whoami(current.session.token);
-    if (w == null) {
-      // Session no longer valid — drop to anonymous so the router
-      // can redirect to login.
-      state = const AuthStateAnonymous();
+    final token = current.session.token;
+    final w = await _client.whoami(token);
+    final latest = state;
+    if (latest is! AuthStateSignedIn || latest.session.token != token) {
       return;
     }
-    // Only apply if the state hasn't been swapped out from under us.
-    if (state is AuthStateSignedIn) {
-      state = (state as AuthStateSignedIn).withWhoami(w);
+    if (w == null) {
+      // Session no longer valid — drop to anonymous and erase the
+      // stored token so the next cold start doesn't loop.
+      state = const AuthStateAnonymous();
+      await _storage?.clear();
+      return;
     }
+    state = latest.withWhoami(w);
   }
 }
 
 final StateNotifierProvider<AuthController, AuthState> authControllerProvider =
     StateNotifierProvider<AuthController, AuthState>((Ref ref) {
-  return AuthController(ref.watch(authClientProvider));
+  return AuthController(
+    ref.watch(authClientProvider),
+    storage: ref.watch(sessionTokenStorageProvider),
+  );
 });

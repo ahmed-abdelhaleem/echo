@@ -50,6 +50,15 @@ export to keep memory and processing time reasonable on a 24 GB Mac. Mesh
 simplification toward `target_polycount` is best-effort; highly detailed meshes
 may remain above the requested target.
 
+With the default checkout location (`~/Documents/GitHub/trellis-mac`), the
+same server can be started from the Echo repository root:
+
+```bash
+make dev-trellis
+```
+
+Set `TRELLIS_MAC_ROOT=/path/to/trellis-mac` when the checkout lives elsewhere.
+
 ## CUDA Runtime
 
 For the original Microsoft TRELLIS checkout on a CUDA host:

@@ -15,14 +15,18 @@ import 'package:echo_client/features/auth/auth_controller.dart';
 import 'package:echo_client/features/sync/sync_controller.dart';
 import 'package:echo_client/features/vignette/vignette_controller.dart';
 import 'package:echo_client/services/api_client.dart';
+import 'package:echo_client/services/session_token_storage.dart';
 import 'package:echo_client/services/sync_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final sessionStorage = await SessionTokenStorageInit.init();
   runApp(
     ProviderScope(
       overrides: <Override>[
+        sessionStorage.providerOverride,
         apiClientProvider.overrideWith((Ref ref) {
           final client = ApiClient(baseUrl: ref.watch(apiBaseUrlProvider));
 
