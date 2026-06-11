@@ -74,9 +74,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  void _signOut() {
-    ref.read(authControllerProvider.notifier).signOut();
-    context.goNamed('login');
+  Future<void> _signOut() async {
+    setState(() {
+      _busy = true;
+      _topError = null;
+    });
+    try {
+      await ref.read(authControllerProvider.notifier).signOut();
+      if (!mounted) return;
+      context.goNamed('login');
+    } catch (_) {
+      if (!mounted) return;
+      setState(
+        () => _topError = 'We couldn\'t sign you out. Please try again.',
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override

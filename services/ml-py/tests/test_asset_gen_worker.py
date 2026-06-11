@@ -328,3 +328,19 @@ async def test_jetstream_rejects_non_queue_retention() -> None:
             "ECHO_ASSET_GEN",
             "echo.asset-gen.generate",
         )
+
+
+@pytest.mark.asyncio
+async def test_jetstream_accepts_string_work_queue_retention() -> None:
+    class FakeJetStream:
+        async def stream_info(self, stream: str) -> object:
+            del stream
+            return SimpleNamespace(
+                config=SimpleNamespace(retention="workqueue"),
+            )
+
+    await _ensure_stream(
+        FakeJetStream(),
+        "ECHO_ASSET_GEN",
+        "echo.asset-gen.generate",
+    )

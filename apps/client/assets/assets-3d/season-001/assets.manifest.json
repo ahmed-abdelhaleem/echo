@@ -13,7 +13,7 @@
       ],
       "license": "provider-terms",
       "budget_tier": "premium",
-      "status": "desired",
+      "status": "ready",
       "generation": {
         "provider": "meshy",
         "mode": "text-to-3d",
@@ -39,7 +39,7 @@
         "v-morning-message"
       ],
       "license": "CC0",
-      "status": "desired",
+      "status": "ready",
       "generation": {
         "provider": "meshy",
         "mode": "text-to-3d",
@@ -64,7 +64,7 @@
         "v-evening-decision"
       ],
       "license": "provider-terms",
-      "status": "desired",
+      "status": "ready",
       "generation": {
         "provider": "tripo",
         "mode": "image-to-3d",
