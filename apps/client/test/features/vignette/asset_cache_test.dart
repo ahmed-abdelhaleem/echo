@@ -66,6 +66,11 @@ BackdropSpec _backdrop({int maxPolycount = 50000, int maxSizeBytes = 1024}) {
 }
 
 void main() {
+  // The 'dev placeholder GLB is bundled' test loads a real bundled asset via
+  // rootBundle, which needs the services binding. This file uses plain test()
+  // (no testWidgets), so initialize the binding explicitly. Idempotent.
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('validates the GLB header and declared length', () {
     expect(isValidGlb(_glb()), isTrue);
     expect(isValidGlb(Uint8List(11)), isFalse);

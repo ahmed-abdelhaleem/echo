@@ -2,10 +2,12 @@
 //
 // The web viewport renders a single `<model-viewer>`, which loads one model.
 // To show the *full* composed vignette scene on web (parity with the native
-// Thermion path, which already loads every layer), we merge the scene's layer
+// Thermion path, which already loads every layer), we merge the scene's asset
 // GLBs into ONE GLB: each source's geometry is kept, and each source is parented
-// under a wrapper node translated on Z by its parallax depth. The merged GLB is
-// handed to `<model-viewer>` as a data URL.
+// under a wrapper node carrying that asset's authored **world matrix** (TRS +
+// anchor chain, resolved upstream from the VignetteScene). The merged GLB is
+// handed to `<model-viewer>` as a data URL. The legacy parallax path expresses
+// itself as a translation-only matrix, so there is a single placement codepath.
 //
 // Scope / correctness: this handles the GLBs Echo produces today — embedded
 // single-buffer GLBs with geometry + simple PBR materials (the dev generator
@@ -27,13 +29,17 @@ const int _glbVersion = 2;
 const int _jsonChunkType = 0x4E4F534A; // "JSON"
 const int _binChunkType = 0x004E4942; // "BIN\0"
 
-/// One layer to compose: its GLB bytes and the Z translation (in scene units)
-/// derived from the backdrop layer's parallax depth (further = more negative Z).
+/// One asset to compose: its GLB bytes and the column-major (glTF `node.matrix`)
+/// world transform to place it at within the merged scene. The matrix carries
+/// the asset's resolved TRS + anchor chain; the legacy parallax placement is a
+/// translation-only matrix.
 class GlbScenePart {
-  const GlbScenePart({required this.glb, required this.z});
+  const GlbScenePart({required this.glb, required this.matrix});
 
   final Uint8List glb;
-  final double z;
+
+  /// 16 doubles, column-major. `matrix[12..14]` is the translation column.
+  final List<double> matrix;
 }
 
 /// Merge [parts] (back-to-front) into a single GLB, or return null if any part
@@ -46,7 +52,7 @@ Uint8List? composeSceneGlb(List<GlbScenePart> parts) {
   for (final part in parts) {
     final parsed = _parseGlb(part.glb);
     if (parsed == null) return null; // unsupported / malformed → bail
-    if (!merged.append(parsed, part.z)) return null;
+    if (!merged.append(parsed, part.matrix)) return null;
   }
   return merged.toGlb();
 }
@@ -92,8 +98,9 @@ _ParsedGlb? _parseGlb(Uint8List data) {
   }
   final buffers = doc['buffers'];
   if (buffers is! List || buffers.length != 1) return null;
-  if ((buffers.first as Map).containsKey('uri'))
+  if ((buffers.first as Map).containsKey('uri')) {
     return null; // must be embedded
+  }
   final accessors = doc['accessors'];
   if (accessors is List) {
     for (final a in accessors) {
@@ -114,7 +121,7 @@ class _MergedDoc {
   final List<int> sceneRootNodes = <int>[];
   final BytesBuilder bin = BytesBuilder();
 
-  bool append(_ParsedGlb src, double z) {
+  bool append(_ParsedGlb src, List<double> matrix) {
     final binBase = bin.length; // already 4-aligned (we pad after each append)
     bin.add(src.bin);
     _padTo4(bin);
@@ -184,10 +191,11 @@ class _MergedDoc {
       roots = List<int>.generate(srcNodes.length, (i) => i + nodeBase);
     }
 
-    // Parent the source under a wrapper node translated on Z by parallax depth.
+    // Parent the source under a wrapper node carrying its world matrix. An
+    // identity matrix is omitted so trivially-placed assets stay clean.
     final wrapperIndex = nodes.length;
     nodes.add(<String, dynamic>{
-      'translation': <double>[0, 0, z],
+      if (!_isIdentity(matrix)) 'matrix': List<double>.of(matrix),
       if (roots.isNotEmpty) 'children': roots,
     });
     sceneRootNodes.add(wrapperIndex);
@@ -239,6 +247,21 @@ class _MergedDoc {
     out.add(binBytes);
     return out.toBytes();
   }
+}
+
+const List<double> _identity = <double>[
+  1, 0, 0, 0, //
+  0, 1, 0, 0,
+  0, 0, 1, 0,
+  0, 0, 0, 1,
+];
+
+bool _isIdentity(List<double> m) {
+  if (m.length != 16) return false;
+  for (var i = 0; i < 16; i++) {
+    if ((m[i] - _identity[i]).abs() > 1e-12) return false;
+  }
+  return true;
 }
 
 void _padTo4(BytesBuilder builder) {
