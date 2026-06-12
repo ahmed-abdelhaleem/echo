@@ -27,11 +27,19 @@ This rule is also stated in `AGENTS.md` and `07_AI_Agent_Implementation_Guide`; 
 
 > A single reference to the next change. Replace it when you pick up the next thing.
 
-- **T-CLIENT-200 — on-device native polish:** the web path now composes the full per-asset TRS + bounds; native (Thermion) applies the resolved world-matrix *translation* + rig framing but defers per-asset rotation/scale and bounded-orbit clamping (azimuth/polar, disable-zoom) to on-hardware validation. Validate the orbit feel on a device and lift native to full-matrix fidelity. Real-generation activation stays **blocked on human approval**: Meshy key + spend cap (#11) and the scene-level QA/safety/youth-safe review (#7/#12).
+- **T-CLIENT-200 — on-device native polish:** native (Thermion) now applies the full per-asset world-matrix (TRS + anchor chain) composed onto the unit-cube normalization, matching the web path's `node.matrix` placement; reduce-motion suppresses free-look like the web still framing does. **Remaining for device:** bounded orbit clamping (azimuth/polar limits, disable-zoom) per the rig's `bounds` — the Thermion `InputHandler` clamp API surface is validated on hardware before we wire it. Real-generation activation stays **blocked on human approval**: Meshy key + spend cap (#11) and the scene-level QA/safety/youth-safe review (#7/#12).
 
 ---
 
 ## Change log
+
+### 2026-06-11 · Claude Code · Native full-matrix placement + reduce-motion gate (T-CLIENT-200)
+- **T-CLIENT-200 (native, partial):** the Thermion viewport now composes each asset's resolved scene world matrix onto the unit-cube normalization (`Matrix4..copyFromArray(placementMatrix).multiplied(unitTransform)`), generalizing the former translation-only placement to full TRS + anchor chain — matches what the web GLB composer bakes into `node.matrix`. Parallax fallback unchanged (its `placementMatrix` is translation-only).
+- **Reduce-motion** on native: `MediaQuery.disableAnimations` skips the `ThermionListenerWidget`, rendering at the rig's default framing with no free-look — mirrors the web viewport's still path (F-CORE-007).
+- **Deferred to on-device validation:** bounded-orbit clamp (azimuth/polar limits, disable-zoom) per the rig's `bounds`. The Thermion `DelegateInputHandler` clamp API surface is verified on hardware before wiring. All graceful-degradation paths (orbit handler unavailable, Thermion init failed → `ModelViewer` fallback on mobile, viewer null → empty) are preserved.
+- Verified: `dart format` clean and format-stable under the repo's language version (3.6). Runtime correctness — orbit feel, camera framing on real scenes, full-TRS visual parity with web — requires the device run.
+- Files: `apps/client/lib/features/vignette/backdrop/three_d_viewport_io.dart`, `13`.
+- Flags: native rendering changes are runtime-unverifiable in this env; explicit hand-off to on-device validation. Real generation still gated — Meshy key + spend cap (#11), scene-level QA/safety/youth-safe (#7/#12).
 
 ### 2026-06-11 · Claude Code · Renderer consumes VignetteScene manifests (T-CLIENT-201 cont.)
 - **T-CLIENT-201:** wired both viewports to consume `content/scenes/**`, generalizing the single-axis parallax composition into authored 3D placement. New pure-Dart `scene_models.dart` projects the `VignetteScene` schema and resolves each node's **world matrix** from its local TRS + anchor chain (cycle/missing-anchor safe). `AssetSceneLoader.loadScene` places every ready asset by that matrix and carries the **bounded camera rig**; `assetSceneProvider` prefers the scene and falls back to the parallax backdrop (then the 2D atmospheric layer) when no scene resolves — no regression for un-authored vignettes.

@@ -70,16 +70,18 @@ class _NativeThreeDViewportState extends State<_NativeThreeDViewport> {
       for (final asset in localAssets) {
         final thermionAsset = await viewer.loadGltf(asset.localPath!);
         await thermionAsset.transformToUnitCube();
-        final transform = await thermionAsset.getLocalTransform();
-        // Place by the resolved scene world matrix when present
-        // (T-CLIENT-201): its translation column carries the authored position
-        // + anchor offset. Parallax assets fall back to Z = -depth/100 via
-        // placementMatrix. Per-asset rotation/scale fidelity on native is part
-        // of the on-device pass (T-CLIENT-200); translation generalizes the
-        // former Z-only parallax today.
-        final m = asset.placementMatrix;
-        transform.setTranslationRaw(m[12], m[13], m[14]);
-        await thermionAsset.setTransform(transform);
+        final unitTransform = await thermionAsset.getLocalTransform();
+        // T-CLIENT-200 full TRS: compose the scene's resolved world matrix
+        // (translation + rotation + scale + anchor chain) onto the unit-cube
+        // normalization, so the native viewport renders the same placement the
+        // web GLB composer bakes into `node.matrix`. `placementMatrix` is
+        // column-major (matches `vector_math` and glTF) so `copyFromArray`
+        // takes it directly; on the parallax fallback path it is a
+        // translation-only matrix, so behaviour there is unchanged.
+        final sceneMatrix = Matrix4.zero()
+          ..copyFromArray(asset.placementMatrix);
+        final composed = sceneMatrix.multiplied(unitTransform);
+        await thermionAsset.setTransform(composed);
       }
       await viewer.addDirectLight(
         DirectLight.sun(color: 6500, intensity: 90000),
@@ -129,10 +131,19 @@ class _NativeThreeDViewportState extends State<_NativeThreeDViewport> {
         viewer: viewer,
         initial: const SizedBox.expand(),
       );
+      // Honor the OS "reduce motion" preference: render the scene at the rig's
+      // default framing with no free-look, matching the web viewport's still
+      // path (F-CORE-007 accessibility requirement). The viewer is still alive
+      // — players see the scene, just not the orbit affordance.
+      final reduceMotion =
+          MediaQuery.maybeOf(context)?.disableAnimations ?? false;
       final handler = _inputHandler;
-      if (handler != null) {
+      if (handler != null && !reduceMotion) {
         // Forward pointer/drag gestures to the orbit handler so the player can
-        // look around the composed scene.
+        // look around the composed scene. Bounded clamping (azimuth/polar,
+        // disable-zoom) per the rig's bounds is the on-device refinement
+        // tracked under T-CLIENT-200 — the handler API surface for clamps is
+        // validated on hardware before we wire it.
         return ThermionListenerWidget(inputHandler: handler, child: scene);
       }
       return scene;
