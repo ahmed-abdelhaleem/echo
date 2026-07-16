@@ -5,6 +5,7 @@ import 'package:echo_client/features/vignette/assets/asset_cache.dart';
 import 'package:echo_client/features/vignette/assets/asset_file_store.dart';
 import 'package:echo_client/features/vignette/assets/asset_models.dart';
 import 'package:echo_client/features/vignette/backdrop/backdrop_provider.dart';
+import 'package:echo_client/features/vignette/backdrop/performance_manager.dart';
 import 'package:echo_client/features/vignette/scene_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -48,6 +49,9 @@ final FutureProviderFamily<AssetScene, VignetteBackdropKey> assetSceneProvider =
   Ref ref,
   VignetteBackdropKey key,
 ) async {
+  if (!PerformanceManager.is3DSupported) {
+    return AssetScene.empty;
+  }
   final manifest = await ref.watch(
     assetManifestProvider(key.seasonId).future,
   );

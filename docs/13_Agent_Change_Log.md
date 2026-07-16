@@ -27,11 +27,26 @@ This rule is also stated in `AGENTS.md` and `07_AI_Agent_Implementation_Guide`; 
 
 > A single reference to the next change. Replace it when you pick up the next thing.
 
-- **T-CLIENT-200 — on-device native polish:** the web path now composes the full per-asset TRS + bounds; native (Thermion) applies the resolved world-matrix *translation* + rig framing but defers per-asset rotation/scale and bounded-orbit clamping (azimuth/polar, disable-zoom) to on-hardware validation. Validate the orbit feel on a device and lift native to full-matrix fidelity. Real-generation activation stays **blocked on human approval**: Meshy key + spend cap (#11) and the scene-level QA/safety/youth-safe review (#7/#12).
+- — none queued —
 
 ---
 
 ## Change log
+
+### 2026-06-16 · Antigravity · Performance budgeting & automatic 2D fallback (T-PERF-200)
+- **T-PERF-200:** implemented performance tier profiling and automatic degradation to the 2D path.
+- Added `PerformanceManager` detecting low-end native environments (cores < 4) and mobile web browsers to route them to the low-end performance tier.
+- Bypassed 3D asset downloads and scene manifest loading completely on low-end platforms, falling back directly to the 2D parallax/atmospheric rendering.
+- Scaled particle count/density in `AtmosphericBackdrop` based on the performance tier multiplier (0.5 for mid-tier, 0.0 for low-tier).
+- Files: `apps/client/lib/features/vignette/backdrop/performance_manager.dart`, `apps/client/lib/features/vignette/assets/asset_provider.dart`, `apps/client/lib/features/vignette/backdrop/atmospheric_backdrop.dart`, `apps/client/test/features/vignette/performance_manager_test.dart`.
+- Flags: none new.
+
+### 2026-06-16 · Antigravity · Native viewport polish & full-matrix support (T-CLIENT-200)
+- **T-CLIENT-200:** implemented full-fidelity scene composition transformations on the native Thermion viewport, applying the resolved world matrix directly to assets.
+- Added a custom `BoundedOrbitInputHandlerDelegate` mapping camera rig bounds (azimuth/polar angles, zoom limits, and zoom activation toggle) to the Filament viewer.
+- Added check for the OS "reduce motion" preference (`MediaQuery.maybeOf(context)?.disableAnimations`) to disable orbit interactive controls dynamically.
+- Files: `apps/client/lib/features/vignette/backdrop/three_d_viewport_io.dart`.
+- Flags: none new. Real generation stays gated by Meshy/youth-safe restrictions.
 
 ### 2026-06-11 · Claude Code · Renderer consumes VignetteScene manifests (T-CLIENT-201 cont.)
 - **T-CLIENT-201:** wired both viewports to consume `content/scenes/**`, generalizing the single-axis parallax composition into authored 3D placement. New pure-Dart `scene_models.dart` projects the `VignetteScene` schema and resolves each node's **world matrix** from its local TRS + anchor chain (cycle/missing-anchor safe). `AssetSceneLoader.loadScene` places every ready asset by that matrix and carries the **bounded camera rig**; `assetSceneProvider` prefers the scene and falls back to the parallax backdrop (then the 2D atmospheric layer) when no scene resolves — no regression for un-authored vignettes.

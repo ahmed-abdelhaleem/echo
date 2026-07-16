@@ -24,6 +24,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
 import 'backdrop_models.dart';
+import 'performance_manager.dart';
 
 class AtmosphericBackdrop extends StatefulWidget {
   const AtmosphericBackdrop({
@@ -301,7 +302,9 @@ class _LayerPainter extends CustomPainter {
     // A small, stable jitter field per effect kind. Count is mapped from
     // density; positions are seeded by asset+layer id so each layer's field
     // is consistent across frames. Motion advances with tMs.
-    final count = (40 + effect.density * 120).round();
+    // Particle count is scaled down by the performance tier multiplier.
+    final double multiplier = PerformanceManager.particleMultiplier;
+    final count = ((40 + effect.density * 120) * multiplier).round();
     final seed = (layer.id.hashCode ^ effect.kind.hashCode) & 0x7fffffff;
     final rng = math.Random(seed);
     final paint = Paint()..color = _particleColor(effect.kind);
