@@ -22,16 +22,26 @@ The **Replace path** field exists so that future-us, future-team, or an AI agent
 
 ## Client
 
-### Flutter · Cross-platform application framework
+### Unity 6 Personal · Authoritative cross-platform game client
+- **Version:** Unity `6000.5.4f1` or a compatible Unity 6 LTS editor
+- **Role:** Authoritative client for Echo's explorable 3D game on iOS, Android, Windows, macOS, and WebGL. Source lives in `apps/unity-client`.
+- **Why this:** Mature 3D rendering, animation, lighting, profiling, accessibility hooks, automated play-mode tests, and one C# project for all game targets.
+- **Gameplay/rendering profile:** URP, Input System, CharacterController,
+  componentized vignette director/interactables/objective UI, collision-aware
+  third-person camera, authored PBR art, and deterministic play-mode coverage.
+- **Free author-time asset stack:** Blender validation/optimization, vetted CC0
+  Poly Haven environment models, and optional local Mixamo humanoids and
+  animation. See `14_Graphics_Gameplay_Production_Plan`.
+- **Alternatives considered:** Godot 4 (viable and open source, but would add a second migration while the current Unity prototype already proves the target); Flutter/Thermion (retained as migration reference/fallback but did not deliver a production-quality game world).
+- **Lock-in risk:** Medium. Scenes and gameplay code use Unity APIs, while source meshes, textures, animation, content schemas, and backend contracts remain portable.
+- **Replace path:** Export source assets in standard FBX/GLB formats and rebuild the thin scene/gameplay layer in another engine.
+
+### Flutter · Legacy 2D client and migration reference
 - **Version:** Flutter 3.44+ (Dart 3.12+ runtime; app language remains 3.6)
-- **Role:** Single codebase producing native iOS, Android, Windows, and macOS applications.
-- **Why this:** Single codebase with identical rendering across platforms, mature animation framework, strong testing tooling, first-class desktop support, large community.
-- **Alternatives considered:**
-  - **React Native** — JavaScript ecosystem reach, but rendering parity for parametric art is weaker, and desktop story is immature.
-  - **Unity / Godot** — game engines with strong cross-platform, but heavyweight for an experience that is mostly narrative; harder to integrate with web sharing pages and B2B dashboards built in standard web tooling.
-  - **Native iOS + Android + Electron** — best per-platform fidelity, but triples the engineering surface and is incompatible with the team size.
-- **Lock-in risk:** Medium. Dart is the only consumer of this codebase. Migration would be substantial.
-- **Replace path:** If Flutter is ever abandoned (low probability — Google ships it in production, third-party adoption is broad), the client could be rebuilt in React Native or platform-native; the backend API contract is unchanged.
+- **Role:** Preserves the earlier 2D implementation, content/data integration, and an atmospheric fallback during Unity migration. It is not the final 3D game foundation.
+- **Why this:** Existing code remains useful as a behavioral reference while equivalent playthrough, Portrait, persistence, and accessibility behavior moves into Unity.
+- **Lock-in risk:** Low because no new Phase-G 3D feature should depend on it.
+- **Replace path:** Retire after Unity reaches the Game-Complete gate and all required fallback behavior is covered.
 
 ### Drift · Local persistence (SQLite wrapper for Flutter)
 - **Version:** Drift 2.x
@@ -49,24 +59,15 @@ The **Replace path** field exists so that future-us, future-team, or an AI agent
 - **Lock-in risk:** Low. Rive files are exportable to Lottie if needed.
 - **Replace path:** Lottie + custom Flutter animations.
 
-### Flame · 2D game engine (optional, on-demand)
-- **Version:** Flame 1.20+
-- **Role:** Available for any vignette that needs more game-engine behavior (e.g. a vignette that simulates a space the player can wander). Not required for the typical vignette.
-- **Why this:** Built directly on Flutter, no platform-bridge concerns.
-- **Alternatives considered:** Embedding Unity (overkill, large binary), pure-Flutter custom canvas (works for simple cases, harder for non-trivial scenes).
-- **Lock-in risk:** Low.
-- **Replace path:** Custom Flutter `CustomPainter`-based renderers for the affected vignettes.
-
-### Thermion (Filament) + glTF/GLB · 3D scene and model rendering
-- **Version:** Thermion 0.x (Flutter runtime), glTF 2.0 / GLB asset format
-- **Role:** Render AI-generated 3D vignette environments, props, and ambient scene elements inside the client — from parallaxed atmospheric depth up to fully composed, gently **explorable 3D scenes** (`F-CORE-007`, milestone M5) with an author-defined camera rig and bounded free-look. Target is parity across all four platforms **and web** (Filament-on-WASM, or a baked per-vignette scene GLB). (The player **Portrait** is *not* 3D; it stays a deterministic parametric render — see Pillow + Cairo below.)
-- **Why this:** Thermion wraps Google's **Filament** PBR engine behind a Flutter API, giving high-fidelity, identical rendering across all four platforms — the same parity argument that selected Flutter itself. **glTF/GLB** is the universal, royalty-free 3D interchange format that every generation provider can export, which keeps us provider-neutral end to end.
+### Blender + verified free assets · 3D content production
+- **Version:** Blender 5.2 LTS locally; authoring scripts must declare compatibility
+- **Role:** Render explorable 3D diorama environments, props, and animated NPCs for Echo vignettes. Replaces the former automated AI generation (Meshy/TRELLIS) and Thermion/Filament Flutter experiment, which are not the foundation of the final game.
+- **Backend & Core Retained:** The Go core backend services, Python ML & trait scoring engine, writing, and season content schemas are fully salvageable and retained.
+- **Why this:** Human-curated stylized assets and lighting provide coherent places without a paid generation dependency. Kenney and Poly Haven are preferred for redistributable CC0 environment assets. Mixamo may supply local humanoid models/animations under Adobe's game-use terms.
 - **Alternatives considered:**
-  - **flutter_scene** (Impeller-native 3D from the Flutter team) — lighter and promising, but still experimental; revisit as it matures.
-  - **model_viewer_plus** (`<model-viewer>` in a platform webview) — trivial to adopt and a fine low-fidelity fallback, but webview overhead, single-model only (cannot compose a multi-asset scene), and weak control over lighting/perf. Kept only as the web/low-end fallback.
-  - **Embedding Unity / Godot** — full engines, but heavyweight and reintroduce exactly the cross-platform-bridge problems Flutter exists to avoid. **Re-confirmed when scoping explorable scenes (M5):** an atmospheric, bounded diorama needs a *renderer*, not a game engine, and Unity's binary size + WebGL-iframe story on web would regress the Flutter parity the whole stack is built on. We stay on Thermion; Unity would only be revisited if Echo became "3D-game-first," which is a product-vision change, not a rendering choice.
-- **Lock-in risk:** Low. Assets are standard glTF/GLB; the renderer is swappable without touching content.
-- **Replace path:** Swap to flutter_scene or model_viewer_plus; assets are unchanged because they are standard glTF.
+  - Automated AI 3D Generation (Meshy / TRELLIS + Thermion/Filament) — rejected as primary strategy for final game; unproven visual coherence and mesh quality.
+- **Lock-in risk:** Low. Blender scenes and FBX/GLB exports are portable.
+- **Replace path:** Substitute other verified source assets without changing gameplay or backend contracts.
 
 ### graphql_flutter + ferry · GraphQL client
 - **Version:** ferry 0.16+ (preferred for stricter typing and offline cache)
@@ -215,14 +216,10 @@ The **Replace path** field exists so that future-us, future-team, or an AI agent
 - **Why this:** Pure server-side rendering, deterministic output, fully under our control. No external API dependency for the highest-stakes asset.
 - **Lock-in risk:** None.
 
-### Meshy AI (+ open-model fallback) · AI 3D model generation
-- **Role:** Generate 3D models and scene elements (props, environments, ambient objects) for vignettes from text and reference-image prompts. This is **content tooling for the atmospheric world**, distinct from the player Portrait — the Portrait remains a deterministic parametric render with no external dependency (see Pillow + Cairo above).
-- **Why this:** Meshy AI offers strong text-to-3D and image-to-3D with direct **glTF/GLB + PBR-texture** export, an API suited to automated pipelines, and good quality-for-cost. It lets a tiny team produce a large, cohesive set of 3D assets without a 3D-artist headcount.
-- **Alternatives considered:**
-  - **Luma AI (Genie), Tripo AI, Rodin / Hyper3D, Stability AI (Stable Fast 3D)** — viable hosted providers; kept behind the same abstraction as redundant / cost-arbitrage routes.
-  - **Self-hosted Microsoft TRELLIS** (called through the `ml-py` provider abstraction) — owned inference for cost control at scale and for assets we prefer not to send to a third party; the same role the self-hosted LLM plays for reflection. The model runtime stays behind an HTTP boundary and can use the original CUDA implementation or an Apple Silicon MPS/MLX port.
-- **Lock-in risk:** Medium — mitigated by (a) a multi-provider abstraction identical in spirit to the LLM router and (b) standardized glTF/GLB output that any provider and any renderer accept.
-- **Replace path:** The provider router in the `asset-gen` service makes a provider swap a config change; self-hosted TRELLIS is the floor if every hosted provider becomes unviable. See the **continuous background asset generation** pipeline in `05_Technical_Architecture`.
+### Meshy / TRELLIS experiment · Retired Phase-G path
+- **Role:** Historical prototype code only; not an active dependency of the game client or content plan.
+- **Why retired:** Generated objects did not solve scene coherence, art direction, rigging, lighting, or game integration, and paid generation conflicts with the selected reproducible free approach.
+- **Reconsideration gate:** A later, explicitly budgeted experiment requires human approval and must outperform the authored Blender/CC0 pipeline at the scene level.
 
 ---
 
@@ -314,8 +311,8 @@ The **Replace path** field exists so that future-us, future-team, or an AI agent
 
 | Layer | Choice |
 |---|---|
-| Client | Flutter (Dart) + Drift + Rive + Riverpod + Ferry GraphQL |
-| Client 3D | Thermion (Filament) + glTF/GLB |
+| Client | Unity 6 Personal (C#) + URP + Input System |
+| Legacy/fallback client | Flutter (Dart) + Drift + Rive + Riverpod + Ferry GraphQL |
 | API surface | GraphQL (gqlgen) + REST for public surfaces + WebSocket for live |
 | Backend services | Go (core) + Python (ML/content) |
 | Inter-service | gRPC |
@@ -325,7 +322,7 @@ The **Replace path** field exists so that future-us, future-team, or an AI agent
 | Object storage | Cloudflare R2 |
 | Auth | Ory Kratos + Apple/Google OAuth |
 | LLM | Anthropic Claude (primary) + self-hosted open model (fallback) |
-| 3D assets | AI-generated — Meshy (primary) + self-hosted TRELLIS (fallback), glTF/GLB |
+| 3D assets | Blender-authored/optimized + verified CC0 libraries + optional local Mixamo animation |
 | Hosting phase 0 | Fly.io |
 | Hosting phase 1 | GKE (Kubernetes on Google Cloud, EU) |
 | Edge | Cloudflare (CDN, R2, Workers) |

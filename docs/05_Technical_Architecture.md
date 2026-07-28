@@ -225,110 +225,72 @@ This is the ML/content-critical path. End-to-end target latency at p95: **under 
 
 ---
 
-## AI 3D asset generation pipeline
+## 3D Content Production & Scene Strategy
 
-Echo's vignettes are set in atmospheric 3D environments and populated with 3D props. These assets are produced by AI generation — text-to-3D and image-to-3D (see `06_Tech_Stack`) — but generation is **slow and costs money per asset**, so it can never run inline during a playthrough. Instead, assets are produced by an always-on **background pipeline** that works ahead of demand. By the time any player reaches a vignette, the finished, optimized asset is already sitting on the CDN.
+Echo's vignettes are set in atmospheric, explorable 3D environments populated with props and looping NPCs.
 
-> **Boundary.** This pipeline generates the *world* — vignette scenery and props. It is deliberately separate from the player **Portrait**, which stays a deterministic, parametric, dependency-free render (see the Portrait pipeline above). Putting a brand-critical, must-be-reproducible artifact behind a non-deterministic external API would violate principle 5. We don't.
+> **Core Architectural Update:** The previous 3D content-production (automated AI text/image-to-3D generation via Meshy/TRELLIS) and rendering strategy (Flutter + Filament/Thermion) **should not be the foundation of the final game**. The backend services (Go core), writing, and trait scoring systems (Python ML) are fully salvageable and retained.
 
-### Desired-state model
+### Production Foundation & Licensing Standard
 
-Content authors do not call a generator. They **declare** the assets a Season needs in an asset manifest (`AssetManifest`, validated against `content-schema`): for each asset, a prompt, optional reference images, generation parameters, a license note, and a **content-address** — a stable hash of all generation inputs (prompt + params + provider + pipeline version). The content-address is the asset's identity: identical inputs always map to the same address, which makes generation idempotent, cacheable, and reproducible, and lets one asset be reused across vignettes without regeneration.
+The authoritative game client is `apps/unity-client`, built with Unity 6 Personal,
+C#, URP, and the Input System. Blender is the author-time mesh validation,
+optimization, and scene-assembly tool. Environment art starts from verified CC0
+libraries such as Kenney and Poly Haven; humanoid rigs and looping animation can
+come from Mixamo.
 
-### Pipeline stages
+Raw third-party downloads are committed only when their license explicitly permits
+redistribution. Otherwise the repository stores a provenance/import recipe and the
+game supplies a checked-in fallback. Every asset entering a shipped build records
+source, license, author, version/download date, scene role, and performance budget.
+There is no runtime 3D generation and no paid generation dependency in Phase G.
 
-```
-asset manifest (desired)        reconciler
-        │                            │  diff desired vs ready
-        ▼                            ▼
-   content-address  ──────►  enqueue job (NATS JetStream)
-                                     │
-                                     ▼
-                         ┌────────────────────────┐
-                         │  generation worker     │
-                         │  1. submit to provider │  ← Meshy primary,
-                         │  2. poll to completion │     open-model fallback
-                         │  3. post-process       │  ← decimate, Draco/meshopt,
-                         │     (optimize, LODs,    │     LODs, thumbnail
-                         │      thumbnail)         │
-                         │  4. QA + safety/brand   │  ← automated gate + human
-                         │     gate                │     curation for new sets
-                         │  5. store + register    │  ← R2 (binary) + Postgres
-                         └───────────┬────────────┘     (metadata, version)
-                                     ▼
-                            asset marked READY  ──►  Cloudflare CDN
-```
+The production target is grounded, cinematic realism inside tightly bounded
+micro-scenes: five reusable environment kits, authored character animation,
+physically based materials, and short third-person dramatic threads rather than
+open-world traversal. Quality comes from art direction, asset QA, lighting,
+composition, animation, interaction, and deliberate reuse—not an uncapped volume
+of generated objects. `14_Graphics_Gameplay_Production_Plan.md` is authoritative
+for the visual quality bar and slice rollout.
 
-### Continuous reconciliation
+### Art Direction & 3-Scene Verification Pipeline
 
-A scheduler runs the loop continuously: it diffs the set of *desired* assets (everything referenced by current and upcoming asset manifests) against the set of *ready* assets, and enqueues whatever is missing or stale. This is the converge-to-desired-state pattern of GitOps, applied to content. It naturally supports **pre-warming** — assets for a Season still in authoring are generated quietly long before release — and **self-healing** — if an asset is invalidated (prompt changed, pipeline upgraded), its content-address changes and the reconciler regenerates it.
+To avoid wasteful asset creation, content production proceeds through a strict **3-scene proof-of-concept phase**. Do not generate all 53 missing objects before proving the art direction.
 
-### Cost and safety controls
+1. **Scene 1 — Bedroom:** One animated character, quiet lighting, inspectable props.
+2. **Scene 2 — Busy Street / Bus Stop:** Urban atmosphere with several looping NPCs (Mixamo animations).
+3. **Scene 3 — Café / Shop Interior:** Ambient lighting, rich environment details, and a meaningful player choice.
 
-- **Budget caps.** Generation spend is bounded by a configurable per-period cap per environment. Hitting the cap pauses generation and alerts; it never spends unbounded. Large or first-time batch runs require human approval (an escalation item in `07_AI_Agent_Implementation_Guide`).
-- **Dedup by content-address.** Nothing is generated twice; cache hits are free.
-- **Provider routing.** A multi-provider abstraction (mirroring the LLM router) routes to the cheapest acceptable provider and fails over to self-hosted Microsoft TRELLIS. TRELLIS runs behind an internal HTTP boundary so its model runtime stays isolated from the Python 3.12 `ml-py` service. Deployment may use the original CUDA runtime or an Apple Silicon MPS/MLX port.
-- **QA / safety / brand gate.** Every generated asset passes an automated check (geometry sanity, size/poly budget, texture sanity) plus a safety/brand review; new asset *sets* get human curation before they ship. Changes to this gate are an escalation item.
-- **Data residency.** Binaries are stored in EU R2. Generated scenery contains no personal data, so third-party generation providers stay outside the personal-data boundary — a deliberate reason this pipeline is for the world and not the Portrait.
-
-### Where it runs
-
-The generator lives inside the Python ML/content service as an `asset_gen` module plus a long-running **background worker** (a separate process/replica from the request-serving path), consuming from NATS JetStream and writing to R2 + Postgres. It is stateless and horizontally scalable; the queue absorbs bursts. The Flutter client never generates anything — it only downloads ready, optimized GLBs from the CDN and caches them locally (offline-first, like all other content).
+**Gate criteria:** Make these three scenes genuinely beautiful first. Only if external testers confirm *"this feels like a real place"* will the production system be reused to build out the remaining 17 vignettes (spanning 5 reusable environment templates).
 
 ---
 
-## Atmospheric backdrops in the renderer
+## Explorable 3D Vignette Scenes in Engine
 
-A vignette is not a still image with a choice menu on top. The world *lives* behind the choice — the sky drifts, dust catches the morning light, rain ticks the window — and it keeps living the entire time the player is deliberating. That continuous aliveness is what makes a vignette feel like a place rather than a screen. The **atmospheric backdrop** is the client subsystem that produces it.
+Vignettes are authored Unity scenes. The primary interaction profile is a bounded
+third-person micro-scene with contextual interactions and a no-fail objective
+director. Orbit-only composition remains available for short transitional scenes.
 
-> **Boundary.** The backdrop is purely a **renderer** concern. It consumes the GLBs the AI 3D pipeline produces; it does not generate anything, and it does not depend on any cloud service at runtime. A backdrop renders identically offline.
-
-### What the backdrop is
-
-Per vignette, an author declares a `VignetteBackdrop` (`packages/content-schema/vignette_backdrop.schema.json`, validated by `make validate-backdrops`):
-
-- A small set of **layers**, each pointing to an asset by `asset_id` and carrying a **parallax depth** in `[0, 100]` (0 = at camera, 100 = at infinity).
-- A **mood** (time-of-day, weather, palette) that drives color grading and ambient audio mix.
-- A **camera mode** — `parallax` (responds to pointer/accelerometer), `orbital` (slow circular sweep), or `static` (in-layer motion only) — with a damped `sensitivity` in `[0, 1]`.
-- A `transition` (in/out duration + curve) for cross-fades between vignettes.
-- Per-layer **ambient effects**: `drift` (slow sinusoidal pan), `pulse` (slow opacity oscillation), `particles` (dust motes, rain, snow, embers, fireflies), and `parallax_breathe` (a near-imperceptible depth pulse — life, not motion sickness).
-
-A backdrop is not authored in code; it is content. The renderer interprets the spec.
-
-### Continuous, not event-driven
-
-A single long-running animation ticker drives every effect on every layer. Effects compute their phase from elapsed time, so the cost is flat as layers grow and nothing has to be "started" when a choice appears or "stopped" while it is being considered. The scene continues even if the player puts the phone down for a minute and comes back.
-
-Pointer motion (or accelerometer on mobile, when we add it) drives parallax — closer layers move more, far layers stay put. The response is critically damped, so a startled flick of the cursor doesn't shake the scene; the world settles.
-
-### Cross-vignette transitions
-
-When a vignette resolves and the next one is staged, the outgoing backdrop fades out and the incoming one fades in over `transition.in_ms` / `out_ms`. Because the ticker is continuous, ambient motion never pops; the camera does not reset; only the layered visuals cross-dissolve.
-
-### Two rendering paths
-
-- **2D fallback (M1):** Each layer is composited as a tinted painter pass on the Flutter canvas, with particles, drift, pulse, and parallax applied per layer. This is what `apps/client/lib/features/vignette/backdrop/` ships first. It guarantees the renderer works on every device, on every platform, and offline — even before any 3D asset has finished generating.
-- **3D enrichment (M2):** When the GLB for a layer's `asset_id` is locally cached, the same `BackdropSpec` drives a **Thermion (Filament)** scene instead. Parallax depth maps to the camera Z translation; ambient effects (drift, pulse, breathe) become small per-node transforms. *The author-facing spec does not change between the two paths.* The renderer escalates silently when better assets are available and degrades silently when they are not.
-- **Explorable scene (M5):** the parallax backdrop generalizes into a fully composed, gently **explorable 3D scene** (see below). The same spec family still drives it; the difference is that multiple assets are placed in a shared 3D space with an author-defined camera rig and bounded free-look, rather than treated as flat parallax planes.
-
-### Explorable 3D vignette scenes
-
-Milestone M5 evolves the backdrop from "parallax planes behind the choice" into a **single composed 3D scene** the player can gently look around — the product-level shift described in `01_Product_Vision` and `04_Game_Design`. It remains a **renderer** concern: it consumes generated GLBs and renders identically offline.
-
-- **Scene composition (content).** A vignette scene places several assets (one environment + props) in a shared 3D space with per-asset transform/anchor, plus scene-level **lighting** and a **camera rig** (look-at target, orbit/pan bounds, default framing). This extends the backdrop schema (or a sibling `VignetteScene` schema) and is validated by `make validate-scenes`. It is content, not code.
-- **Interaction.** Bounded, critically-damped free-look (drag/pointer), optional tap-to-inspect "noticing points," reduce-motion → still framing. No traversal, no timing, no fail state. Exploration never gates a choice and is **not** fed to the trait engine at MVP (presence, not assessment).
-- **Engine: Thermion (Filament) on all four platforms — and web.** The native path (`three_d_viewport_io.dart`) already composes a multi-asset Thermion scene. **Web parity** is a first-class requirement (`F-CORE-007`): web must render the *full* composed scene, via Filament-on-WASM through Thermion or a baked per-vignette scene GLB, rather than the single-model `model_viewer` path that ships as the web fallback today. We do **not** adopt Unity/Godot — that decision and its rationale (binary size, web/WASM-iframe fit, Flutter cross-platform parity) stand in `06_Tech_Stack`; an explorable diorama is achievable on Thermion without abandoning the Flutter stack.
-- **Graceful degradation is mandatory.** A device or build that cannot render the 3D scene (or has no cached asset) falls back to the 2D atmospheric path with no loss of playability. The choice UI never depends on a scene having loaded.
+- **Engine:** Unity 6 Personal with C# and URP (`apps/unity-client`).
+- **Scene Assembly:** Composed as authored Unity scenes from Blender-authored/optimized
+  meshes and verified Poly Haven CC0 assets. Runtime construction is limited to
+  prototyping and deterministic test fixtures.
+- **NPC Animation:** Mixamo skeletal rigs and looping animation clips.
+- **Gameplay:** Character controller, follow camera, interaction resolver,
+  vignette objective director, accessible choice panel, and deterministic local
+  event recording are separate components connected through explicit state.
+- **Legacy client:** `apps/client` remains a migration reference and 2D fallback shell; it is not the final 3D renderer.
+- **Build targets:** Unity produces iOS, Android, Windows, macOS, and WebGL builds. Each scene has a still/2D fallback for unsupported or low-tier devices.
 
 ### Performance posture
 
 - The animation runs at the device's refresh rate when on, and pauses cleanly when the app is backgrounded.
-- The ticker is wrapped in a `RepaintBoundary` so a backdrop never invalidates the choice UI above it, and the choice UI never invalidates the backdrop. They animate independently.
+- Scene rendering and narrative choice UI update independently; the choice UI remains usable if a scene is missing or still loading.
 - Polycount, particle density, and effect counts are budgeted per vignette in the spec; the renderer downgrades particle counts on lower-tier devices.
 
 ### Accessibility
 
-A "reduce motion" preference flattens parallax response to zero, removes particle drift, and stretches every period 5× so ambient motion becomes a slow ambient color shift rather than visible movement. The author-facing spec is the same; the renderer chooses.
+A "reduce motion" preference disables auto-orbit and ambient drift and presents the authored still framing. Keyboard, pointer, touch, contrast, and readable-choice requirements are verified per target.
 
 ---
 

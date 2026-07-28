@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "source": "Poly Haven",
+  "sourceUrl": "https://polyhaven.com/",
+  "apiUrl": "https://api.polyhaven.com/",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://polyhaven.com/license",
+  "resolution": "1k",
+  "format": "fbx",
+  "assets": [
+    "chinese_sofa",
+    "vintage_day_bed",
+    "side_table_01",
+    "modern_arm_chair_01",
+    "metal_office_desk",
+    "desk_lamp_arm_01",
+    "binder_notebook",
+    "potted_plant_01",
+    "standing_picture_frame_01",
+    "vintage_suitcase",
+    "alarm_clock_01",
+    "decorative_book_set_01",
+    "modern_wooden_cabinet",
+    "street_lamp_01",
+    "modular_street_seating",
+    "painted_wooden_bench",
+    "metal_trash_can",
+    "round_wooden_table_01",
+    "dining_chair_02",
+    "hanging_industrial_lamp"
+  ]
+}

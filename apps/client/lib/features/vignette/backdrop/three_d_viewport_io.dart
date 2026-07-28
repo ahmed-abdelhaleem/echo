@@ -3,10 +3,9 @@ import 'dart:math' as math;
 
 import 'package:echo_client/features/vignette/assets/asset_models.dart';
 import 'package:echo_client/features/vignette/scene_models.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide View;
 import 'package:model_viewer_plus/model_viewer_plus.dart';
 import 'package:thermion_flutter/thermion_flutter.dart';
-import 'package:vector_math/vector_math_64.dart' hide Colors;
 
 Widget buildThreeDViewport(BuildContext context, AssetScene scene) {
   return _NativeThreeDViewport(
@@ -210,7 +209,7 @@ class BoundedOrbitInputHandlerDelegate extends InputHandlerDelegate {
             ? rig.defaultFraming.polarDeg * math.pi / 180.0
             : 10.0 * math.pi / 180.0;
 
-  final View view;
+  final View<dynamic> view;
   final InputSensitivityOptions sensitivity;
   final Vector3 targetPoint;
   final double minZoomDistance;

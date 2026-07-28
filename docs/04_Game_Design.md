@@ -39,14 +39,15 @@ Each vignette is a single **explorable 3D scene** with this structure:
 
 The scene is the vignette's *body*, not its wallpaper. It exists to make a moment feel like a **place you are standing in**, which is exactly what makes an indirect read of the player feel true. It is deliberately closer to *Monument Valley* than to an open-world game: calm, restrained, and generous with attention rather than demanding of it.
 
-**Interaction model (deliberately small):**
+**Interaction model (small, but genuinely playable):**
 
-- **Free-look, bounded.** The player can orbit/look around the diorama within author-defined limits (a gentle, damped camera — never a free-fly camera, never disorienting). On touch it is drag-to-look; on desktop, pointer/drag; reduced-motion flattens it to a still framing.
-- **Tap-to-inspect (optional).** A few props in a scene may be *noticing points* — tapping gently focuses them and may surface a one-line observation. This is flavor and presence, never a puzzle and never required.
-- **No traversal, no timing, no fail.** There is no walking, no inventory, no objective, no timer, no way to "lose." Exploration cannot be done "wrong."
-- **Exploration never gates the choice.** The choices are always reachable; a player who ignores the scene entirely has a complete, unpenalized playthrough. The scene rewards curiosity without taxing disinterest.
+- **Calm embodied movement where it matters.** A vignette may place the player in a tightly bounded third-person space with walking, a damped follow camera, and two or three story-bearing interactions. There is no open world, free-fly camera, combat, platforming, sprint requirement, or traversal padding.
+- **Contextual interaction.** Nearby objects show one clear action prompt. Story-critical objects advance a short dramatic thread; optional *noticing points* surface brief observations and never affect scoring.
+- **A no-fail objective thread.** The player always knows the immediate dramatic intention (for example, “Find the photograph” and then “Read the message”). There is no timer, punishment, resource economy, inventory puzzle, or way to lose.
+- **Choice in context.** The trait-bearing choice appears after the minimum dramatic setup has been experienced. A prominent accessibility/skip control can advance directly to the choice without penalty.
+- **Orbit-only remains a tool, not the default.** A small exterior vista or transitional vignette may use the original bounded orbit model when embodied walking would add no story value.
 
-**How it serves the pillars.** It serves *calm intentional pacing* (the world breathes while you think) and *honesty by indirection* (presence lowers the social mask further than a flat screen does). It must never serve novelty for its own sake — a scene that adds motion-sickness, pressure, or distraction from the decision has failed and does not ship.
+**How it serves the pillars.** It serves *calm intentional pacing* (the player inhabits a deliberate moment) and *honesty by indirection* (small physical actions make the fictional role concrete before the decision). A scene that adds motion sickness, pressure, busywork, or distraction from the decision has failed and does not ship.
 
 **What the trait engine does and does not read here.** Hesitation, pacing, and revisits on the *choice* remain signal (see *Hidden signals*). Camera look-around and prop inspection are **presence, not assessment** — they are not scored into the trait vector at MVP, to avoid penalizing players on slower devices or those who simply don't fidget with the camera. (If a future, well-calibrated study shows exploration patterns are diagnostic, adding them is a trait-engine change and follows the escalation/calibration rules — it is not assumed here.)
 

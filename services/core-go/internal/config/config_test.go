@@ -13,6 +13,8 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("REDIS_URL", "")
 	t.Setenv("OTLP_ENDPOINT", "")
 	t.Setenv("ECHO_ENV", "")
+	t.Setenv("CORE_CORS_ALLOW_LOCALHOST", "")
+	t.Setenv("CORE_ENABLE_KRATOS_PROXY", "")
 
 	cfg, err := Load()
 	require.NoError(t, err)
@@ -30,6 +32,8 @@ func TestLoadOverrides(t *testing.T) {
 	t.Setenv("DATABASE_URL", "postgres://localhost/echo")
 	t.Setenv("REDIS_URL", "redis://localhost:6379")
 	t.Setenv("ECHO_ENV", "production")
+	t.Setenv("CORE_CORS_ALLOW_LOCALHOST", "")
+	t.Setenv("CORE_ENABLE_KRATOS_PROXY", "")
 
 	cfg, err := Load()
 	require.NoError(t, err)

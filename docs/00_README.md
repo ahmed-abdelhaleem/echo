@@ -25,6 +25,7 @@ The documents are numbered in **reading order**. If you only have time for three
 | 11 | Risk Assessment | Founders, Investors | What can kill this, mitigations |
 | 12 | Investor Pitch Outline | Founders | Storyline and asks for fundraising |
 | 13 | Agent Change Log | AI Coding Agents | Living log of agent changes + the next change in the pipeline |
+| 14 | Graphics & Gameplay Production Plan | Art, Design, Engineering | Production quality bar, asset pipeline, vignette gameplay, budgets, and rollout |
 
 ---
 

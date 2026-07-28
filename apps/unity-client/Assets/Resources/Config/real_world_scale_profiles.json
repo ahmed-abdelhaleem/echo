@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "playerHeightMeters": 1.78,
+  "defaultToleranceMeters": 0.04,
+  "assets": [
+    { "assetId": "chinese_sofa", "category": "sofa", "blocksPlayer": true, "targetLongestMeters": 2.60, "minimumHeightMeters": 0.78, "maximumHeightMeters": 1.12 },
+    { "assetId": "vintage_day_bed", "category": "bed", "blocksPlayer": true, "targetLongestMeters": 2.30, "minimumHeightMeters": 0.72, "maximumHeightMeters": 1.35 },
+    { "assetId": "side_table_01", "category": "side_table", "blocksPlayer": true, "targetLongestMeters": 0.68, "minimumHeightMeters": 0.50, "maximumHeightMeters": 0.62 },
+    { "assetId": "modern_arm_chair_01", "category": "chair", "blocksPlayer": true, "targetLongestMeters": 1.15, "minimumHeightMeters": 0.90, "maximumHeightMeters": 1.18 },
+    { "assetId": "metal_office_desk", "category": "desk", "blocksPlayer": true, "targetLongestMeters": 2.10, "minimumHeightMeters": 0.74, "maximumHeightMeters": 1.02 },
+    { "assetId": "desk_lamp_arm_01", "category": "desk_lamp", "blocksPlayer": false, "targetLongestMeters": 0.76, "minimumHeightMeters": 0.48, "maximumHeightMeters": 0.78 },
+    { "assetId": "binder_notebook", "category": "notebook", "blocksPlayer": false, "targetLongestMeters": 0.42, "minimumHeightMeters": 0.01, "maximumHeightMeters": 0.08 },
+    { "assetId": "potted_plant_01", "category": "plant", "blocksPlayer": true, "targetLongestMeters": 1.22, "minimumHeightMeters": 1.00, "maximumHeightMeters": 1.30 },
+    { "assetId": "standing_picture_frame_01", "category": "photo", "blocksPlayer": false, "targetLongestMeters": 0.52, "minimumHeightMeters": 0.44, "maximumHeightMeters": 0.56 },
+    { "assetId": "vintage_suitcase", "category": "luggage", "blocksPlayer": true, "targetLongestMeters": 1.35, "minimumHeightMeters": 0.38, "maximumHeightMeters": 0.62 },
+    { "assetId": "alarm_clock_01", "category": "clock", "blocksPlayer": false, "targetLongestMeters": 0.22, "minimumHeightMeters": 0.16, "maximumHeightMeters": 0.23 },
+    { "assetId": "decorative_book_set_01", "category": "books", "blocksPlayer": false, "targetLongestMeters": 1.20, "minimumHeightMeters": 0.12, "maximumHeightMeters": 0.28 },
+    { "assetId": "modern_wooden_cabinet", "category": "cabinet", "blocksPlayer": true, "targetLongestMeters": 2.44, "minimumHeightMeters": 0.64, "maximumHeightMeters": 0.86 },
+    { "assetId": "street_lamp_01", "category": "street_lamp", "blocksPlayer": true, "targetLongestMeters": 3.90, "minimumHeightMeters": 3.70, "maximumHeightMeters": 4.10 },
+    { "assetId": "modular_street_seating", "category": "street_seating", "blocksPlayer": true, "targetLongestMeters": 4.35, "minimumHeightMeters": 0.72, "maximumHeightMeters": 1.02 },
+    { "assetId": "painted_wooden_bench", "category": "bench", "blocksPlayer": true, "targetLongestMeters": 1.35, "minimumHeightMeters": 0.96, "maximumHeightMeters": 1.08 },
+    { "assetId": "metal_trash_can", "category": "trash_can", "blocksPlayer": true, "targetLongestMeters": 1.80, "minimumHeightMeters": 0.80, "maximumHeightMeters": 0.96 },
+    { "assetId": "round_wooden_table_01", "category": "cafe_table", "blocksPlayer": true, "targetLongestMeters": 1.40, "minimumHeightMeters": 0.72, "maximumHeightMeters": 1.05 },
+    { "assetId": "dining_chair_02", "category": "chair", "blocksPlayer": true, "targetLongestMeters": 1.15, "minimumHeightMeters": 0.96, "maximumHeightMeters": 1.18 },
+    { "assetId": "hanging_industrial_lamp", "category": "pendant_lamp", "blocksPlayer": false, "targetLongestMeters": 1.12, "minimumHeightMeters": 0.92, "maximumHeightMeters": 1.20 }
+  ]
+}

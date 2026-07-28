@@ -37,7 +37,7 @@ The release table above is the *business* sequence. The **build** sequence is ga
 
 | Phase | Features (build in this order) | Gate |
 |---|---|---|
-| **G — The Game** (sole priority until done) | `F-CORE-001` playthrough engine, `F-CORE-002` vignette renderer, **`F-CORE-007` explorable 3D scenes**, `F-CORE-003` trait scoring, `F-CORE-004` Portrait + reflection, full Season content, real 3D asset generation, accessibility + offline. Playable **anonymously, no account, no network, no paywall.** | **Game-Complete** (see `10`) |
+| **G — The Game** (sole priority until done) | `F-CORE-001` playthrough engine, `F-CORE-002` vignette renderer, **`F-CORE-007` explorable 3D scenes**, `F-CORE-003` trait scoring, `F-CORE-004` Portrait + reflection, full Season content, authored 3D asset production, accessibility + offline. Playable **anonymously, no account, no network, no paywall.** | **Game-Complete** (see `10`) |
 | **P — Platform & growth** (only after Game-Complete) | `F-AUTH-001` accounts/sync, `F-SETTINGS-001`, `F-SHARE-001` sharing, `F-SOCIAL-001` friend comparison, `F-CORE-005` desktop store distribution, `F-CORE-006` Season 2, **`F-MONEY-001` Echo+ subscription / payments**, `F-LLM-001` productionized reflection. | Public launch |
 | **B — Business** (after Phase P) | `F-B2B-001/002/003` institutional, `F-COMPLIANCE-001`. | — |
 
@@ -139,16 +139,17 @@ The release table above is the *business* sequence. The **build** sequence is ga
 - Youth-safe accounts cannot participate without verified guardian consent.
 
 ### F-CORE-007 — Explorable 3D vignette scenes
-**Description.** Each vignette is presented as a calm, hand-composed, gently **explorable 3D scene** (an atmospheric diorama — the *Monument Valley* reference, not an open world), composed of AI-generated environment and prop assets placed in 3D. The player can look around within author-defined bounds and optionally inspect a few "noticing point" props. Exploration is presence, not a puzzle, and never gates the choice. See `04_Game_Design` → *The vignette as an explorable 3D scene* and `05_Technical_Architecture` → *Explorable 3D vignette scenes*. Built in the **game-first Phase G** (see `10` → *Build order*; milestone **M6** in `07`/`10`) — before any monetization/accounts work; it supersedes the M2 single-asset/parallax backdrop while keeping the same author-facing content model and the 2D fallback.
+**Description.** Each vignette is presented as a calm, hand-composed **playable 3D micro-scene** (a grounded, tightly bounded real place—not an open world), composed in **Unity 6 Personal** with Blender-authored or optimized meshes, verified CC0 environment assets, and optional Mixamo humanoid animation. This replaces the automated AI generation (Meshy/TRELLIS) and Thermion/Filament Flutter strategy as the foundation of the final game. In scenes designed for embodied play, the player walks a small authored area, examines story-bearing objects, completes a short no-fail dramatic thread, and makes the vignette choice in context. Compact orbit-only scenes remain valid when walking would add nothing. See `04_Game_Design` and `14_Graphics_Gameplay_Production_Plan`.
+Art direction is proven first via a **3-scene proof-of-concept** (1. Bedroom with animated character & inspectable props; 2. Busy street/bus stop with looping NPCs; 3. Café/shop interior with ambience & meaningful choice). Only after external testers sign off that *"this feels like a real place"* will the production system expand to the remaining 17 scenes across 5 reusable environments. Do not generate all 53 missing objects uncapped before proving art direction.
 **Acceptance criteria.**
-- Every vignette of a shipped Season has an authored scene (environment + props), not a single object; coverage is validated by `make validate-scenes`.
-- Free-look is bounded and damped (drag-to-look on touch, pointer-drag on desktop); there is no traversal, timer, objective, or fail state.
-- Tap-to-inspect is optional and surfaces at most a one-line observation; ignoring the scene yields a complete, unpenalized playthrough.
-- Scenes render with parity across iOS, Android, macOS, Windows, **and web**; a device or build that cannot render 3D degrades cleanly to the 2D atmospheric path with no loss of playability.
-- OS "reduce motion" flattens the scene to a still framing and disables auto-orbit; a one-tap "still" toggle is always available.
-- Per-vignette poly/draw/memory budgets are honored; the choice UI never janks regardless of scene cost (independent `RepaintBoundary`).
-- Camera look-around and prop inspection are **not** scored into the trait vector at MVP (presence, not assessment); changing this is a trait-engine change governed by the calibration/escalation rules.
-- All scene assets clear the automated QA + safety/brand gate and youth-safe review before a scene ships.
+- Art direction is proven and signed off by external testers on the 3 core proof scenes before expanding production.
+- Every vignette of a shipped Season has an authored 3D diorama scene.
+- Embodied scenes use bounded third-person traversal, a damped follow camera, clear interaction prompts, and a two-to-four minute no-fail dramatic thread; they never become open worlds.
+- Story-critical interactions are few, explicit, and accessible. Optional noticing points remain unscored and are never required for the trait-bearing choice.
+- Scenes render with parity across Unity's iOS, Android, Windows, macOS, and WebGL targets; a build that cannot render 3D degrades cleanly to the 2D atmospheric path.
+- OS "reduce motion" flattens the scene to a still framing and disables auto-orbit.
+- Camera look-around and prop inspection are **not** scored into the trait vector at MVP (presence, not assessment).
+- All redistributed scene assets have verified open/CC0 licensing. Mixamo downloads remain local/source-controlled only when redistribution terms explicitly permit it.
 
 ### F-MONEY-001 — Free tier + Echo+ premium
 **Description.** Free tier includes one Season per quarter; Echo+ unlocks the full library, archival of all Portraits, deeper reflection content, and early access to new Seasons.
@@ -221,7 +222,7 @@ The release table above is the *business* sequence. The **build** sequence is ga
 - Avatars or profile customization beyond the Portrait
 - Ad-supported tier
 - Crypto, NFTs, "owning your personality on-chain," and anything similar
-- **Open-world / free-roam traversal, movement controls, timers, objectives, or any fail state.** The explorable 3D scene (`F-CORE-007`) is an atmospheric, bounded diorama you look around — never a level you move through.
+- **Open-world structure, combat, platforming, punitive puzzles, timers, fail states, grind, or traversal for its own sake.** Movement and short objectives are allowed only inside tightly bounded vignettes where they carry story.
 
 These are out of scope to protect the brand soul described in `01_Product_Vision`.
 

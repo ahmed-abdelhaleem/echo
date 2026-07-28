@@ -32,7 +32,21 @@ Echo is a game. Everything else — accounts, sharing, comparison, subscriptions
 The complete player experience, end to end, playable **anonymously and offline**, with no sign-in, paywall, or share feature required to reach the result:
 
 - The full playthrough loop (start, pause/resume, complete) with deliberate, no-pressure pacing.
-- **Explorable 3D vignette scenes** for an entire Season — the `F-CORE-007` / M6 work, *pulled to the front*: every vignette is a composed, gently explorable diorama, with real AI-generated assets, on all four platforms **and web**, degrading cleanly to the 2D path.
+- **Explorable 3D vignette scenes** for Season 1 — the `F-CORE-007` work built in Unity 6 Personal with Blender, verified Kenney/Poly Haven CC0 assets, and optional Mixamo animations. Replaces automated AI generation (Meshy/TRELLIS) and Thermion/Filament.
+- **Reference-slice-first production:** Build one core scene to the gameplay and
+  graphics bar before scaling:
+  1. *Bedroom* with a directly controlled character, objectives, contextual
+     interactions, realistic props, choice, and ending.
+  2. *Busy street / bus stop* with several looping NPCs.
+  3. *Café or shop interior* with ambient lighting and a meaningful choice.
+- **Implementation status (2026-07-28):** `apps/unity-client` now connects
+  Bedroom, Harbor Street, and Café/Shop as directly controlled third-person
+  vignettes, each with required objectives, optional interactions, a choice,
+  resolution, and onward transition. Imported CC0 hero assets are present in
+  all three. This validates the reusable gameplay architecture; it does not
+  waive the external gameplay, art-direction, accessibility, asset,
+  performance, or youth-safe gates.
+- Only when external testers sign off that *"this feels like a real place"* will the production system expand to the remaining 17 scenes (built across 5 reusable environments). Do not generate all 53 missing objects uncapped before proving art direction.
 - Trait scoring (rule-based v1), deterministic and replayable.
 - The Portrait (parametric, animated + static) and the prose reflection (with safety + tone classifiers and fallback).
 - A complete, playtested **Season 1** (content), then **Season 2** if needed to prove the loop.
@@ -55,7 +69,7 @@ B2B / institutional dashboard, seat billing, compliance (SOC 2, DPA), NA/locale 
 | M0 Foundation, M1 vertical slice (rails) | **Phase G** (foundation for the game) |
 | M2 — *content + Portrait + reflection* | **Phase G** |
 | M2 — *auth/accounts, sharing* | **deferred → Phase P** |
-| M6 — *explorable 3D scenes + real asset gen* | **pulled forward → Phase G** |
+| M6 — *explorable 3D scenes + authored asset production* | **pulled forward → Phase G** |
 | M3 — desktop, Echo+ subscription, friend comparison, public launch | **Phase P** |
 | M4 — institutional/B2B, compliance, expansion | **Phase B** |
 | M5 — Series A & scale | **Phase B** |
@@ -113,7 +127,7 @@ B2B / institutional dashboard, seat billing, compliance (SOC 2, DPA), NA/locale 
 
 **Goal:** Full Season 1, real Portrait, real reflection, on iOS and Android, with a closed beta of ~200 testers.
 
-> **Game-first re-sequencing.** Under the build order above, M2 splits: the **game** deliverables (Content, Portrait, Reflection — and, pulled forward from M6, the **explorable 3D scenes + real asset generation**) are **Phase G** and ship first. **Auth/accounts and Sharing are deferred to Phase P** — the game is completed and playable anonymously/offline before any account or share surface is built.
+> **Game-first re-sequencing.** Under the build order above, M2 splits: the **game** deliverables (Content, Portrait, Reflection — and, pulled forward from M6, the **explorable 3D scenes + authored asset production**) are **Phase G** and ship first. **Auth/accounts and Sharing are deferred to Phase P** — the game is completed and playable anonymously/offline before any account or share surface is built.
 
 **Team:** Founder full-time. First external hire targeted around Week 14 (recommended: a Flutter engineer to accelerate client polish). Friends/advisors active on a defined cadence (mobile, ML, DevOps, backend reviewers).
 
@@ -208,20 +222,28 @@ B2B / institutional dashboard, seat billing, compliance (SOC 2, DPA), NA/locale 
 
 ## M6 — Explorable 3D vignettes (Phase G — the game; built before Phase P)
 
-**Goal:** Evolve vignettes from atmospheric parallax backdrops into gently **explorable 3D scenes** — calm, bounded dioramas (the *Monument Valley* reference) that the player can look around — without changing Echo's reflective tone, the trait engine, or the deterministic Portrait. See `F-CORE-007` (`03`), the interaction model in `04_Game_Design`, the renderer design in `05_Technical_Architecture`, and the task breakdown (M6) in `07_AI_Agent_Implementation_Guide`.
+**Goal:** Evolve vignettes from atmospheric parallax backdrops into grounded,
+cinematic, **playable 3D micro-scenes** that the player can calmly walk through
+without changing Echo's reflective tone, the trait engine, or the deterministic
+Portrait. See `F-CORE-007` (`03`), the interaction model in `04_Game_Design`,
+the renderer design in `05_Technical_Architecture`, and the complete graphics
+and gameplay plan in `14_Graphics_Gameplay_Production_Plan`.
 
 > **Build-order note.** Although numbered M6 (the label is kept for cross-references), this work is part of **Phase G — the game** and is sequenced **before** any Phase P (accounts/sharing/subscriptions) or Phase B (B2B) work. "The game" is not complete until vignettes are explorable 3D scenes; the Game-Complete gate depends on it.
 
 ### Deliverables
 
 - Scene-composition content model (`VignetteScene`/extended backdrop schema) + `make validate-scenes`; **all** vignettes of a shipped Season authored as scenes, not single objects.
-- Thermion (Filament) explorable viewport (bounded free-look, optional tap-to-inspect, reduce-motion → still) with **web parity** (Filament-on-WASM or baked per-vignette scene GLB), retiring the single-model web fallback for scenes.
-- Real asset generation at content scale (Meshy primary) behind the per-environment spend cap; every asset clears the automated QA + safety/brand gate and youth-safe review.
+- Unity 6 Personal client in `apps/unity-client`: bounded third-person movement,
+  collision-aware follow camera, contextual interactions, objectives,
+  reduce-motion/still fallbacks, narrative choice and ending independent of
+  scene art loading, and macOS/Windows/iOS/Android/WebGL targets.
+- Reproducible authored asset production with Blender, verified CC0 environment libraries, optional local Mixamo humanoid animation, provenance records, and checked-in fallbacks.
 - Cross-platform performance budget met (iOS/Android/macOS/Windows/web) with graceful degradation to the 2D path.
 
 ### Gates (founder/operational sign-off, not AI-mergeable)
 
-- Direction is approved. Two operational approvals remain: turning on **paid generation** + budget cap (`#11`), and the **scene-level QA/safety/brand + youth-safe** review (`#7`/`#12`).
+- Direction is approved. Human review remains required for the new top-level Unity client/dependencies (`#1`) and for the **scene-level QA/safety/brand + youth-safe** gate (`#7`/`#12`). Paid generation is not part of Phase G.
 
 ---
 

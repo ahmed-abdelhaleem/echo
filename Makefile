@@ -24,6 +24,10 @@ UV_AVAILABLE      := $(shell command -v uv      >/dev/null 2>&1 && echo yes)
 PNPM_AVAILABLE    := $(shell command -v pnpm    >/dev/null 2>&1 && echo yes)
 FLUTTER_AVAILABLE := $(shell command -v flutter >/dev/null 2>&1 && echo yes)
 DOCKER_COMPOSE    := $(shell docker compose version >/dev/null 2>&1 && echo "docker compose")
+UNITY_ROOT        ?= apps/unity-client
+UNITY_EDITOR      ?= /Applications/Unity/Hub/Editor/6000.5.4f1/Unity.app/Contents/MacOS/Unity
+BLENDER           ?= /Applications/Blender.app/Contents/MacOS/Blender
+MIXAMO_YBOT       ?= $(UNITY_ROOT)/Assets/Resources/Characters/YBot/Walking.fbx
 
 # Pinned linter binaries — `go install` respects GOBIN (mise sets it) with a
 # fallback to $GOPATH/bin for plain Go installs.
@@ -61,6 +65,12 @@ help:
 	@echo "  make dev-asset-worker Run the T-ML-051 JetStream asset worker"
 	@echo "  make dev-trellis      Run Apple TRELLIS.2 HTTP server on :8090 (Apple Silicon)"
 	@echo "  make client           Run Flutter client (auto: chrome without Xcode)"
+	@echo "  make unity-test       Run Unity play-mode tests"
+	@echo "  make unity-build-macos Build the standalone Echo.app"
+	@echo "  make unity-validate-mixamo Validate the optional local FBX in Blender"
+	@echo "  make unity-fetch-bedroom-assets Fetch the vetted CC0 Bedroom set"
+	@echo "  make unity-validate-bedroom-assets Audit Bedroom meshes in Blender"
+	@echo "  make unity-validate-scale Validate source meshes and in-game metre scale"
 	@echo "  make client-web-assets Fetch Drift web/sqlite3.wasm + drift_worker.js"
 	@echo "  make migrate          Apply database migrations"
 	@echo "  make seed             Seed sample content into the database"
@@ -81,6 +91,59 @@ help:
 	@echo "Per-language:"
 	@echo "  make go-test          make py-test          make node-test          make flutter-test"
 	@echo "  make go-lint          make py-lint          make node-lint          make flutter-analyze"
+
+# ---------------------------------------------------------------------------
+# Unity game client
+# ---------------------------------------------------------------------------
+
+.PHONY: unity-test
+unity-test:
+	@test -x "$(UNITY_EDITOR)" || (echo "Unity editor not found: $(UNITY_EDITOR)" && exit 1)
+	@echo "→ unity-test (play mode)"
+	@mkdir -p "$(UNITY_ROOT)/Logs" "$(UNITY_ROOT)/TestResults"
+	@"$(UNITY_EDITOR)" -batchmode -nographics \
+		-projectPath "$(CURDIR)/$(UNITY_ROOT)" \
+		-runTests -testPlatform PlayMode \
+		-testResults "$(CURDIR)/$(UNITY_ROOT)/TestResults/playmode.xml" \
+		-logFile "$(CURDIR)/$(UNITY_ROOT)/Logs/unity-test.log"
+	@echo "✓ Unity play-mode tests passed"
+
+.PHONY: unity-build-macos
+unity-build-macos:
+	@test -x "$(UNITY_EDITOR)" || (echo "Unity editor not found: $(UNITY_EDITOR)" && exit 1)
+	@echo "→ unity-build-macos"
+	@mkdir -p "$(UNITY_ROOT)/Logs"
+	@"$(UNITY_EDITOR)" -batchmode -nographics -quit \
+		-projectPath "$(CURDIR)/$(UNITY_ROOT)" \
+		-executeMethod Echo.Editor.EchoBuild.BuildMacOS \
+		-logFile "$(CURDIR)/$(UNITY_ROOT)/Logs/unity-build.log"
+	@test -d "$(UNITY_ROOT)/Builds/macOS/Echo.app"
+	@echo "✓ built $(UNITY_ROOT)/Builds/macOS/Echo.app"
+
+.PHONY: unity-validate-mixamo
+unity-validate-mixamo:
+	@test -x "$(BLENDER)" || (echo "Blender not found: $(BLENDER)" && exit 1)
+	@test -f "$(MIXAMO_YBOT)" || (echo "Optional Mixamo FBX not found: $(MIXAMO_YBOT)" && exit 1)
+	@echo "→ unity-validate-mixamo"
+	@"$(BLENDER)" --background \
+		--python "$(CURDIR)/$(UNITY_ROOT)/tools/blender/validate_mixamo_asset.py" \
+		-- "$(CURDIR)/$(MIXAMO_YBOT)"
+
+.PHONY: unity-fetch-bedroom-assets
+unity-fetch-bedroom-assets:
+	@echo "→ unity-fetch-bedroom-assets"
+	@python3 "$(UNITY_ROOT)/tools/assets/fetch_polyhaven_assets.py"
+
+.PHONY: unity-validate-bedroom-assets
+unity-validate-bedroom-assets:
+	@test -x "$(BLENDER)" || (echo "Blender not found: $(BLENDER)" && exit 1)
+	@echo "→ unity-validate-bedroom-assets"
+	@"$(BLENDER)" --background \
+		--python "$(CURDIR)/$(UNITY_ROOT)/tools/blender/inspect_polyhaven_assets.py"
+
+.PHONY: unity-validate-scale
+unity-validate-scale: unity-validate-bedroom-assets unity-test
+	@echo "✓ source and in-game real-world scale gates passed"
 
 # ---------------------------------------------------------------------------
 # Bootstrap
@@ -640,4 +703,3 @@ else
 	@echo "↷ flutter not installed; cannot run dev-3d"
 	@exit 1
 endif
-

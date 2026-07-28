@@ -10,8 +10,13 @@ Founding documentation lives in [`docs/`](./docs/). Start with [`docs/00_README.
 
 ## Status
 
-- **Stage.** M0 (Foundation) — backend scaffolding, content schema, CI in place.
-- **Next milestones.** M1 (vertical-slice playthrough), M2 (MVP closed beta on iOS+Android). See [`docs/10_Roadmap_Milestones.md`](./docs/10_Roadmap_Milestones.md).
+- **Stage.** Phase G — the Unity 6 Personal build now has a connected,
+  playable three-vignette loop across Bedroom, Harbor Street, and Café. All
+  three have third-person movement, objectives, interactions, choices,
+  resolutions, Mixamo animation/fallbacks, and scene-specific CC0 PBR assets.
+  External art-direction, accessibility, performance, asset/brand, and
+  youth-safe review still block scaling to the rest of Season 1.
+- **Build order.** Finish the anonymous/offline game and pass the Game-Complete gate before accounts, monetization, sharing, or B2B. See [`docs/10_Roadmap_Milestones.md`](./docs/10_Roadmap_Milestones.md).
 - **Repo layout.** Defined in [`docs/07_AI_Agent_Implementation_Guide.md`](./docs/07_AI_Agent_Implementation_Guide.md) §"Monorepo layout".
 
 ---
@@ -32,9 +37,11 @@ make test         # run all tests
 Once that is green you can run:
 
 ```bash
+make unity-test          # Unity play-mode test
+make unity-build-macos   # standalone apps/unity-client/Builds/macOS/Echo.app
 make dev          # prints the three-terminal local workflow
 make dev-core     # terminal 1 — core-go on :8081 (see .env.example)
-make client       # terminal 2 — Flutter (PLATFORM=macos|ios|chrome|...)
+make client       # legacy/fallback Flutter client
 ```
 
 For full setup details see [`docs/07_AI_Agent_Implementation_Guide.md`](./docs/07_AI_Agent_Implementation_Guide.md) §"Setup — first run from clean machine".
@@ -47,6 +54,7 @@ For full setup details see [`docs/07_AI_Agent_Implementation_Guide.md`](./docs/0
 echo/
 ├── apps/
 │   ├── client/              # Flutter — iOS, Android, Windows, macOS, web, Linux
+│   ├── unity-client/        # Unity 6 Personal — authoritative explorable 3D game
 │   ├── share-web/           # Public Portrait sharing pages (M2)
 │   └── b2b-dashboard/       # Institutional web dashboard (V2)
 ├── services/

@@ -27,11 +27,152 @@ This rule is also stated in `AGENTS.md` and `07_AI_Agent_Implementation_Guide`; 
 
 > A single reference to the next change. Replace it when you pick up the next thing.
 
-- — none queued —
+- Run an external first-time-player/art-direction/accessibility/youth-safe review
+  of the connected Bedroom → Street → Café build; use the findings to revise
+  the reference kit before producing the next Apartment-family vignette.
 
 ---
 
 ## Change log
+
+### 2026-07-28 · Codex · Unity source-versus-generated Git audit
+- Audited all 643 status entries: 631 are intentional Unity project/source
+  files, including 195 MB of redistributable CC0 art and required `.meta`
+  identities. No currently untracked cache, log, test result, or build output
+  remains eligible for commit.
+- Confirmed Unity Library (2.5 GB), standalone builds (296 MB), logs, test
+  results, user settings, and generated IDE files are ignored; added guards for
+  exported objects/packages, platform binaries, crash diagnostics, and IDE
+  state.
+- Kept raw Noor/YBot Mixamo FBX files and their metas ignored because the game
+  license permits use but not redistribution of the downloadable source files.
+- Files/docs: `apps/unity-client/.gitignore`,
+  `docs/13_Agent_Change_Log.md`.
+- Flags: none. No assets deleted; all redistributable assets used by the game
+  remain eligible to push.
+
+### 2026-07-28 · Codex · Enforced real-world scale gate for characters, props, and rooms
+- Added one authoritative metre-scale profile catalog for all 20 vetted
+  environment models and the 1.78 m player reference. Runtime construction now
+  normalizes and grounds imported bounds, derives padded collision for blocking
+  furniture, and attaches testable scale evidence.
+- Blender rejects missing/invalid asset profiles; play-mode coverage rejects
+  target drift, wrong-axis heights, missing audits, and oversized architecture.
+  It also proves the player cannot cross the suitcase collider. Added
+  `make unity-validate-scale` as the single model-intake gate.
+- Recalibrated the Bedroom from a 12 × 9.5 × 6 m shell to a believable
+  residential volume, corrected furniture/hero-prop placement, tightened the
+  follow camera, and added a ceiling. Unity tests, Blender validation, and the
+  macOS build pass; the rebuilt standalone was visually reviewed and left open.
+- Files/docs: `apps/unity-client/Assets/{Resources/Config,Scripts/EchoPrototype,Tests/PlayMode}`,
+  `apps/unity-client/tools/blender/inspect_polyhaven_assets.py`,
+  `apps/unity-client/README.md`, `Makefile`, `docs/{13,14}_*.md`.
+- Flags: **human-review-required** for Unity dependency/client direction and
+  scene asset/brand/youth-safe gate (#1/#7/#12). No paid API, account, secret,
+  trait-scoring, classifier, or redistributed Mixamo raw-file change.
+
+### 2026-07-28 · Codex · Bedroom layout and third-person locomotion repair
+- Replaced the misleading tipped daybed with an upright, grounded CC0 sofa;
+  repositioned the chair, nightstand, alarm clock, suitcases, and interaction
+  anchors; and added a deliberately visible gold/red photograph surface.
+- Corrected the Mixamo visual forward axis, replaced instantaneous direction
+  snaps with acceleration and bounded turn rates, blended walk/idle playback,
+  and synthesized a centered fallback stance from opposite walk phases.
+- Added layout and gradual-turn regressions; Unity play-mode tests and macOS
+  build pass. The rebuilt standalone was inspected and played with W/D, and is
+  left running. Trait scoring is unchanged.
+- Files/docs: `apps/unity-client/Assets/{Scripts/EchoPrototype,Tests/PlayMode,Resources/Art/PolyHaven/chinese_sofa}`,
+  `apps/unity-client/tools/assets/polyhaven_bedroom_assets.json`,
+  `docs/13_Agent_Change_Log.md`.
+- Flags: **human-review-required** for Unity dependency/client direction and
+  scene asset/brand/youth-safe gate (#1/#7/#12). No paid API, account, secret,
+  trait-scoring, classifier, or redistributed Mixamo raw-file change.
+
+### 2026-07-28 · Codex · Movement, visible real-scale props, and three-vignette playable loop
+- Fixed keyboard movement so both held keys and short key presses reliably move
+  the character; added explicit in-game controls, faster walking, testable
+  movement, and a regression test that asserts visible translation.
+- Fixed mixed FBX centimetre/metre and Z-up imports with bounds-driven
+  normalization and placement. The bed, phone, photograph, street lamps,
+  benches, tables, chairs, and pendants now appear at grounded real-world scale;
+  the Bedroom bed was recomposed to show its full silhouette.
+- Converted Harbor Street and Saffron Café from orbit proofs to the reusable
+  third-person objective/interaction/choice/ending architecture, connected all
+  three scenes into a continuous loop, and added seven vetted CC0 environment
+  assets for Street/Café. Trait scoring is unchanged.
+- Verified: 19-model Blender asset audit passes; Unity play-mode test completes
+  all three required routes and endings; macOS build succeeds; standalone
+  movement and every scene transition were visually exercised; final
+  `Player.log` has no error/exception/failure matches. The rebuilt game is left
+  running.
+- Files/docs: `apps/unity-client/Assets/{Scripts/EchoPrototype,Tests/PlayMode,Resources/Art/PolyHaven}`,
+  `apps/unity-client/tools/assets`, `apps/unity-client/README.md`, `README.md`,
+  `docs/{10,13,14}_*.md`.
+- Flags: **human-review-required** for Unity dependency/client direction and
+  scene asset/brand/youth-safe gate (#1/#7/#12). No paid API, account, secret,
+  trait-scoring, classifier, or redistributed Mixamo raw-file change.
+
+### 2026-07-26 · Codex · What Remains converted from viewer to playable 3D reference slice
+- Replaced the Bedroom orbit-only proof contract with bounded third-person
+  movement, CharacterController/furniture collision, collision-aware follow
+  camera, required photograph → phone objectives, world guidance, six
+  contextual interactions, pause/restart/no-penalty skip, two-choice ending,
+  lighting feedback, and generated rain room tone. Trait scoring is unchanged.
+- Integrated and runtime-materialized a reproducibly fetched 12-model, 1K CC0
+  Poly Haven Bedroom set; added checksum fetching, Blender scale/triangle
+  audits, provenance, and Make targets. Integrated the optional local Mixamo
+  Remy character with an ignored raw FBX, checked-in reproduction recipe, URP
+  material mapping, and a no-file fallback.
+- Rewrote the graphics/gameplay direction around grounded cinematic realism in
+  bounded playable micro-scenes, with whole-game environment families, asset
+  gates, performance budgets, production components, and a Bedroom-first
+  scaling gate. Street and Café are explicitly still older art proofs.
+- Verified: all asset checksums ready; all 12 FBXs import in Blender; Unity
+  play-mode required-route/ending test passes; macOS `Echo.app` builds (250 MB);
+  the final standalone build was exercised through photograph, accessibility
+  choice route, honest ending, lighting response, and has no problem matches in
+  `Player.log`. The final build is left running.
+- Files/docs: `apps/unity-client/Assets/{Scripts/EchoPrototype,Tests/PlayMode,Resources/Art/PolyHaven,Resources/Characters/Noor}`, `apps/unity-client/tools/{assets,blender}`, `apps/unity-client/README.md`, `Makefile`, `README.md`, `docs/{00,03,04,05,06,07,10,13,14}_*.md`.
+- Flags: **human-review-required** for the Unity dependency/client direction and
+  scene asset/brand/youth-safe gate (#1/#7/#12). No paid API, account, secret,
+  trait-scoring, classifier, or redistributed Mixamo raw-file change.
+
+### 2026-07-26 · Codex · Three-scene free Unity proof completed and running
+- Added **The Last Table**, a switchable Café/Shop vignette with warm ambient lighting, animated/fallback barista, last guest, espresso and pastry counter, tables, forgotten sketchbook, three optional noticing points, and a non-judgmental two-choice resolution.
+- Expanded navigation and automated coverage to Bedroom, Harbor Street, and Café/Shop. Tests pass with the optional local Mixamo FBX present and absent; removed the obsolete template-camera script reference; the rebuilt macOS `Echo.app` was visually exercised across all three scenes, including the Café choice and sketchbook inspection, left running, and has a clean player-log problem scan.
+- Updated status documentation: the code-level 3-scene implementation proof is complete, while external art-direction, asset/brand, and youth-safe review remain required before the proof gate passes or production scales.
+- Files/docs: `apps/unity-client/Assets/{Scenes/SampleScene.unity,Scripts/EchoPrototype/EchoWorldBootstrap.cs,Tests/PlayMode/EchoWorldBootstrapTests.cs}`, `apps/unity-client/{README.md,Assets/Scripts/EchoPrototype/README.md}`, `README.md`, `docs/10_Roadmap_Milestones.md`, `docs/13_Agent_Change_Log.md`.
+- Flags: **human-review-required** for new Unity client/dependencies and scene-level asset QA/brand/youth-safe review (#1/#7/#12). No paid API, secret, trait-scoring, classifier, or redistributed Mixamo asset change.
+
+### 2026-07-26 · Codex · Playable Bedroom proof added to the running Unity game
+- Added **What Remains**, a switchable rain-lit bedroom vignette with animated/pacing Noor, unmade bed, desk, chipped mug, window rain, wardrobe, books, plant, three optional noticing points, per-scene bounded camera framing, and a non-judgmental two-choice resolution.
+- Added in-game Bedroom/Harbor Street navigation; verified the honest-response branch, scene switching, and chipped-mug inspection in the rebuilt standalone `Echo.app`.
+- Expanded the Unity play-mode test to cover both scenes and ≥3 inspectable details; it passes with Mixamo loaded and with the local FBX removed/fallback characters active.
+- Files/docs: `apps/unity-client/Assets/Scripts/EchoPrototype/{EchoWorldBootstrap.cs,EchoOrbitCamera.cs,EchoInspectable.cs,README.md}`, `apps/unity-client/Assets/Tests/PlayMode/EchoWorldBootstrapTests.cs`, `apps/unity-client/README.md`, `README.md`, `docs/10_Roadmap_Milestones.md`, `docs/13_Agent_Change_Log.md`.
+- Flags: **human-review-required** for scene-level asset QA/brand and youth-safe review (#7/#12). No paid API, secret, trait-scoring, classifier, or redistributed Mixamo asset change.
+
+### 2026-07-26 · Codex · Reproducible free Unity game client running as a standalone build
+- Added `apps/unity-client`: Unity 6 Personal/URP harbor-street diorama, bounded camera, independent narrative choice UI, animated Mixamo pedestrian with stylized no-asset fallback, play-mode coverage, macOS build automation, and Blender FBX validation. Built and played `Echo.app`; the choice changed story/lighting and the player log was exception-free.
+- Made Unity the authoritative Phase-G client; retired Thermion/Meshy as the final-game direction and documented the Blender + verified CC0 + optional local Mixamo production/licensing workflow. Raw Mixamo downloads and Unity build/cache output remain ignored.
+- Made core configuration tests deterministic when a developer's local `.env` explicitly overrides dev-only booleans.
+- Kept the legacy Flutter fallback analyzable under current Flutter by disambiguating and explicitly typing Thermion's generic `View`.
+- Verified: Blender import (2 meshes, 1 armature, 1 action, 55,320 triangles); Unity play-mode test passes both with and without the local FBX; macOS standalone build succeeds (118 MB).
+- Verification note: the legacy Flutter client analyzes and builds for web, but its native test bootstrap still fails inside retired Thermion 0.3.4's Filament C++ link hook; Unity tests/builds are unaffected.
+- Files/docs: `apps/unity-client/**`, `apps/client/lib/features/vignette/backdrop/three_d_viewport_io.dart`, `services/core-go/internal/config/config_test.go`, `Makefile`, `README.md`, `docs/03_Product_Requirements.md`, `docs/05_Technical_Architecture.md`, `docs/06_Tech_Stack.md`, `docs/07_AI_Agent_Implementation_Guide.md`, `docs/10_Roadmap_Milestones.md`, `docs/13_Agent_Change_Log.md`.
+- Flags: **human-review-required** — new top-level Unity client/dependencies (#1) and scene asset QA/brand gate (#12); youth-safe scene review remains required before shipping (#7/#12). No paid generation APIs, secrets, scoring, or classifier changes.
+
+### 2026-07-26 · Codex · Running Unity Personal street-vignette proof of concept
+- Built and live-verified a dependency-free URP street vignette with café, bookshop, apartments, bus stop, plaza, street furniture, six stylized people, three looping pedestrians, bounded camera exploration, and a meaningful Echo choice with lighting feedback.
+- Fixed coexistence with the legacy scene by disabling its old-input camera and template volumes at prototype startup; Unity Play Mode now runs with zero errors.
+- Files/docs: `/Users/saeed.abdelhalim/echo/Assets/Scripts/EchoPrototype/{EchoWorldBootstrap.cs,EchoOrbitCamera.cs,EchoNpcWalker.cs,README.md}`, `docs/05_Technical_Architecture.md`, `docs/13_Agent_Change_Log.md`.
+- Flags: none; no paid APIs, new packages, credentials, or scoring/safety paths touched.
+
+### 2026-07-23 · Antigravity · 3D Content-Production & Rendering Strategy Pivot
+- Updated `docs/03`, `05`, `06`, `10`, and `13` to adopt the free/open CC0 asset pipeline (Unity Personal or Godot 4 + GDScript, Blender, Kenney & Poly Haven CC0 assets, Mixamo animations, verified commercial sound libraries).
+- Replaced automated AI 3D asset generation (Meshy/TRELLIS) and Thermion/Filament Flutter rendering strategy as the foundation for the final game. Retained Go backend, Python ML/trait engine, writing, and season schemas.
+- Instituted the 3-scene proof-of-concept pipeline (Bedroom, Street/Bus Stop, Café/Shop) to prove art direction with external testers ("this feels like a real place") before scaling to the remaining 17 scenes across 5 reusable environments.
+- Files: `docs/03_Product_Requirements.md`, `docs/05_Technical_Architecture.md`, `docs/06_Tech_Stack.md`, `docs/10_Roadmap_Milestones.md`, `docs/13_Agent_Change_Log.md`.
+- Flags: none (documentation and strategy update).
 
 ### 2026-06-16 · Antigravity · Performance budgeting & automatic 2D fallback (T-PERF-200)
 - **T-PERF-200:** implemented performance tier profiling and automatic degradation to the 2D path.
@@ -97,4 +238,3 @@ This rule is also stated in `AGENTS.md` and `07_AI_Agent_Implementation_Guide`; 
 - Flags: none.
 
 ---
-

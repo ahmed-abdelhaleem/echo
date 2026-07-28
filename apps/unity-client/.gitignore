@@ -1,0 +1,46 @@
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Tt]est[Rr]esults/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+[Ee]xported[Oo]bj/
+
+*.csproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.apk
+*.aab
+*.app
+*.unitypackage
+
+# Unity/Mono crash diagnostics are machine-specific and may be very large.
+sysinfo.txt
+crash.dmp
+mono_crash.*.json
+
+# Local IDE state generated beside the Unity project.
+.vs/
+.vscode/
+
+# Mixamo permits use in games, but raw downloadable files are not redistributed
+# from this repository. See the local asset README for the reproducible import.
+Assets/Resources/Characters/YBot/*.fbx
+Assets/Resources/Characters/YBot/*.fbx.meta
+Assets/Resources/Characters/Noor/*.fbx
+Assets/Resources/Characters/Noor/*.fbx.meta
