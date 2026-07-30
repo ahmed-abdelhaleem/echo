@@ -1,0 +1,497 @@
+{
+  "schemaVersion": 1,
+  "interactions": [
+    {
+      "interactionId": "photograph",
+      "archetype": "two_hand_read",
+      "dimensionsMeters": {
+        "x": 0.18,
+        "y": 0.24,
+        "z": 0.02
+      },
+      "primaryHand": "Right",
+      "usesSecondaryHand": true,
+      "gripPrimaryLocalPosition": {
+        "x": 0.087,
+        "y": 0.055,
+        "z": 0.0
+      },
+      "gripPrimaryLocalEuler": {
+        "x": 0.0,
+        "y": -90.0,
+        "z": 0.0
+      },
+      "gripSecondaryLocalPosition": {
+        "x": -0.087,
+        "y": 0.055,
+        "z": 0.0
+      },
+      "gripSecondaryLocalEuler": {
+        "x": 0.0,
+        "y": 90.0,
+        "z": 0.0
+      },
+      "supportPoseLocalPosition": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "supportPoseLocalEuler": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "lookTargetLocalPosition": {
+        "x": 0.0,
+        "y": 0.14,
+        "z": 0.012
+      },
+      "inspectPivotLocalPosition": {
+        "x": 0.0,
+        "y": 0.12,
+        "z": 0.0
+      },
+      "stationDistanceMeters": 0.42,
+      "stationHeightMeters": 0.78,
+      "approachYawDegrees": [
+        0.0,
+        -35.0,
+        35.0
+      ],
+      "approachToleranceDegrees": 22.0,
+      "holdLocalPositionFromEye": {
+        "x": 0.0,
+        "y": -0.14,
+        "z": 0.4
+      },
+      "holdLocalEulerFromEye": {
+        "x": -10.0,
+        "y": 180.0,
+        "z": 0.0
+      },
+      "alignSeconds": 0.55,
+      "reachSeconds": 1.0,
+      "settleSeconds": 0.3,
+      "holdSeconds": 2.0,
+      "returnSeconds": 1.05,
+      "recoverySeconds": 0.4,
+      "keepWorldUp": false,
+      "maxTiltDegrees": 35.0,
+      "staysSupported": false,
+      "groundedPivot": false,
+      "fingerPose": "frame_pinch",
+      "gripToleranceMeters": 0.02,
+      "gripAngleToleranceDegrees": 5.0
+    },
+    {
+      "interactionId": "phone",
+      "archetype": "tabletop_one_hand",
+      "dimensionsMeters": {
+        "x": 0.075,
+        "y": 0.15,
+        "z": 0.008
+      },
+      "primaryHand": "Right",
+      "usesSecondaryHand": false,
+      "gripPrimaryLocalPosition": {
+        "x": 0.0,
+        "y": 0.045,
+        "z": -0.004
+      },
+      "gripPrimaryLocalEuler": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "gripSecondaryLocalPosition": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "gripSecondaryLocalEuler": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "supportPoseLocalPosition": {
+        "x": 0.0,
+        "y": 0.075,
+        "z": -0.004
+      },
+      "supportPoseLocalEuler": {
+        "x": 90.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "lookTargetLocalPosition": {
+        "x": 0.0,
+        "y": 0.1,
+        "z": 0.006
+      },
+      "inspectPivotLocalPosition": {
+        "x": 0.0,
+        "y": 0.075,
+        "z": 0.0
+      },
+      "stationDistanceMeters": 0.4,
+      "stationHeightMeters": 0.75,
+      "approachYawDegrees": [
+        0.0,
+        -40.0,
+        40.0
+      ],
+      "approachToleranceDegrees": 25.0,
+      "holdLocalPositionFromEye": {
+        "x": 0.02,
+        "y": -0.12,
+        "z": 0.34
+      },
+      "holdLocalEulerFromEye": {
+        "x": -14.0,
+        "y": 180.0,
+        "z": 0.0
+      },
+      "alignSeconds": 0.5,
+      "reachSeconds": 0.85,
+      "settleSeconds": 0.25,
+      "holdSeconds": 2.4,
+      "returnSeconds": 0.9,
+      "recoverySeconds": 0.35,
+      "keepWorldUp": false,
+      "maxTiltDegrees": 45.0,
+      "staysSupported": false,
+      "groundedPivot": false,
+      "fingerPose": "phone_cradle",
+      "gripToleranceMeters": 0.02,
+      "gripAngleToleranceDegrees": 5.0
+    },
+    {
+      "interactionId": "mug",
+      "archetype": "tabletop_one_hand",
+      "dimensionsMeters": {
+        "x": 0.09,
+        "y": 0.1,
+        "z": 0.09
+      },
+      "primaryHand": "Right",
+      "usesSecondaryHand": false,
+      "gripPrimaryLocalPosition": {
+        "x": 0.068,
+        "y": 0.062,
+        "z": 0.0
+      },
+      "gripPrimaryLocalEuler": {
+        "x": 0.0,
+        "y": -90.0,
+        "z": 0.0
+      },
+      "gripSecondaryLocalPosition": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "gripSecondaryLocalEuler": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "supportPoseLocalPosition": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "supportPoseLocalEuler": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "lookTargetLocalPosition": {
+        "x": 0.0,
+        "y": 0.098,
+        "z": 0.035
+      },
+      "inspectPivotLocalPosition": {
+        "x": 0.0,
+        "y": 0.05,
+        "z": 0.0
+      },
+      "stationDistanceMeters": 0.4,
+      "stationHeightMeters": 0.75,
+      "approachYawDegrees": [
+        0.0,
+        -45.0,
+        45.0
+      ],
+      "approachToleranceDegrees": 25.0,
+      "holdLocalPositionFromEye": {
+        "x": 0.05,
+        "y": -0.22,
+        "z": 0.36
+      },
+      "holdLocalEulerFromEye": {
+        "x": 0.0,
+        "y": 190.0,
+        "z": 0.0
+      },
+      "alignSeconds": 0.5,
+      "reachSeconds": 0.9,
+      "settleSeconds": 0.3,
+      "holdSeconds": 1.8,
+      "returnSeconds": 0.95,
+      "recoverySeconds": 0.35,
+      "keepWorldUp": true,
+      "maxTiltDegrees": 12.0,
+      "staysSupported": false,
+      "groundedPivot": false,
+      "fingerPose": "handle_hook",
+      "gripToleranceMeters": 0.02,
+      "gripAngleToleranceDegrees": 5.0
+    },
+    {
+      "interactionId": "suitcase",
+      "archetype": "low_handle",
+      "dimensionsMeters": {
+        "x": 0.55,
+        "y": 0.35,
+        "z": 0.22
+      },
+      "primaryHand": "Right",
+      "usesSecondaryHand": false,
+      "gripPrimaryLocalPosition": {
+        "x": 0.0,
+        "y": 0.37,
+        "z": 0.0
+      },
+      "gripPrimaryLocalEuler": {
+        "x": 90.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "gripSecondaryLocalPosition": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "gripSecondaryLocalEuler": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "supportPoseLocalPosition": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "supportPoseLocalEuler": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "lookTargetLocalPosition": {
+        "x": 0.0,
+        "y": 0.24,
+        "z": 0.11
+      },
+      "inspectPivotLocalPosition": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -0.11
+      },
+      "stationDistanceMeters": 0.52,
+      "stationHeightMeters": 0.0,
+      "approachYawDegrees": [
+        0.0,
+        -30.0,
+        30.0
+      ],
+      "approachToleranceDegrees": 20.0,
+      "holdLocalPositionFromEye": {
+        "x": 0.1,
+        "y": -0.95,
+        "z": 0.45
+      },
+      "holdLocalEulerFromEye": {
+        "x": 0.0,
+        "y": 180.0,
+        "z": 0.0
+      },
+      "alignSeconds": 0.6,
+      "reachSeconds": 1.15,
+      "settleSeconds": 0.35,
+      "holdSeconds": 1.2,
+      "returnSeconds": 1.1,
+      "recoverySeconds": 0.45,
+      "keepWorldUp": true,
+      "maxTiltDegrees": 8.0,
+      "staysSupported": false,
+      "groundedPivot": true,
+      "fingerPose": "handle_wrap",
+      "gripToleranceMeters": 0.02,
+      "gripAngleToleranceDegrees": 5.0
+    },
+    {
+      "interactionId": "sketchbook",
+      "archetype": "two_hand_read",
+      "dimensionsMeters": {
+        "x": 0.15,
+        "y": 0.21,
+        "z": 0.02
+      },
+      "primaryHand": "Right",
+      "usesSecondaryHand": true,
+      "gripPrimaryLocalPosition": {
+        "x": 0.072,
+        "y": 0.06,
+        "z": 0.011
+      },
+      "gripPrimaryLocalEuler": {
+        "x": 0.0,
+        "y": -90.0,
+        "z": 0.0
+      },
+      "gripSecondaryLocalPosition": {
+        "x": -0.072,
+        "y": 0.05,
+        "z": -0.008
+      },
+      "gripSecondaryLocalEuler": {
+        "x": 0.0,
+        "y": 90.0,
+        "z": 0.0
+      },
+      "supportPoseLocalPosition": {
+        "x": 0.0,
+        "y": 0.105,
+        "z": -0.01
+      },
+      "supportPoseLocalEuler": {
+        "x": 90.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "lookTargetLocalPosition": {
+        "x": 0.0,
+        "y": 0.13,
+        "z": 0.012
+      },
+      "inspectPivotLocalPosition": {
+        "x": 0.0,
+        "y": 0.105,
+        "z": 0.0
+      },
+      "stationDistanceMeters": 0.44,
+      "stationHeightMeters": 0.75,
+      "approachYawDegrees": [
+        0.0,
+        -35.0,
+        35.0
+      ],
+      "approachToleranceDegrees": 22.0,
+      "holdLocalPositionFromEye": {
+        "x": 0.0,
+        "y": -0.16,
+        "z": 0.42
+      },
+      "holdLocalEulerFromEye": {
+        "x": -16.0,
+        "y": 180.0,
+        "z": 0.0
+      },
+      "alignSeconds": 0.6,
+      "reachSeconds": 1.05,
+      "settleSeconds": 0.3,
+      "holdSeconds": 2.2,
+      "returnSeconds": 1.05,
+      "recoverySeconds": 0.4,
+      "keepWorldUp": false,
+      "maxTiltDegrees": 40.0,
+      "staysSupported": false,
+      "groundedPivot": false,
+      "fingerPose": "book_edge",
+      "gripToleranceMeters": 0.02,
+      "gripAngleToleranceDegrees": 5.0
+    },
+    {
+      "interactionId": "tip_jar",
+      "archetype": "supported_inspect",
+      "dimensionsMeters": {
+        "x": 0.14,
+        "y": 0.2,
+        "z": 0.14
+      },
+      "primaryHand": "Right",
+      "usesSecondaryHand": false,
+      "gripPrimaryLocalPosition": {
+        "x": 0.072,
+        "y": 0.14,
+        "z": 0.0
+      },
+      "gripPrimaryLocalEuler": {
+        "x": 0.0,
+        "y": -90.0,
+        "z": 0.0
+      },
+      "gripSecondaryLocalPosition": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "gripSecondaryLocalEuler": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "supportPoseLocalPosition": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "supportPoseLocalEuler": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "lookTargetLocalPosition": {
+        "x": 0.0,
+        "y": 0.11,
+        "z": 0.07
+      },
+      "inspectPivotLocalPosition": {
+        "x": 0.0,
+        "y": 0.1,
+        "z": 0.0
+      },
+      "stationDistanceMeters": 0.38,
+      "stationHeightMeters": 1.05,
+      "approachYawDegrees": [
+        0.0,
+        -40.0,
+        40.0
+      ],
+      "approachToleranceDegrees": 25.0,
+      "holdLocalPositionFromEye": {
+        "x": 0.0,
+        "y": -0.3,
+        "z": 0.38
+      },
+      "holdLocalEulerFromEye": {
+        "x": 0.0,
+        "y": 180.0,
+        "z": 0.0
+      },
+      "alignSeconds": 0.5,
+      "reachSeconds": 0.9,
+      "settleSeconds": 0.3,
+      "holdSeconds": 1.6,
+      "returnSeconds": 0.85,
+      "recoverySeconds": 0.35,
+      "keepWorldUp": true,
+      "maxTiltDegrees": 6.0,
+      "staysSupported": true,
+      "groundedPivot": false,
+      "fingerPose": "open_palm_touch",
+      "gripToleranceMeters": 0.02,
+      "gripAngleToleranceDegrees": 5.0
+    }
+  ]
+}

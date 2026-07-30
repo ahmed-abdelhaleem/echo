@@ -3,7 +3,8 @@
   "rootNamespace": "Echo.FreePrototype",
   "references": [
     "Unity.InputSystem",
-    "Unity.RenderPipelines.Core.Runtime"
+    "Unity.RenderPipelines.Core.Runtime",
+    "Unity.Animation.Rigging"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
