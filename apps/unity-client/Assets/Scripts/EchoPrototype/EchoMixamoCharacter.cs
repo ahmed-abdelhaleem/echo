@@ -8,6 +8,13 @@ namespace Echo.FreePrototype
     /// Plays an imported Mixamo clip without requiring an authored Animator Controller.
     /// This keeps the free asset pipeline deterministic while scenes are still prototypes.
     /// </summary>
+    /// <remarks>
+    /// The graph runs in <see cref="DirectorUpdateMode.Manual"/> and is evaluated from a
+    /// single <c>LateUpdate</c> that owns the whole frame ordering. An optional
+    /// <see cref="IEchoRigHook"/> writes its scene inputs immediately before the
+    /// evaluation and reads the solved pose immediately after it, so a rig appended to
+    /// this graph never lags the animation by a frame.
+    /// </remarks>
     public sealed class EchoMixamoCharacter : MonoBehaviour
     {
         private PlayableGraph graph;
@@ -19,8 +26,30 @@ namespace Echo.FreePrototype
         private AnimationClip idleClip;
         private AnimationClip walkClip;
         private Transform visualRoot;
+        private IEchoRigHook rigHook;
         private float targetLocomotion;
         private float currentLocomotion;
+
+        /// <summary>
+        /// The manually evaluated animation graph. Rigs append their own outputs to this
+        /// graph rather than creating a second one that would fight for the Animator.
+        /// </summary>
+        public PlayableGraph Graph => graph;
+
+        /// <summary>True once <see cref="Configure"/> has produced a usable graph.</summary>
+        public bool IsGraphValid => graph.IsValid();
+
+        /// <summary>
+        /// Registers the single hook that participates in graph evaluation, or clears it
+        /// with null. Registering a hook also switches this component off the legacy
+        /// renderer-based visual grounding, because the hook is expected to ground the
+        /// feet properly with IK.
+        /// </summary>
+        /// <param name="hook">The hook to drive, or null to detach.</param>
+        public void SetRigHook(IEchoRigHook hook)
+        {
+            rigHook = hook;
+        }
 
         public bool Configure(Animator animator, AnimationClip animationClip, float normalizedStartTime)
         {
@@ -38,6 +67,11 @@ namespace Echo.FreePrototype
                 return false;
             }
 
+            if (graph.IsValid())
+            {
+                graph.Destroy();
+            }
+
             walkClip = animationClip;
             idleClip = dedicatedIdleClip != null && dedicatedIdleClip.length > 0f
                 ? dedicatedIdleClip
@@ -48,6 +82,9 @@ namespace Echo.FreePrototype
                 visualRoot = visualRoot.parent;
             }
             graph = PlayableGraph.Create("EchoMixamoCharacter");
+            // Manual evaluation is what lets a rig hook bracket the evaluation; Unity no
+            // longer advances this graph on its own.
+            graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
             AnimationPlayableOutput output = AnimationPlayableOutput.Create(graph, "Animation", animator);
             locomotionMixer = AnimationMixerPlayable.Create(graph, 2);
             idlePoseMixer = AnimationMixerPlayable.Create(graph, 2);
@@ -92,6 +129,8 @@ namespace Echo.FreePrototype
 
             currentLocomotion = 0f;
             targetLocomotion = 0f;
+            // Play still matters under manual evaluation: it puts every playable into the
+            // Playing state so their local time advances when the graph is evaluated.
             graph.Play();
             return graph.IsValid();
         }
@@ -106,30 +145,61 @@ namespace Echo.FreePrototype
             targetLocomotion = Mathf.Clamp01(normalizedSpeed);
         }
 
-        private void Update()
+        private void LateUpdate()
         {
-            if (!graph.IsValid() || !locomotionMixer.IsValid() ||
-                !idlePoseMixer.IsValid() || !idlePlayable.IsValid() ||
-                !idleMirrorPlayable.IsValid() || !walkPlayable.IsValid())
+            if (!IsPlayableSetValid())
             {
                 return;
             }
 
+            float deltaTime = Time.deltaTime;
+            AdvanceLocomotion(deltaTime);
+            WrapLoopingClips();
+
+            rigHook?.BeforeGraphEvaluate(deltaTime);
+            graph.Evaluate(deltaTime);
+            rigHook?.AfterGraphEvaluate();
+
+            if (rigHook == null)
+            {
+                ApplyLegacyVisualGrounding();
+            }
+        }
+
+        private bool IsPlayableSetValid()
+        {
+            return graph.IsValid() && locomotionMixer.IsValid() &&
+                idlePoseMixer.IsValid() && idlePlayable.IsValid() &&
+                idleMirrorPlayable.IsValid() && walkPlayable.IsValid();
+        }
+
+        private void AdvanceLocomotion(float deltaTime)
+        {
             currentLocomotion = Mathf.MoveTowards(
                 currentLocomotion,
                 targetLocomotion,
-                Time.deltaTime * 5.5f);
+                deltaTime * 5.5f);
             float walkWeight = Mathf.SmoothStep(0f, 1f, currentLocomotion);
             locomotionMixer.SetInputWeight(0, 1f - walkWeight);
             locomotionMixer.SetInputWeight(1, walkWeight);
             walkPlayable.SetSpeed(Mathf.Lerp(0.72f, 1.05f, currentLocomotion));
+        }
 
+        private void WrapLoopingClips()
+        {
             LoopClip(idlePlayable, idleClip);
             LoopClip(idleMirrorPlayable, idleClip);
             LoopClip(walkPlayable, walkClip);
         }
 
-        private void LateUpdate()
+        /// <summary>
+        /// Legacy path for un-rigged characters. NPCs and crowd pedestrians use this
+        /// component without an interaction rig, and their imported walk clips can lift
+        /// the skinned mesh above an otherwise correctly grounded CharacterController.
+        /// Offsetting only the visual root keeps them planted. Characters that do have a
+        /// rig ground their feet with real IK instead and must never run this.
+        /// </summary>
+        private void ApplyLegacyVisualGrounding()
         {
             if (visualRoot == null)
             {
@@ -152,9 +222,6 @@ namespace Echo.FreePrototype
                 return;
             }
 
-            // Imported walk clips can lift the skinned mesh above an otherwise
-            // correctly grounded CharacterController. Offset only the visual
-            // root so the lowest foot stays on the scene surface.
             float correction = transform.position.y - lowestVisiblePoint;
             if (Mathf.Abs(correction) > 0.0005f)
             {

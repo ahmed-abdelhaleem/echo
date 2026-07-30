@@ -71,6 +71,8 @@ help:
 	@echo "  make unity-fetch-bedroom-assets Fetch the vetted CC0 Bedroom set"
 	@echo "  make unity-validate-bedroom-assets Audit Bedroom meshes in Blender"
 	@echo "  make unity-validate-scale Validate source meshes and in-game metre scale"
+	@echo "  make unity-capture-interactions Render interaction review MP4s + contact sheets"
+	@echo "  make unity-capture-gate Re-check acceptance metrics without re-encoding"
 	@echo "  make client-web-assets Fetch Drift web/sqlite3.wasm + drift_worker.js"
 	@echo "  make migrate          Apply database migrations"
 	@echo "  make seed             Seed sample content into the database"
@@ -144,6 +146,37 @@ unity-validate-bedroom-assets:
 .PHONY: unity-validate-scale
 unity-validate-scale: unity-validate-bedroom-assets unity-test
 	@echo "✓ source and in-game real-world scale gates passed"
+
+# Deterministic interaction review capture. Unity renders fixed-timestep PNG
+# sequences plus a metrics.json per take; the Python encoder turns those into
+# MP4s and contact sheets and enforces the acceptance gates. Deliberately not
+# com.unity.recorder — this keeps the capture path dependency-free and runnable
+# in CI without a GPU. CAPTURE_MATRIX=fast is the per-commit subset;
+# CAPTURE_MATRIX=full is the multi-angle review matrix.
+CAPTURE_MATRIX ?= fast
+CAPTURE_ROOT   ?= $(UNITY_ROOT)/Captures/$(CAPTURE_MATRIX)
+
+.PHONY: unity-capture-interactions
+unity-capture-interactions:
+	@test -x "$(UNITY_EDITOR)" || (echo "Unity editor not found: $(UNITY_EDITOR)" && exit 1)
+	@command -v ffmpeg >/dev/null 2>&1 || (echo "ffmpeg not found (brew install ffmpeg)" && exit 1)
+	@echo "→ unity-capture-interactions ($(CAPTURE_MATRIX))"
+	@rm -rf "$(CAPTURE_ROOT)"
+	@mkdir -p "$(CAPTURE_ROOT)" "$(UNITY_ROOT)/Logs"
+	@"$(UNITY_EDITOR)" -batchmode -nographics -quit \
+		-projectPath "$(CURDIR)/$(UNITY_ROOT)" \
+		-executeMethod Echo.Editor.EchoInteractionCapture.CaptureFromCommandLine \
+		-echoCaptureMatrix "$(CAPTURE_MATRIX)" \
+		-echoCaptureRoot "$(CURDIR)/$(CAPTURE_ROOT)" \
+		-logFile "$(CURDIR)/$(UNITY_ROOT)/Logs/unity-capture.log"
+	@python3 "$(UNITY_ROOT)/tools/capture/encode_interaction_capture.py" "$(CAPTURE_ROOT)"
+	@echo "✓ capture written to $(CAPTURE_ROOT) (mp4/, contact-sheets/, summary.json)"
+
+# Re-run only the acceptance gates over an existing capture, without re-encoding.
+.PHONY: unity-capture-gate
+unity-capture-gate:
+	@python3 "$(UNITY_ROOT)/tools/capture/encode_interaction_capture.py" \
+		"$(CAPTURE_ROOT)" --skip-video
 
 # ---------------------------------------------------------------------------
 # Bootstrap

@@ -29,6 +29,12 @@
 *.app
 *.unitypackage
 
+# Interaction review captures. PNG sequences and MP4s are large, fully
+# reproducible artifacts (`make unity-capture-interactions`) and belong in CI,
+# not in Git. Approved golden contact frames are committed separately under
+# tools/capture/golden/ so the benchmark has a reviewed reference to diff against.
+[Cc]aptures/
+
 # Unity/Mono crash diagnostics are machine-specific and may be very large.
 sysinfo.txt
 crash.dmp
