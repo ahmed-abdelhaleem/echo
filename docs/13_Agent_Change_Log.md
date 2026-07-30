@@ -28,12 +28,72 @@ This rule is also stated in `AGENTS.md` and `07_AI_Agent_Implementation_Guide`; 
 > A single reference to the next change. Replace it when you pick up the next thing.
 
 - Run an external first-time-player/art-direction/accessibility/youth-safe review
-  of the connected Bedroom → Street → Café build; use the findings to revise
-  the reference kit before producing the next Apartment-family vignette.
+  of the connected Bedroom → Street → Café build, concentrating on crowd
+  silhouette variety, rigged-hand prop poses, and foot contact; use the findings
+  to revise the reference kit before producing the next Apartment-family
+  vignette.
 
 ---
 
 ## Change log
+
+### 2026-07-28 · Codex · Restored slow hand-relative prop interactions
+- Corrected the turn-only regression: photograph, phone, mug, sketchbook, and
+  tip jar now move slowly to the animated right-hand bone, use per-prop readable
+  grip orientations, follow the hand while held, and ease back to their exact
+  authored supports.
+- Added a separate suitcase action that pulls and tilts toward the nearby hand
+  while remaining grounded; mounted/fixed scene objects remain focus-only.
+- Play-mode coverage now rejects teleporting, excessive speed, chest-floating,
+  wrong photograph orientation, incomplete restoration, and airborne luggage.
+  Unity tests/scale validation, lint, macOS build, rendered photo/suitcase
+  walkthrough, and player-log scan pass.
+- Files/docs: `apps/unity-client/Assets/Scripts/EchoPrototype/{EchoInteractionActionDirector,EchoWorldBootstrap}.cs`,
+  `apps/unity-client/Assets/Scripts/EchoPrototype/README.md`,
+  `apps/unity-client/Assets/Tests/PlayMode/EchoWorldBootstrapTests.cs`,
+  `docs/13_Agent_Change_Log.md`.
+- Flags: **human-review-required** for character/prop animation and scene
+  asset/brand/youth-safe gate (#7/#12). No new dependency, paid API, secret,
+  trait-scoring, classifier, or public-contract change.
+
+### 2026-07-28 · Codex · Naturalized vignette people, props, and ground contact
+- Replaced visible mannequin crowds with rigged human instances across Street
+  and Café, varying clothing, skin, hair, body width, head/limb proportions,
+  facing, and locomotion while retaining a deterministic distant fallback.
+- Replaced airborne prop motions with grounded focus responses, kept the photo
+  and sketchbook on their authored supports, removed floating bedroom placeholder
+  blocks, and mounted the route map vertically at the bus stop.
+- Player and animated-human visuals now settle against the highest visible
+  surface below them. Added play-mode regressions for rigged/styled crowds,
+  supported prop stability, and foot contact.
+- Unity play-mode, Blender/in-game scale, lint, content/asset/backdrop
+  validation, macOS standalone build, three-scene visual walkthrough, and
+  player-log scan pass; `make build` passes. Go/Python/Node tests pass
+  (330 Python + 33 Node); aggregate `make test` remains blocked only by the
+  pre-existing Flutter/Thermion native-link failure.
+- Files/docs: `apps/unity-client/Assets/Scripts/EchoPrototype/{EchoInteractionActionDirector,EchoMixamoCharacter,EchoThirdPersonController,EchoWorldBootstrap}.cs`,
+  `apps/unity-client/Assets/Tests/PlayMode/EchoWorldBootstrapTests.cs`,
+  `apps/unity-client/Assets/Scripts/EchoPrototype/README.md`,
+  `docs/13_Agent_Change_Log.md`.
+- Flags: **human-review-required** for scene asset/brand/youth-safe gate
+  (#7/#12). No new dependency, paid API, secret, trait-scoring, classifier, or
+  public-contract change.
+
+### 2026-07-28 · Codex · Physical scene interactions and grounded set dressing
+- Added reversible pickup, packing, bed-settling, and NPC-turn responses without
+  gating story progression; restart now restores every authored prop/NPC pose.
+- Added seven vetted CC0 street/café assets, corrected car/hydrant/book axes,
+  anchored the photograph pickup to its visible frame, and removed redundant
+  manual collision around scale-derived blocking props.
+- Unity play-mode, Blender/in-game scale, macOS build/standalone smoke, lint,
+  content/asset/backdrop/scene validation, and trait replay pass. Repository
+  tests pass except the documented legacy Thermion native-link failure.
+- Files/docs: `apps/unity-client/Assets/{Resources,Scripts/EchoPrototype,Tests/PlayMode}`,
+  `apps/unity-client/tools/assets/polyhaven_bedroom_assets.json`,
+  `docs/13_Agent_Change_Log.md`.
+- Flags: **human-review-required** for scene asset/brand/youth-safe gate
+  (#7/#12). No dependency, paid API, secret, trait-scoring, classifier, or
+  public-contract change.
 
 ### 2026-07-28 · Codex · Unity source-versus-generated Git audit
 - Audited all 643 status entries: 631 are intentional Unity project/source

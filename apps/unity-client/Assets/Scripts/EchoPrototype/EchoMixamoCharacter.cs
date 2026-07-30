@@ -18,6 +18,7 @@ namespace Echo.FreePrototype
         private AnimationClipPlayable walkPlayable;
         private AnimationClip idleClip;
         private AnimationClip walkClip;
+        private Transform visualRoot;
         private float targetLocomotion;
         private float currentLocomotion;
 
@@ -41,6 +42,11 @@ namespace Echo.FreePrototype
             idleClip = dedicatedIdleClip != null && dedicatedIdleClip.length > 0f
                 ? dedicatedIdleClip
                 : animationClip;
+            visualRoot = animator.transform;
+            while (visualRoot.parent != null && visualRoot.parent != transform)
+            {
+                visualRoot = visualRoot.parent;
+            }
             graph = PlayableGraph.Create("EchoMixamoCharacter");
             AnimationPlayableOutput output = AnimationPlayableOutput.Create(graph, "Animation", animator);
             locomotionMixer = AnimationMixerPlayable.Create(graph, 2);
@@ -121,6 +127,39 @@ namespace Echo.FreePrototype
             LoopClip(idlePlayable, idleClip);
             LoopClip(idleMirrorPlayable, idleClip);
             LoopClip(walkPlayable, walkClip);
+        }
+
+        private void LateUpdate()
+        {
+            if (visualRoot == null)
+            {
+                return;
+            }
+
+            Renderer[] renderers = visualRoot.GetComponentsInChildren<Renderer>(true);
+            if (renderers.Length == 0)
+            {
+                return;
+            }
+
+            float lowestVisiblePoint = float.PositiveInfinity;
+            foreach (Renderer visiblePart in renderers)
+            {
+                lowestVisiblePoint = Mathf.Min(lowestVisiblePoint, visiblePart.bounds.min.y);
+            }
+            if (float.IsPositiveInfinity(lowestVisiblePoint))
+            {
+                return;
+            }
+
+            // Imported walk clips can lift the skinned mesh above an otherwise
+            // correctly grounded CharacterController. Offset only the visual
+            // root so the lowest foot stays on the scene surface.
+            float correction = transform.position.y - lowestVisiblePoint;
+            if (Mathf.Abs(correction) > 0.0005f)
+            {
+                visualRoot.position += Vector3.up * correction;
+            }
         }
 
         private static void LoopClip(AnimationClipPlayable playable, AnimationClip animationClip)

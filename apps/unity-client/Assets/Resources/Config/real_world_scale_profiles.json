@@ -5,7 +5,7 @@
   "assets": [
     { "assetId": "chinese_sofa", "category": "sofa", "blocksPlayer": true, "targetLongestMeters": 2.60, "minimumHeightMeters": 0.78, "maximumHeightMeters": 1.12 },
     { "assetId": "vintage_day_bed", "category": "bed", "blocksPlayer": true, "targetLongestMeters": 2.30, "minimumHeightMeters": 0.72, "maximumHeightMeters": 1.35 },
-    { "assetId": "side_table_01", "category": "side_table", "blocksPlayer": true, "targetLongestMeters": 0.68, "minimumHeightMeters": 0.50, "maximumHeightMeters": 0.62 },
+    { "assetId": "side_table_01", "category": "side_table", "blocksPlayer": true, "targetLongestMeters": 0.68, "minimumHeightMeters": 0.50, "maximumHeightMeters": 0.64 },
     { "assetId": "modern_arm_chair_01", "category": "chair", "blocksPlayer": true, "targetLongestMeters": 1.15, "minimumHeightMeters": 0.90, "maximumHeightMeters": 1.18 },
     { "assetId": "metal_office_desk", "category": "desk", "blocksPlayer": true, "targetLongestMeters": 2.10, "minimumHeightMeters": 0.74, "maximumHeightMeters": 1.02 },
     { "assetId": "desk_lamp_arm_01", "category": "desk_lamp", "blocksPlayer": false, "targetLongestMeters": 0.76, "minimumHeightMeters": 0.48, "maximumHeightMeters": 0.78 },
@@ -22,6 +22,13 @@
     { "assetId": "metal_trash_can", "category": "trash_can", "blocksPlayer": true, "targetLongestMeters": 1.80, "minimumHeightMeters": 0.80, "maximumHeightMeters": 0.96 },
     { "assetId": "round_wooden_table_01", "category": "cafe_table", "blocksPlayer": true, "targetLongestMeters": 1.40, "minimumHeightMeters": 0.72, "maximumHeightMeters": 1.05 },
     { "assetId": "dining_chair_02", "category": "chair", "blocksPlayer": true, "targetLongestMeters": 1.15, "minimumHeightMeters": 0.96, "maximumHeightMeters": 1.18 },
-    { "assetId": "hanging_industrial_lamp", "category": "pendant_lamp", "blocksPlayer": false, "targetLongestMeters": 1.12, "minimumHeightMeters": 0.92, "maximumHeightMeters": 1.20 }
+    { "assetId": "hanging_industrial_lamp", "category": "pendant_lamp", "blocksPlayer": false, "targetLongestMeters": 1.12, "minimumHeightMeters": 0.92, "maximumHeightMeters": 1.20 },
+    { "assetId": "covered_car", "category": "vehicle", "blocksPlayer": true, "targetLongestMeters": 4.38, "minimumHeightMeters": 1.20, "maximumHeightMeters": 1.60 },
+    { "assetId": "fire_hydrant", "category": "street_fixture", "blocksPlayer": true, "targetLongestMeters": 0.87, "minimumHeightMeters": 0.60, "maximumHeightMeters": 0.92 },
+    { "assetId": "planter_box_01", "category": "planter", "blocksPlayer": true, "targetLongestMeters": 0.91, "minimumHeightMeters": 0.30, "maximumHeightMeters": 0.52 },
+    { "assetId": "planter_box_02", "category": "planter", "blocksPlayer": true, "targetLongestMeters": 1.25, "minimumHeightMeters": 0.34, "maximumHeightMeters": 0.58 },
+    { "assetId": "potted_plant_02", "category": "plant", "blocksPlayer": false, "targetLongestMeters": 0.84, "minimumHeightMeters": 0.52, "maximumHeightMeters": 0.90 },
+    { "assetId": "book_encyclopedia_set_01", "category": "books", "blocksPlayer": false, "targetLongestMeters": 0.55, "minimumHeightMeters": 0.12, "maximumHeightMeters": 0.30 },
+    { "assetId": "carrot_cake", "category": "food", "blocksPlayer": false, "targetLongestMeters": 0.23, "minimumHeightMeters": 0.05, "maximumHeightMeters": 0.14 }
   ]
 }

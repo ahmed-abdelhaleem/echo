@@ -46,6 +46,13 @@ namespace Echo.FreePrototype
         private EchoBedroomVignette bedroomVignette;
         private EchoThirdPersonController bedroomController;
         private Transform bedroomPlayer;
+        private Transform bedroomPhotoGroup;
+        private Transform bedroomSuitcase;
+        private Transform bedroomPhone;
+        private Transform bedroomMug;
+        private Transform cafeSketchbook;
+        private Transform cafeTipJar;
+        private Transform streetVisitor;
         private EchoPlayableVignette streetVignette;
         private EchoThirdPersonController streetController;
         private Transform streetPlayer;
@@ -264,6 +271,40 @@ namespace Echo.FreePrototype
                 new Vector3(-5.2f, 0.36f, -3.7f), Quaternion.Euler(0f, 12f, 0f),
                 Vector3.one * 0.78f, root);
 
+            // A parked car, hydrant, and shopfront planters ground the street
+            // in everyday reality: this is a lived-in harbor block, not a set.
+            CreatePolyHavenModel(
+                "covered_car", "StreetArt_ParkedCar",
+                new Vector3(1.85f, 0.1f, 0.6f), Quaternion.Euler(0f, 92f, 0f),
+                Vector3.one, root);
+            CreatePolyHavenModel(
+                "fire_hydrant", "StreetArt_FireHydrant",
+                new Vector3(4.05f, 0.36f, 3.1f), Quaternion.Euler(0f, -35f, 0f),
+                Vector3.one, root);
+            CreatePolyHavenModel(
+                "planter_box_02", "StreetArt_BookshopPlanter",
+                new Vector3(-4.35f, 0.36f, 4.35f), Quaternion.Euler(-90f, 4f, 0f),
+                Vector3.one, root);
+            CreatePolyHavenModel(
+                "planter_box_01", "StreetArt_CafePlanter",
+                new Vector3(4.35f, 0.36f, -3.6f), Quaternion.Euler(-90f, -8f, 0f),
+                Vector3.one, root);
+            CreatePolyHavenModel(
+                "book_encyclopedia_set_01", "StreetArt_BookshopWindowBooks",
+                new Vector3(-4.5f, 0.94f, 1.05f), Quaternion.Euler(0f, 84f, 0f),
+                Vector3.one, root);
+
+            // The route map is fixed to a vertical backing at the bus stop.
+            // Keeping the paper flush to a support prevents it reading as a
+            // loose card suspended in mid-air.
+            Transform routeMapCard = new GameObject("StreetArt_RouteMapCard").transform;
+            routeMapCard.SetParent(root, false);
+            routeMapCard.localPosition = new Vector3(-4.35f, 1.42f, -5.55f);
+            routeMapCard.localRotation = Quaternion.Euler(0f, 8f, 0f);
+            Box("RouteMapBacking", Vector3.zero, new Vector3(0.54f, 0.72f, 0.045f), "Charcoal", routeMapCard);
+            Box("RouteMapPaper", new Vector3(0f, 0f, -0.026f), new Vector3(0.46f, 0.64f, 0.012f), "Cream", routeMapCard);
+            Box("RouteMapLines", new Vector3(0f, 0f, -0.034f), new Vector3(0.34f, 0.49f, 0.006f), "Ocean", routeMapCard);
+
             CreateFurnitureCollider(
                 "StreetCollision_BusBench",
                 new Vector3(-4.6f, 0.78f, -4.9f),
@@ -274,7 +315,6 @@ namespace Echo.FreePrototype
                 new Vector3(3.8f, 0.72f, 12.5f),
                 new Vector3(3.3f, 0.75f, 1.15f),
                 root);
-
             CreateStreetPracticalLight("StreetArt_LampGlow_West", new Vector3(-5.05f, 3.45f, -2.8f), root);
             CreateStreetPracticalLight("StreetArt_LampGlow_East", new Vector3(5.05f, 3.45f, 7.4f), root);
         }
@@ -382,31 +422,37 @@ namespace Echo.FreePrototype
                 "potted_plant_01", "BedroomArt_Plant",
                 new Vector3(4.1f, 0f, -2.45f), Quaternion.Euler(0f, 18f, 0f),
                 Vector3.one * 0.72f, root);
+            // The frame, mat, and printed image live under one group so the
+            // pickup action can carry the whole photograph as a single object.
+            bedroomPhotoGroup = new GameObject("BedroomArt_PhotoGroup").transform;
+            bedroomPhotoGroup.SetParent(root, false);
+            bedroomPhotoGroup.localPosition = new Vector3(-1.72f, 0.55f, 2.23f);
             GameObject photoFrame = CreatePolyHavenModel(
                 "standing_picture_frame_01", "BedroomArt_Photo",
-                new Vector3(-1.72f, 0.55f, 2.23f), Quaternion.Euler(-90f, -8f, 0f),
-                Vector3.one * 1.65f, root);
+                Vector3.zero, Quaternion.Euler(-90f, -8f, 0f),
+                Vector3.one * 1.65f, bedroomPhotoGroup);
             if (photoFrame != null)
             {
                 Box(
                     "BedroomArt_PhotoMat",
-                    new Vector3(-1.72f, 0.81f, 2.11f),
+                    new Vector3(0f, 0.26f, -0.12f),
                     new Vector3(0.46f, 0.55f, 0.026f),
                     "Gold",
-                    root,
+                    bedroomPhotoGroup,
                     Quaternion.Euler(0f, -8f, 0f));
                 Box(
                     "BedroomArt_PhotoImage",
-                    new Vector3(-1.72f, 0.81f, 2.09f),
+                    new Vector3(0f, 0.26f, -0.14f),
                     new Vector3(0.33f, 0.42f, 0.018f),
                     "Rose",
-                    root,
+                    bedroomPhotoGroup,
                     Quaternion.Euler(0f, -8f, 0f));
             }
-            CreatePolyHavenModel(
+            GameObject suitcaseModel = CreatePolyHavenModel(
                 "vintage_suitcase", "BedroomArt_Suitcase",
                 new Vector3(-3.9f, 0f, -2.3f), Quaternion.Euler(0f, 8f, 0f),
                 Vector3.one * 0.78f, root);
+            bedroomSuitcase = suitcaseModel != null ? suitcaseModel.transform : null;
             CreatePolyHavenModel(
                 "alarm_clock_01", "BedroomArt_AlarmClock",
                 new Vector3(-2.02f, 0.55f, 2.23f), Quaternion.Euler(0f, 8f, 0f),
@@ -456,6 +502,8 @@ namespace Echo.FreePrototype
                 new Vector3(0.135f, 0.012f, 0.135f),
                 "Charcoal",
                 mug);
+            bedroomMug = mug;
+            bedroomPhone = phone;
         }
 
         private void BuildBedroomCollision(Transform root)
@@ -510,7 +558,7 @@ namespace Echo.FreePrototype
             CreateBedroomInteraction(
                 "suitcase",
                 "Look at the half-packed suitcase",
-                "The suitcase contains the practical things. The impossible things are still scattered around the room.",
+                "The suitcase contains the practical things. The impossible things stay scattered around the room.",
                 new Vector3(-4.1f, 0.35f, -2f), 0, true, root);
         }
 
@@ -779,42 +827,66 @@ namespace Echo.FreePrototype
             BuildCafeTables(root);
             BuildCafeWindowAndDoor(root);
             BuildCafeShelves(root);
+            BuildCafeSetDressing(root);
 
-            if (!CreateMixamoPerson(
-                    "Amira_Mixamo",
-                    new Vector3(2.2f, 0.02f, 2.55f),
-                    root,
-                    Vector3.right,
-                    0.85f,
-                    0.28f,
-                    2.2f))
-            {
-                CreatePerson(
-                    "Amira_Barista",
-                    new Vector3(2.2f, 0.02f, 2.55f),
-                    "Gold",
-                    "Skin1",
-                    "Charcoal",
-                    root,
-                    Vector3.right,
-                    0.85f,
-                    0.28f,
-                    2.2f);
-            }
-
-            CreatePerson(
+            CreateNaturalPerson(
+                "Amira_Mixamo",
+                new Vector3(2.2f, 0.2f, 2.55f),
+                root,
+                Vector3.right,
+                0.85f,
+                0.28f,
+                2.2f,
+                6);
+            CreateNaturalPerson(
                 "Cafe_LastGuest",
-                new Vector3(-2.65f, 0.02f, -0.2f),
-                "Ocean",
-                "Skin3",
-                "Indigo",
+                new Vector3(-2.65f, 0.2f, -0.2f),
                 root,
                 Vector3.zero,
                 0f,
                 0f,
-                0.55f);
+                0.55f,
+                7,
+                145f);
 
             BuildCafeInteractions(root);
+        }
+
+        private void BuildCafeSetDressing(Transform root)
+        {
+            // A reading nook and everyday clutter make the café feel open for
+            // years rather than assembled this morning.
+            CreatePolyHavenModel(
+                "modern_arm_chair_01", "CafeArt_ReadingChair",
+                new Vector3(-4.9f, 0f, -3.3f), Quaternion.Euler(-90f, 42f, 0f),
+                Vector3.one, root);
+            CreatePolyHavenModel(
+                "side_table_01", "CafeArt_ReadingTable",
+                new Vector3(-3.7f, 0f, -3.75f), Quaternion.Euler(-90f, -6f, 0f),
+                Vector3.one, root);
+            CreatePolyHavenModel(
+                "decorative_book_set_01", "CafeArt_ReadingBooks",
+                new Vector3(-3.7f, 0.56f, -3.75f), Quaternion.Euler(-90f, 24f, 0f),
+                Vector3.one * 0.45f, root);
+            CreatePolyHavenModel(
+                "potted_plant_02", "CafeArt_CornerPlant",
+                new Vector3(5.3f, 0f, -3.9f), Quaternion.Euler(-90f, 0f, 12f),
+                Vector3.one, root);
+            CreatePolyHavenModel(
+                "carrot_cake", "CafeArt_CounterCake",
+                new Vector3(3.5f, 1.72f, 2.55f), Quaternion.Euler(-90f, -30f, 0f),
+                Vector3.one, root);
+
+            CreateFurnitureCollider(
+                "CafeCollision_ReadingNook",
+                new Vector3(-4.45f, 0.55f, -3.5f),
+                new Vector3(2.4f, 1.1f, 1.5f),
+                root);
+            CreateFurnitureCollider(
+                "CafeCollision_CornerPlant",
+                new Vector3(5.3f, 0.45f, -3.9f),
+                new Vector3(0.8f, 0.9f, 0.8f),
+                root);
         }
 
         private void BuildCafeCounter(Transform root)
@@ -842,6 +914,7 @@ namespace Echo.FreePrototype
                 "Only three pastries remain. One has been turned so its imperfect side faces the wall.");
 
             GameObject tipJar = Cylinder("TipJar", new Vector3(-0.15f, 1.98f, -0.18f), new Vector3(0.3f, 0.34f, 0.3f), "CoolWindow", counter);
+            cafeTipJar = tipJar.transform;
             CreateInspectable(
                 tipJar,
                 "The tip jar holds two coins and a folded paper star.");
@@ -887,6 +960,7 @@ namespace Echo.FreePrototype
                 "Rose",
                 root,
                 Quaternion.Euler(0f, -14f, 0f));
+            cafeSketchbook = sketchbook.transform;
             CreateInspectable(
                 sketchbook,
                 "A name is written inside the cover. The last page is a careful drawing of this room.");
@@ -1112,34 +1186,40 @@ namespace Echo.FreePrototype
 
         private void BuildPeople(Transform root)
         {
-            if (!CreateMixamoPerson(
-                    "Mina_Mixamo",
-                    new Vector3(1.2f, 0.22f, -3.8f),
-                    root,
-                    Vector3.forward,
-                    2.2f,
-                    0.55f,
-                    0f))
-            {
-                CreatePerson("Mina_Walking", new Vector3(1.2f, 0.22f, -3.8f), "Rose", "Skin2", "Charcoal", root, Vector3.forward, 2.2f, 0.55f, 0f);
-            }
-            CreatePerson("Jonas_Walking", new Vector3(-1.15f, 0.22f, 4.4f), "Ocean", "Skin1", "Gold", root, Vector3.forward, 2.7f, 0.43f, 2f);
-            CreatePerson("Visitor_AtCrossing", new Vector3(2.5f, 0.22f, 7.4f), "Indigo", "Skin3", "Charcoal", root, Vector3.left, 2.1f, 0.38f, 1f);
-            CreatePerson("CafeGuest", new Vector3(4.15f, 0.22f, -1.3f), "Cream", "Skin1", "Rose", root, Vector3.zero, 0f, 0f, 0f);
-            CreatePerson("BusPassenger", new Vector3(-4.1f, 0.22f, -4.9f), "Gold", "Skin3", "Indigo", root, Vector3.zero, 0f, 0f, 0f);
-            CreatePerson("PlazaFriend", new Vector3(-1.8f, 0.22f, 13.8f), "Teal", "Skin2", "Gold", root, Vector3.zero, 0f, 0f, 0f);
+            CreateNaturalPerson(
+                "Mina_Mixamo", new Vector3(1.2f, 0.4f, -3.8f), root,
+                Vector3.forward, 2.2f, 0.55f, 0f, 0);
+            CreateNaturalPerson(
+                "Jonas_Rigged", new Vector3(-1.15f, 0.4f, 4.4f), root,
+                Vector3.forward, 2.7f, 0.43f, 2f, 1);
+            CreateNaturalPerson(
+                "Visitor_Rigged", new Vector3(2.5f, 0.4f, 7.4f), root,
+                Vector3.left, 2.1f, 0.38f, 1f, 2);
+            CreateNaturalPerson(
+                "CafeGuest_Rigged", new Vector3(4.15f, 0.55f, -1.3f), root,
+                Vector3.zero, 0f, 0f, 0f, 3, -95f);
+            CreateNaturalPerson(
+                "BusPassenger", new Vector3(-4.1f, 0.55f, -4.9f), root,
+                Vector3.zero, 0f, 0f, 0f, 4, 35f);
+            Transform busPassenger = root.Find("BusPassenger");
+            streetVisitor = busPassenger;
+            CreateNaturalPerson(
+                "PlazaFriend_Rigged", new Vector3(-1.8f, 0.5f, 13.8f), root,
+                Vector3.zero, 0f, 0f, 0f, 5, 165f);
         }
 
-        private bool CreateMixamoPerson(
+        private bool CreateNaturalPerson(
             string personName,
             Vector3 position,
             Transform root,
             Vector3 walkAxis,
             float walkDistance,
             float walkSpeed,
-            float walkPhase)
+            float walkPhase,
+            int styleIndex,
+            float facingDegrees = 0f)
         {
-            const string resourcePath = "Characters/YBot/Walking";
+            const string resourcePath = "Characters/Noor/Walking";
             GameObject modelPrefab = Resources.Load<GameObject>(resourcePath);
             AnimationClip[] animationClips = Resources.LoadAll<AnimationClip>(resourcePath);
             AnimationClip walkClip = null;
@@ -1154,7 +1234,20 @@ namespace Echo.FreePrototype
 
             if (modelPrefab == null || walkClip == null)
             {
-                Debug.LogWarning("[Echo] Mixamo Y Bot was not ready; using the stylized fallback pedestrian.");
+                Debug.LogWarning(
+                    $"[Echo] Rigged human was unavailable for {personName}; " +
+                    "using the distant fallback silhouette.");
+                CreatePerson(
+                    personName,
+                    position,
+                    styleIndex % 2 == 0 ? "Rose" : "Ocean",
+                    $"Skin{styleIndex % 3 + 1}",
+                    styleIndex % 2 == 0 ? "Charcoal" : "Indigo",
+                    root,
+                    walkAxis,
+                    walkDistance,
+                    walkSpeed,
+                    walkPhase);
                 return false;
             }
 
@@ -1163,10 +1256,13 @@ namespace Echo.FreePrototype
             person.position = position;
 
             GameObject visual = Instantiate(modelPrefab, person);
-            visual.name = "YBot_Visual";
-            visual.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.Euler(0f, 180f, 0f));
-            visual.transform.localScale = Vector3.one * 1.05f;
-            TintMixamoVisual(visual);
+            visual.name = $"{personName}_HumanVisual";
+            visual.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+            float widthScale = 0.94f + (styleIndex % 4) * 0.035f;
+            visual.transform.localScale = new Vector3(widthScale, 1f, widthScale);
+            StyleCrowdVisual(visual, resourcePath, styleIndex);
+            StyleCrowdSilhouette(visual, styleIndex);
+            EchoRealWorldScale.NormalizeCharacter(visual, person);
 
             Animator animator = visual.GetComponentInChildren<Animator>();
             if (animator == null)
@@ -1180,35 +1276,193 @@ namespace Echo.FreePrototype
                 Destroy(person.gameObject);
                 return false;
             }
+            playback.SetLocomotion(walkAxis.sqrMagnitude > 0.01f ? 0.72f : 0f);
 
-            EchoNpcWalker walker = person.gameObject.AddComponent<EchoNpcWalker>();
-            walker.Configure(walkAxis, walkDistance, walkSpeed, walkPhase, null, null, null, null);
-            Debug.Log($"[Echo] Loaded Mixamo pedestrian '{modelPrefab.name}' with clip '{walkClip.name}'.");
+            if (walkAxis.sqrMagnitude > 0.01f)
+            {
+                EchoNpcWalker walker = person.gameObject.AddComponent<EchoNpcWalker>();
+                walker.Configure(walkAxis, walkDistance, walkSpeed, walkPhase, null, null, null, null);
+            }
+            else
+            {
+                person.localRotation = Quaternion.Euler(0f, facingDegrees, 0f);
+            }
+            GroundTransformToSurface(person);
+            Debug.Log(
+                $"[Echo] Loaded natural pedestrian {personName} from " +
+                $"{modelPrefab.name}, style {styleIndex}.");
             return true;
         }
 
-        private static void TintMixamoVisual(GameObject visual)
+        private static void StyleCrowdSilhouette(GameObject visual, int styleIndex)
         {
-            Color pedestrianColor = new(0.92f, 0.31f, 0.2f);
-            foreach (Renderer visualRenderer in visual.GetComponentsInChildren<Renderer>())
+            Animator animator = visual.GetComponentInChildren<Animator>();
+            if (animator != null && animator.isHuman)
             {
-                Material[] visualMaterials = visualRenderer.materials;
-                foreach (Material visualMaterial in visualMaterials)
+                float[] headScales = { 0.94f, 1.02f, 0.98f, 1.06f };
+                float[] limbScales = { 0.96f, 1.03f, 1f, 1.06f };
+                Transform head = animator.GetBoneTransform(HumanBodyBones.Head);
+                Transform leftUpperLeg = animator.GetBoneTransform(HumanBodyBones.LeftUpperLeg);
+                Transform rightUpperLeg = animator.GetBoneTransform(HumanBodyBones.RightUpperLeg);
+                if (head != null)
                 {
-                    if (visualMaterial.HasProperty("_BaseColor"))
-                    {
-                        visualMaterial.SetColor("_BaseColor", pedestrianColor);
-                    }
-                    if (visualMaterial.HasProperty("_Color"))
-                    {
-                        visualMaterial.SetColor("_Color", pedestrianColor);
-                    }
-                    if (visualMaterial.HasProperty("_Smoothness"))
-                    {
-                        visualMaterial.SetFloat("_Smoothness", 0.28f);
-                    }
+                    head.localScale *= headScales[styleIndex % headScales.Length];
                 }
-                visualRenderer.materials = visualMaterials;
+                float limbScale = limbScales[styleIndex % limbScales.Length];
+                if (leftUpperLeg != null)
+                {
+                    leftUpperLeg.localScale = new Vector3(
+                        leftUpperLeg.localScale.x,
+                        leftUpperLeg.localScale.y * limbScale,
+                        leftUpperLeg.localScale.z);
+                }
+                if (rightUpperLeg != null)
+                {
+                    rightUpperLeg.localScale = new Vector3(
+                        rightUpperLeg.localScale.x,
+                        rightUpperLeg.localScale.y * limbScale,
+                        rightUpperLeg.localScale.z);
+                }
+            }
+
+            foreach (Renderer part in visual.GetComponentsInChildren<Renderer>(true))
+            {
+                string partName = part.name.ToLowerInvariant();
+                if (!partName.Contains("hair", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                // Some crowd members wear a close-cropped/bald silhouette;
+                // others keep the source hair at visibly different volumes.
+                if (styleIndex == 1 || styleIndex == 4 || styleIndex == 7)
+                {
+                    part.enabled = false;
+                }
+                else
+                {
+                    float hairScale = styleIndex % 3 == 0 ? 1.08f : 0.88f;
+                    part.transform.localScale *= hairScale;
+                }
+            }
+        }
+
+        private static void StyleCrowdVisual(
+            GameObject visual,
+            string resourcePath,
+            int styleIndex)
+        {
+            Color[] tops =
+            {
+                new(0.34f, 0.09f, 0.12f),
+                new(0.07f, 0.23f, 0.31f),
+                new(0.25f, 0.21f, 0.46f),
+                new(0.62f, 0.35f, 0.12f),
+                new(0.12f, 0.32f, 0.25f),
+                new(0.45f, 0.18f, 0.22f),
+                new(0.58f, 0.38f, 0.16f),
+                new(0.18f, 0.22f, 0.29f)
+            };
+            Color[] bottoms =
+            {
+                new(0.06f, 0.08f, 0.12f),
+                new(0.16f, 0.13f, 0.1f),
+                new(0.08f, 0.12f, 0.2f),
+                new(0.2f, 0.12f, 0.1f)
+            };
+            Color[] skins =
+            {
+                new(0.72f, 0.48f, 0.32f),
+                new(0.48f, 0.27f, 0.17f),
+                new(0.82f, 0.62f, 0.46f),
+                new(0.34f, 0.18f, 0.12f)
+            };
+            Color[] hairs =
+            {
+                new(0.055f, 0.035f, 0.025f),
+                new(0.15f, 0.075f, 0.035f),
+                new(0.035f, 0.03f, 0.028f),
+                new(0.24f, 0.15f, 0.07f)
+            };
+
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null)
+            {
+                return;
+            }
+            Texture2D[] textures = Resources.LoadAll<Texture2D>(resourcePath);
+            foreach (Renderer visualRenderer in visual.GetComponentsInChildren<Renderer>(true))
+            {
+                Material[] sourceMaterials = visualRenderer.sharedMaterials;
+                Material[] styledMaterials = new Material[sourceMaterials.Length];
+                for (int index = 0; index < sourceMaterials.Length; index++)
+                {
+                    string sourceName = sourceMaterials[index] != null
+                        ? sourceMaterials[index].name
+                        : string.Empty;
+                    string sourceKey = sourceName.ToLowerInvariant();
+                    Material styled = new(shader)
+                    {
+                        name = $"Echo_Crowd_{styleIndex}_{sourceName}"
+                    };
+                    Texture2D diffuse = FindCharacterTexture(textures, sourceKey, "diffuse");
+                    if (diffuse != null)
+                    {
+                        styled.SetTexture("_BaseMap", diffuse);
+                    }
+                    Color tint = sourceKey.Contains("top", StringComparison.Ordinal)
+                        ? tops[styleIndex % tops.Length]
+                        : sourceKey.Contains("bottom", StringComparison.Ordinal)
+                            ? bottoms[styleIndex % bottoms.Length]
+                            : sourceKey.Contains("hair", StringComparison.Ordinal)
+                                ? hairs[styleIndex % hairs.Length]
+                                : sourceKey.Contains("body", StringComparison.Ordinal)
+                                    ? skins[styleIndex % skins.Length]
+                                    : sourceKey.Contains("shoe", StringComparison.Ordinal)
+                                        ? new Color(0.05f, 0.045f, 0.04f)
+                                        : Color.white;
+                    styled.SetColor("_BaseColor", tint);
+                    Texture2D normal = FindCharacterTexture(textures, sourceKey, "normal");
+                    if (normal != null)
+                    {
+                        styled.SetTexture("_BumpMap", normal);
+                        styled.EnableKeyword("_NORMALMAP");
+                    }
+                    styled.SetFloat(
+                        "_Smoothness",
+                        sourceKey.Contains("eye", StringComparison.Ordinal) ? 0.62f : 0.26f);
+                    styledMaterials[index] = styled;
+                }
+                visualRenderer.materials = styledMaterials;
+                visualRenderer.shadowCastingMode = ShadowCastingMode.On;
+                visualRenderer.receiveShadows = true;
+            }
+        }
+
+        private static void GroundTransformToSurface(Transform subject)
+        {
+            Physics.SyncTransforms();
+            RaycastHit[] hits = Physics.RaycastAll(
+                subject.position + Vector3.up * 2f,
+                Vector3.down,
+                4f,
+                Physics.DefaultRaycastLayers,
+                QueryTriggerInteraction.Ignore);
+            float bestGround = float.NegativeInfinity;
+            foreach (RaycastHit hit in hits)
+            {
+                if (hit.collider.transform.IsChildOf(subject) ||
+                    hit.point.y > subject.position.y + 0.65f)
+                {
+                    continue;
+                }
+                bestGround = Mathf.Max(bestGround, hit.point.y);
+            }
+            if (!float.IsNegativeInfinity(bestGround))
+            {
+                Vector3 grounded = subject.position;
+                grounded.y = bestGround;
+                subject.position = grounded;
             }
         }
 
@@ -1246,6 +1500,7 @@ namespace Echo.FreePrototype
             {
                 person.rotation = Quaternion.Euler(0f, walkPhase * 55f, 0f);
             }
+            GroundTransformToSurface(person);
         }
 
         private void CreateStreetLighting(Transform root)
@@ -1401,8 +1656,46 @@ namespace Echo.FreePrototype
                 new Vector3(-0.2f, 0.02f, -2.1f),
                 new Bounds(new Vector3(0f, 0f, 0f), new Vector3(8.8f, 2f, 6.8f)),
                 out bedroomPlayer);
+            EchoInteractionActionDirector actions =
+                bedroomRoot.gameObject.AddComponent<EchoInteractionActionDirector>();
+            actions.RegisterHandPickup(
+                "photograph",
+                bedroomPhotoGroup,
+                HumanBodyBones.RightHand,
+                new Vector3(-0.02f, 0.02f, 0.035f),
+                new Vector3(-8f, 35f, 0f),
+                1.2f,
+                1.8f,
+                1.15f);
+            actions.RegisterHandPickup(
+                "phone",
+                bedroomPhone,
+                HumanBodyBones.RightHand,
+                new Vector3(-0.04f, 0.15f, 0.025f),
+                new Vector3(-72f, 0f, 0f),
+                1.05f,
+                1.5f,
+                1f);
+            actions.RegisterHandPickup(
+                "mug",
+                bedroomMug,
+                HumanBodyBones.RightHand,
+                new Vector3(0f, 0.12f, 0.035f),
+                Vector3.zero,
+                1.05f,
+                1.35f,
+                1f);
+            actions.RegisterGroundedHandle(
+                "suitcase",
+                bedroomSuitcase,
+                0.22f,
+                6f,
+                1.2f,
+                0.9f,
+                1.1f);
+            actions.RegisterFocus("bed", bedroomRoot.Find("BedroomArt_Bed"));
             bedroomVignette = gameObject.AddComponent<EchoBedroomVignette>();
-            bedroomVignette.Configure(this, bedroomPlayer, bedroomController, bedroomInteractions);
+            bedroomVignette.Configure(this, bedroomPlayer, bedroomController, bedroomInteractions, actions);
         }
 
         private void CreateStreetGameplay()
@@ -1438,7 +1731,20 @@ namespace Echo.FreePrototype
                 },
                 streetPlayer,
                 streetController,
-                streetInteractions);
+                streetInteractions,
+                CreateStreetActionDirector());
+        }
+
+        private EchoInteractionActionDirector CreateStreetActionDirector()
+        {
+            EchoInteractionActionDirector actions =
+                streetRoot.gameObject.AddComponent<EchoInteractionActionDirector>();
+            // The waiting visitor turns to face Noor when she asks where they
+            // are going, so the conversation reads as a real exchange.
+            actions.RegisterNpcTurn("visitor", streetVisitor);
+            Transform routeMapCard = streetRoot.Find("StreetArt_RouteMapCard");
+            actions.RegisterFocus("route_map", routeMapCard);
+            return actions;
         }
 
         private void CreateCafeGameplay()
@@ -1474,7 +1780,33 @@ namespace Echo.FreePrototype
                 },
                 cafePlayer,
                 cafeController,
-                cafeInteractions);
+                cafeInteractions,
+                CreateCafeActionDirector());
+        }
+
+        private EchoInteractionActionDirector CreateCafeActionDirector()
+        {
+            EchoInteractionActionDirector actions =
+                cafeRoot.gameObject.AddComponent<EchoInteractionActionDirector>();
+            actions.RegisterHandPickup(
+                "sketchbook",
+                cafeSketchbook,
+                HumanBodyBones.RightHand,
+                new Vector3(-0.13f, 0.2f, 0.035f),
+                new Vector3(-68f, 0f, 0f),
+                1.25f,
+                1.7f,
+                1.15f);
+            actions.RegisterHandPickup(
+                "tip_jar",
+                cafeTipJar,
+                HumanBodyBones.RightHand,
+                new Vector3(0f, 0.13f, 0.035f),
+                Vector3.zero,
+                1.1f,
+                1.25f,
+                1.05f);
+            return actions;
         }
 
         private EchoThirdPersonController CreatePlayableCharacter(

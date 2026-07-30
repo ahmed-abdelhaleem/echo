@@ -36,6 +36,7 @@ namespace Echo.FreePrototype
             animationPlayback = playback;
             movementSpeed = speed;
             characterController = GetComponent<CharacterController>();
+            SnapToGround();
             startPosition = transform.position;
             startRotation = transform.rotation;
             acceptsInput = true;
@@ -136,6 +137,73 @@ namespace Echo.FreePrototype
             }
 
             animationPlayback?.SetLocomotion(Mathf.Clamp01(direction.magnitude));
+        }
+
+        private void SnapToGround()
+        {
+            Physics.SyncTransforms();
+            RaycastHit[] hits = Physics.RaycastAll(
+                transform.position + Vector3.up * 2f,
+                Vector3.down,
+                4f,
+                Physics.DefaultRaycastLayers,
+                QueryTriggerInteraction.Ignore);
+            float bestGround = float.NegativeInfinity;
+            foreach (RaycastHit hit in hits)
+            {
+                if (hit.collider.transform.IsChildOf(transform) ||
+                    hit.point.y > transform.position.y + 0.65f)
+                {
+                    continue;
+                }
+                bestGround = Mathf.Max(bestGround, hit.point.y);
+            }
+
+            // Runtime greybox colliders are removed at end-of-frame, while
+            // imported and primitive renderers remain the actual visible
+            // floor. Prefer the highest visible surface directly below the
+            // player so collider skin or hidden blockers cannot create a gap.
+            float visibleGround = float.NegativeInfinity;
+            Transform sceneRoot = transform.parent;
+            if (sceneRoot != null)
+            {
+                foreach (Renderer surface in sceneRoot.GetComponentsInChildren<Renderer>(true))
+                {
+                    if (surface.transform.IsChildOf(transform))
+                    {
+                        continue;
+                    }
+                    Bounds bounds = surface.bounds;
+                    Vector3 position = transform.position;
+                    if (position.x >= bounds.min.x && position.x <= bounds.max.x &&
+                        position.z >= bounds.min.z && position.z <= bounds.max.z &&
+                        bounds.max.y <= position.y + 0.65f)
+                    {
+                        visibleGround = Mathf.Max(visibleGround, bounds.max.y);
+                    }
+                }
+            }
+            if (!float.IsNegativeInfinity(visibleGround))
+            {
+                bestGround = visibleGround;
+            }
+            if (float.IsNegativeInfinity(bestGround))
+            {
+                return;
+            }
+
+            bool wasEnabled = characterController != null && characterController.enabled;
+            if (characterController != null)
+            {
+                characterController.enabled = false;
+            }
+            Vector3 grounded = transform.position;
+            grounded.y = bestGround - 0.025f;
+            transform.position = grounded;
+            if (characterController != null)
+            {
+                characterController.enabled = wasEnabled;
+            }
         }
 
         private Vector2 ReadMovement(float deltaTime)

@@ -38,6 +38,7 @@ namespace Echo.FreePrototype
         private EchoPlayableVignetteDefinition definition;
         private Transform player;
         private EchoThirdPersonController controller;
+        private EchoInteractionActionDirector actionDirector;
         private EchoInteractable nearbyInteraction;
         private int stage;
         private bool isActive;
@@ -66,12 +67,15 @@ namespace Echo.FreePrototype
             EchoPlayableVignetteDefinition vignetteDefinition,
             Transform playerTransform,
             EchoThirdPersonController playerController,
-            IEnumerable<EchoInteractable> sceneInteractions)
+            IEnumerable<EchoInteractable> sceneInteractions,
+            EchoInteractionActionDirector interactionActions = null)
         {
             bootstrap = worldBootstrap;
             definition = vignetteDefinition;
             player = playerTransform;
             controller = playerController;
+            actionDirector = interactionActions;
+            actionDirector?.ConfigurePlayer(playerTransform);
             interactions.Clear();
             interactions.AddRange(sceneInteractions);
             RestartVignette();
@@ -99,6 +103,11 @@ namespace Echo.FreePrototype
             {
                 ResolveChoice(honest);
             }
+        }
+
+        public void RestartForTest()
+        {
+            RestartVignette();
         }
 
         private void Update()
@@ -172,6 +181,7 @@ namespace Echo.FreePrototype
         {
             observation = interaction.Observation;
             observationTimer = 6f;
+            actionDirector?.Play(interaction.Id);
             if (interaction.Id == definition.FirstInteractionId && stage == 0)
             {
                 stage = 1;
@@ -205,6 +215,7 @@ namespace Echo.FreePrototype
             tutorialTimer = 8f;
             nearbyInteraction = null;
             bootstrap?.ResetSceneChoiceMood(definition?.SceneId);
+            actionDirector?.ResetActions();
             controller?.ResetToStart();
             controller?.SetInputEnabled(isActive);
         }
