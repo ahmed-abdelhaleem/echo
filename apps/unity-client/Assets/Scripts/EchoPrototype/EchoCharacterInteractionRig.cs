@@ -25,6 +25,15 @@ namespace Echo.FreePrototype
         /// bone transforms already hold the solved pose for this frame.
         /// </summary>
         void AfterGraphEvaluate();
+
+        /// <summary>
+        /// True when this rig is genuinely grounding the character's feet with IK, so
+        /// the character must not also apply its legacy visual grounding. False while
+        /// the rig is still calibrating, or when foot IK has been disabled because it
+        /// could not be trusted — in which case the legacy path has to keep running or
+        /// nothing plants the character at all.
+        /// </summary>
+        bool OwnsGrounding { get; }
     }
 
     /// <summary>
@@ -93,6 +102,12 @@ namespace Echo.FreePrototype
         private const int RightIndex = 0;
         private const int LeftIndex = 1;
         private const int GroundProbeBufferSize = 8;
+        /// <summary>Below this an ankle-to-sole measurement is implausible, so it is ignored.</summary>
+        private const float MinimumSoleOffsetMeters = 0.02f;
+
+        /// <summary>Above this the measurement caught a bad pose or scale, so it is ignored.</summary>
+        private const float MaximumSoleOffsetMeters = 0.2f;
+
         private const float PelvisDropMetersPerSecond = 0.9f;
         private const float ChestGazeShare = 0.45f;
 
@@ -126,6 +141,12 @@ namespace Echo.FreePrototype
         private float lookWeight;
         private float appliedPelvisDrop;
         private bool footGroundingEnabled = true;
+
+        /// <summary>Set once the ankle-to-sole distance has been measured from the posed mesh.</summary>
+        private bool soleCalibrated;
+
+        /// <inheritdoc />
+        public bool OwnsGrounding => IsBuilt && footGroundingEnabled && soleCalibrated;
 
         /// <summary>
         /// Raised at the very end of <see cref="AfterGraphEvaluate"/>, once the solved
@@ -334,8 +355,82 @@ namespace Echo.FreePrototype
             Debug.Log(
                 $"[Echo Rig] Built '{rigRoot.name}' on {animator.name} " +
                 $"({Calibration.characterId}, {Calibration.heightMeters:0.00}m, " +
-                $"reach {Calibration.reachMeters:0.00}m).");
+                $"reach {Calibration.reachMeters:0.00}m, " +
+                $"sole {Calibration.soleOffsetMeters:0.000}m).");
             return true;
+        }
+
+        /// <summary>
+        /// Replaces the authored sole offset with the character's real ankle-to-sole
+        /// distance, measured once from the posed mesh.
+        /// <para>
+        /// The offset says how far the foot BONE sits above the ground when the sole
+        /// is planted. It differs per character and per import scale, so a guessed
+        /// constant buries or floats the feet by exactly the difference — and the
+        /// whole ground-contact budget is only a couple of centimetres, so a guess
+        /// that is "about right" still reads as sunken feet.
+        /// </para>
+        /// <para>
+        /// This must run AFTER the first graph evaluation, never at build time: until
+        /// the graph has evaluated once, the skeleton is still in its imported pose
+        /// while the skinned bounds describe something else, and the two do not form a
+        /// measurable pair. It uses the LOWER of the two feet, which is the planted
+        /// one, so a mid-stride first frame does not inflate the result. The authored
+        /// value stays as the fallback whenever the measurement is implausible.
+        /// </para>
+        /// </summary>
+        private void CalibrateSoleOffsetFromPosedMesh()
+        {
+            soleCalibrated = true;
+
+            if (footBones.Length == 0)
+            {
+                return;
+            }
+
+            float plantedFootHeight = float.PositiveInfinity;
+            foreach (Transform footBone in footBones)
+            {
+                if (footBone != null)
+                {
+                    plantedFootHeight = Mathf.Min(plantedFootHeight, footBone.position.y);
+                }
+            }
+
+            Renderer[] renderers = animator.GetComponentsInChildren<Renderer>(true);
+            float lowestPoint = float.PositiveInfinity;
+            foreach (Renderer part in renderers)
+            {
+                lowestPoint = Mathf.Min(lowestPoint, part.bounds.min.y);
+            }
+
+            if (float.IsPositiveInfinity(plantedFootHeight) || float.IsPositiveInfinity(lowestPoint))
+            {
+                return;
+            }
+
+            float measured = plantedFootHeight - lowestPoint;
+            if (measured > MinimumSoleOffsetMeters && measured < MaximumSoleOffsetMeters)
+            {
+                Debug.Log(
+                    $"[Echo Rig] Sole offset calibrated to {measured:0.000}m " +
+                    $"(authored {Calibration.soleOffsetMeters:0.000}m).");
+                Calibration.soleOffsetMeters = measured;
+                return;
+            }
+
+            // Loud on purpose. An implausible ankle-to-sole distance means the humanoid
+            // avatar's foot bone is not where an ankle is — typically Unity's automatic
+            // Mixamo mapping picking the toe base — and foot IK cannot be trusted until
+            // that is resolved against the avatar in the editor. Keeping the authored
+            // fallback silently would present unvalidated foot placement as working.
+            Debug.LogWarning(
+                $"[Echo Rig] Sole offset measured {measured:0.000}m on " +
+                $"'{Calibration.characterId}', outside the plausible " +
+                $"{MinimumSoleOffsetMeters:0.00}–{MaximumSoleOffsetMeters:0.00}m range. " +
+                "Foot IK stays disabled and the character keeps legacy visual grounding. " +
+                "Check the humanoid avatar's foot bone mapping.");
+            footGroundingEnabled = false;
         }
 
         /// <summary>
@@ -442,6 +537,11 @@ namespace Echo.FreePrototype
             if (!IsBuilt)
             {
                 return;
+            }
+
+            if (!soleCalibrated)
+            {
+                CalibrateSoleOffsetFromPosedMesh();
             }
 
             MeasureFootError();

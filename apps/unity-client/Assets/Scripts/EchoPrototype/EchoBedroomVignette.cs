@@ -16,6 +16,7 @@ namespace Echo.FreePrototype
         private Transform player;
         private EchoThirdPersonController controller;
         private EchoInteractionActionDirector actionDirector;
+        private EchoInteractionCoordinator coordinator;
         private EchoInteractable nearbyInteraction;
         private int stage;
         private bool isActive;
@@ -44,12 +45,14 @@ namespace Echo.FreePrototype
             Transform playerTransform,
             EchoThirdPersonController playerController,
             IEnumerable<EchoInteractable> sceneInteractions,
-            EchoInteractionActionDirector interactionActions = null)
+            EchoInteractionActionDirector interactionActions = null,
+            EchoInteractionCoordinator interactionCoordinator = null)
         {
             bootstrap = worldBootstrap;
             player = playerTransform;
             controller = playerController;
             actionDirector = interactionActions;
+            coordinator = interactionCoordinator;
             actionDirector?.ConfigurePlayer(playerTransform);
             interactions.Clear();
             interactions.AddRange(sceneInteractions);
@@ -156,7 +159,20 @@ namespace Echo.FreePrototype
         {
             observation = interaction.Observation;
             observationTimer = 6f;
-            actionDirector?.Play(interaction.Id);
+
+            // Hero props that have an authored interaction profile go through the
+            // coordinator, which moves the hand to the stationary prop and only
+            // then attaches it. Everything else keeps the older director, so the
+            // migration is per-prop rather than a single risky cutover.
+            if (coordinator != null && coordinator.IsRegistered(interaction.Id))
+            {
+                coordinator.TryBegin(interaction.Id);
+            }
+            else
+            {
+                actionDirector?.Play(interaction.Id);
+            }
+
             if (interaction.Id == "photograph" && stage == 0)
             {
                 stage = 1;
@@ -191,6 +207,9 @@ namespace Echo.FreePrototype
             nearbyInteraction = null;
             bootstrap?.ResetBedroomChoiceMood();
             actionDirector?.ResetActions();
+            // A restart mid-interaction would otherwise strand a prop in mid-air
+            // with the arm still weighted; CancelAll puts both back to rest.
+            coordinator?.CancelAll();
             controller?.ResetToStart();
             controller?.SetInputEnabled(isActive);
         }

@@ -145,25 +145,39 @@ namespace Echo.FreePrototype
             targetLocomotion = Mathf.Clamp01(normalizedSpeed);
         }
 
-        private void LateUpdate()
+        /// <summary>
+        /// Advances locomotion, graph evaluation and fallback grounding by one
+        /// deterministic frame step.
+        /// </summary>
+        /// <param name="deltaTime">Seconds to advance by.</param>
+        public void Tick(float deltaTime)
         {
-            if (!IsPlayableSetValid())
+            float frameDelta = Mathf.Max(0f, deltaTime);
+
+            if (IsPlayableSetValid())
             {
-                return;
+                AdvanceLocomotion(frameDelta);
+                WrapLoopingClips();
+
+                rigHook?.BeforeGraphEvaluate(frameDelta);
+                graph.Evaluate(frameDelta);
+                rigHook?.AfterGraphEvaluate();
             }
 
-            float deltaTime = Time.deltaTime;
-            AdvanceLocomotion(deltaTime);
-            WrapLoopingClips();
-
-            rigHook?.BeforeGraphEvaluate(deltaTime);
-            graph.Evaluate(deltaTime);
-            rigHook?.AfterGraphEvaluate();
-
-            if (rigHook == null)
+            // Deliberately outside the graph-validity guard. A character whose clip
+            // failed to load still has a visible mesh that must meet the floor, and
+            // this is how it behaved before the graph moved to manual evaluation.
+            // A rig only takes grounding over once its foot IK is actually calibrated
+            // and enabled; until then this must keep running or nothing plants anyone.
+            if (rigHook == null || !rigHook.OwnsGrounding)
             {
                 ApplyLegacyVisualGrounding();
             }
+        }
+
+        private void LateUpdate()
+        {
+            Tick(Time.deltaTime);
         }
 
         private bool IsPlayableSetValid()

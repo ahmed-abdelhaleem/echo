@@ -1,3 +1,5 @@
+- 2026-08-04 | Copilot CLI | Used pnpm-lock.yaml to pin loose semver in tools/content-validator/package.json (ajv → 8.20.0). Files: docs/13_Agent_Change_Log.md, tools/content-validator/package.json. Escalation: none.
+
 # 13 — Agent Change Log
 
 > **Living log of changes made by AI agents.** It is the fast way for the next agent (or human) to see *what just changed* and *what is queued next* without re-reading every doc or the full git history. It complements — does not replace — git history and the task tracker.
@@ -27,15 +29,50 @@ This rule is also stated in `AGENTS.md` and `07_AI_Agent_Implementation_Guide`; 
 
 > A single reference to the next change. Replace it when you pick up the next thing.
 
-- Run an external first-time-player/art-direction/accessibility/youth-safe review
-  of the connected Bedroom → Street → Café build, concentrating on crowd
-  silhouette variety, rigged-hand prop poses, and foot contact; use the findings
-  to revise the reference kit before producing the next Apartment-family
-  vignette.
+- Wire the six hero props in `EchoWorldBootstrap` onto `EchoInteractionCoordinator`
+  (replacing the `EchoInteractionActionDirector` tweens for those props), add the
+  `EchoInteractionLab` scene and the `Echo.Editor.EchoInteractionCapture` entry
+  point that `make unity-capture-interactions` already calls, and add play-mode
+  coverage for the acceptance gates in `15_Interaction_Benchmark`.
 
 ---
 
 ## Change log
+
+### 2026-07-30 · Claude · Reusable interaction framework (compiles; not yet wired in)
+- Replaced the tween-based prop handling with an archetype framework: hand moves
+  to the stationary prop, prop attaches at contact and is then a strict function
+  of the palm (`propWorldPose = palmWorldPose × inverse(gripPrimaryLocalPose)`),
+  detach only on restored support contact. Phase progression goes through
+  `IEchoContactSignal` so authored `AnimationEvent`s can replace timings without
+  touching the state machine.
+- Split two constraints that had been conflated: `staysSupported` (tip jar, never
+  attaches) vs `groundedPivot` (suitcase, carried by the handle with its base
+  pinned). `Validate` rejects both set at once.
+- `EchoMixamoCharacter` now evaluates its `PlayableGraph` manually so the rig can
+  layer in via `RigBuilder.Build(PlayableGraph)` and solve *after* locomotion in
+  the same frame. Legacy renderer grounding is retained for un-rigged NPCs and
+  deliberately runs outside the graph-validity guard.
+- **Dependency `com.unity.animation.rigging` is 1.4.1, not the planned 1.4.0.**
+  1.4.0 does not compile on Unity 6000.5.4f1: it calls the deprecated
+  `Object.GetInstanceID()`, which is an error here. 1.4.1 guards that behind
+  `#if UNITY_6000_3_OR_NEWER`. The registry's `unity: 6000.0` is a floor, not a
+  compatibility guarantee.
+- **Not yet wired into the game.** `EchoInteractionActionDirector` still drives
+  all six props; the new framework compiles and is unused. `make
+  unity-capture-interactions` is likewise not yet functional — its Editor entry
+  point is not written. See *Next in pipeline*.
+- Verified: headless compile clean (0 errors, 0 warnings in our assemblies);
+  `make unity-test` passes. Not verified: `make lint` / `make test` (the local
+  `flutter` shim is unset, pre-existing).
+- Files/docs: `apps/unity-client/Assets/Scripts/EchoPrototype/{EchoInteractionProfile,EchoHeroProp,EchoInteractionStation,EchoCharacterInteractionRig,EchoInteractionCoordinator,EchoInteractionCamera,EchoMixamoCharacter}.cs`,
+  `apps/unity-client/Assets/Resources/Config/interaction_profiles.json`,
+  `apps/unity-client/Packages/manifest.json`,
+  `apps/unity-client/tools/capture/encode_interaction_capture.py`, `Makefile`,
+  `docs/15_Interaction_Benchmark.md`, `docs/00_README.md`.
+- Flags: **human-review-required** — new top-level dependency (escalation #1),
+  and character/prop animation + foot-contact behaviour change. No schema
+  migration, auth, trait-scoring, classifier, billing, or public-contract change.
 
 ### 2026-07-28 · Codex · Restored slow hand-relative prop interactions
 - Corrected the turn-only regression: photograph, phone, mug, sketchbook, and

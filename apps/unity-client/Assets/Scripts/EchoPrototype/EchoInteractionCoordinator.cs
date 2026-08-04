@@ -799,7 +799,11 @@ namespace Echo.FreePrototype
             Unsubscribe();
         }
 
-        private void Update()
+        /// <summary>
+        /// Advances the interaction machine by one frame delta.
+        /// </summary>
+        /// <param name="deltaTime">Seconds to advance by.</param>
+        public void Tick(float deltaTime)
         {
             if (State == EchoInteractionState.Idle)
             {
@@ -815,14 +819,14 @@ namespace Echo.FreePrototype
                 return;
             }
 
-            float deltaTime = Time.deltaTime;
-            phaseElapsed += deltaTime;
-            contactSignal.Tick(deltaTime);
+            float clampedDeltaTime = Mathf.Max(0f, deltaTime);
+            phaseElapsed += clampedDeltaTime;
+            contactSignal.Tick(clampedDeltaTime);
 
             switch (State)
             {
                 case EchoInteractionState.Align:
-                    TickAlign(deltaTime);
+                    TickAlign(clampedDeltaTime);
                     break;
                 case EchoInteractionState.Reach:
                     TickReach();
@@ -852,6 +856,11 @@ namespace Echo.FreePrototype
 
             PhaseProgress = ComputePhaseProgress();
             previousRootPosition = characterRoot.position;
+        }
+
+        private void Update()
+        {
+            Tick(Time.deltaTime);
         }
 
         /// <summary>

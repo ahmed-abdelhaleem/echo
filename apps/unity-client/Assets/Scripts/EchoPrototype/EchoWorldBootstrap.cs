@@ -1694,8 +1694,92 @@ namespace Echo.FreePrototype
                 0.9f,
                 1.1f);
             actions.RegisterFocus("bed", bedroomRoot.Find("BedroomArt_Bed"));
+
+            EchoInteractionCoordinator coordinator = CreateBedroomInteractionCoordinator();
+
             bedroomVignette = gameObject.AddComponent<EchoBedroomVignette>();
-            bedroomVignette.Configure(this, bedroomPlayer, bedroomController, bedroomInteractions, actions);
+            bedroomVignette.Configure(
+                this,
+                bedroomPlayer,
+                bedroomController,
+                bedroomInteractions,
+                actions,
+                coordinator);
+        }
+
+        /// <summary>
+        /// Builds the interaction rig on the playable character and puts the bedroom's
+        /// hero props onto the profile-driven coordinator. Any prop that fails to
+        /// configure simply stays on the older <see cref="EchoInteractionActionDirector"/>
+        /// path, so a missing profile degrades to the previous behaviour instead of
+        /// leaving an interaction dead.
+        /// </summary>
+        /// <returns>The configured coordinator, or null when no rig could be built.</returns>
+        private EchoInteractionCoordinator CreateBedroomInteractionCoordinator()
+        {
+            EchoMixamoCharacter playback = bedroomPlayer.GetComponent<EchoMixamoCharacter>();
+            Animator animator = bedroomPlayer.GetComponentInChildren<Animator>();
+            if (playback == null || animator == null || !animator.isHuman)
+            {
+                Debug.Log(
+                    "[Echo Interaction] No humanoid rig available for Noor; hero props stay on " +
+                    "the legacy action director.");
+                return null;
+            }
+
+            EchoCharacterInteractionRig rig =
+                bedroomPlayer.gameObject.AddComponent<EchoCharacterInteractionRig>();
+            if (!rig.Build(animator, playback, EchoCharacterInteractionRig.DefaultCalibration("Noor")))
+            {
+                Destroy(rig);
+                return null;
+            }
+
+            EchoInteractionCoordinator coordinator =
+                bedroomRoot.gameObject.AddComponent<EchoInteractionCoordinator>();
+            coordinator.Configure(rig, bedroomPlayer, bedroomController, null);
+
+            RegisterHeroProp(coordinator, "photograph", bedroomPhotoGroup);
+            RegisterHeroProp(coordinator, "phone", bedroomPhone);
+            RegisterHeroProp(coordinator, "mug", bedroomMug);
+            RegisterHeroProp(coordinator, "suitcase", bedroomSuitcase);
+            return coordinator;
+        }
+
+        /// <summary>
+        /// Attaches the profile-driven components to one prop and registers it.
+        /// </summary>
+        /// <param name="coordinator">The scene's interaction coordinator.</param>
+        /// <param name="interactionId">Profile id, e.g. "photograph".</param>
+        /// <param name="prop">The prop transform, or null when the scene omitted it.</param>
+        private static void RegisterHeroProp(
+            EchoInteractionCoordinator coordinator,
+            string interactionId,
+            Transform prop)
+        {
+            if (prop == null)
+            {
+                return;
+            }
+
+            EchoInteractionProfile profile = EchoInteractionProfileCatalog.Find(interactionId);
+            if (profile == null)
+            {
+                Debug.LogError(
+                    $"[Echo Interaction] No profile for '{interactionId}'; it will fall back to " +
+                    "the legacy action director.");
+                return;
+            }
+
+            EchoHeroProp heroProp = prop.gameObject.AddComponent<EchoHeroProp>();
+            heroProp.Configure(profile);
+
+            EchoInteractionStation station =
+                new GameObject($"{prop.name}_Station").AddComponent<EchoInteractionStation>();
+            station.transform.SetParent(prop.parent, false);
+            station.Configure(profile, prop);
+
+            coordinator.Register(interactionId, heroProp, station);
         }
 
         private void CreateStreetGameplay()
